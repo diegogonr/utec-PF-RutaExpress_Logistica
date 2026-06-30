@@ -130,7 +130,7 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 - Microservicio de Liquidación (.NET 8 / Java en Azure AKS)
 - Integración con Event Store para estados de pedido
 - Reglas de negocio de penalidades y bonificaciones (reemplaza Excel VBA)
-- API de conciliación para integración con ERP (SAP/ABAP)
+- API de conciliación para integración con ERP on premises (tecnología específica del ERP a confirmar)
 - Portal de conciliación para clientes (reemplaza proceso manual 23 días)
 - Alertas automáticas ante diferencias
 
@@ -138,7 +138,7 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 |---|---|---|
 | Azure AKS + Azure SQL | USD 1,000/mes | USD 6,000 (6m) |
 | Equipo desarrollo + analista (6 personas) | USD 28,000/mes | USD 168,000 (6m) |
-| Integración ERP (consultoría SAP) | USD 40,000 one-time | USD 40,000 |
+| Integración ERP (consultoría de integración) | USD 40,000 one-time | USD 40,000 |
 | Testing y validación financiera | USD 15,000 one-time | USD 15,000 |
 | **TOTAL INI-05** | | **USD 229,000** |
 

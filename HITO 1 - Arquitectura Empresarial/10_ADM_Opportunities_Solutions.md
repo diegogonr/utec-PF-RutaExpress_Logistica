@@ -48,7 +48,7 @@ Identificar y consolidar las brechas (gaps) entre el estado AS IS y el TO BE en 
 
 | ID Gap | Descripción | Impacto | Dominio |
 |---|---|---|---|
-| GT-01 | WMS sobre SQL Server 2016 on premises (fin de soporte extendido) | Crítico - vulnerabilidades de seguridad, sin escalabilidad | Almacén |
+| GT-01 | WMS sobre SQL Server on premises sin capacidad de escalado ni alta disponibilidad | Crítico - sin auto-scaling, degradación en campañas, vulnerabilidades en versión antigua | Almacén |
 | GT-02 | Sin IaC para infraestructura actual | Alto - cambios manuales, no reproducibles, riesgo en campaña | Todos |
 | GT-03 | Sin seguridad Zero Trust ni Security by Design | Alto - APIs expuestas, datos personales en riesgo | Seguridad |
 | GT-04 | Sin conexión privada entre nubes (tráfico por Internet público) | Medio - latencia variable, costos de egress, riesgo seguridad | Multinube |

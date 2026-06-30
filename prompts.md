@@ -112,11 +112,17 @@ Estructura de costos
 ¿Cuáles son las entidadesprincipales y cómo se relacionan?
 
 6. Arq. Apl. - Mapa Portafolio Aplicaciones
-Vista del inventario completo de aplicaciones
-●
-Clasificadas por dominio, capacidad o unidad de negocio
-●
-Permite identificar redundancias, obsolescencia y riesgos
+    Vista del inventario completo de aplicaciones clasificadas por CAPA ARQUITECTÓNICA:
+    · Transversal (Seguridad, Observabilidad, IaC, Bus de Eventos)
+    · Canales (portales, apps de campo)
+    · Integración (API Gateway, mensajería, conectores)
+    · Core (sistemas operacionales centrales)
+    · Data (analítica, ML, eventos, IoT)
+    · Soporte (back-office, operaciones internas)
+    · CRM / Atención al Cliente
+    · ERP / Finanzas
+    Permite identificar redundancias, obsolescencia y riesgos por capa.
+    IMPORTANTE: distinguir datos confirmados en el caso (✅) de suposiciones técnicas (⚠️).
 
 7.Arq. Tec. - Mapa de Infraestructura
 
@@ -129,10 +135,40 @@ Es el modelo del “cómofluye el valor” a través del negocio.
 
 10. ADM - Fase B, C y D (AS IS y TO BE) con cadena de valor
 
-    Arq Negocio 
-    Arq  datos
-    Arq aplicaciones
-    Arq Tecnologia
+    ESTRUCTURA DEL DOCUMENTO:
+
+    Value Stream (cadena de valor) al inicio: F1 Recepción → F2 Preparación → F3 Despacho → F4 Entrega → F5 Excepciones → F6 Liquidación
+
+    Por cada fase del Value Stream, documentar AS IS y TO BE:
+
+    AS IS (por fase):
+      - Arq. Negocio:
+          · Puntos de dolor
+          · Roles
+      - Arq. Datos:
+          · Entidades de datos de la fase
+      - Arq. Aplicaciones:
+          · Aplicaciones involucradas en la fase
+      - Arq. Tecnológica:
+          · Infraestructura que soporta la fase
+
+    TO BE (por fase):
+      - Arq. Negocio:
+          · Objetivos
+          · Roles (cambios)
+      - Arq. Datos:
+          · Entidades de datos (cambios)
+      - Arq. Aplicaciones — separado en tres secciones:
+          · NUEVO: aplicaciones nuevas a crear
+          · MODIFICAR: aplicaciones existentes a cambiar
+          · ELIMINAR: aplicaciones a deprecar
+      - Arq. Tecnológica:
+          · Infraestructura (misma o nueva)
+
+    Al final del documento:
+      - GAPS / BRECHAS AS IS → TO BE
+          · Por fase (Negocio, Datos, Aplicaciones, Tecnología)
+          · Transversales (aplican a todas las fases)
 
 
 11. ADM - E. Opportunities and Solutions

@@ -50,9 +50,9 @@ RutaExpress opera en una arquitectura multinube real pero sin estrategia unifica
 │  ┌─────────────────────────────────────────▼────────────────┐  │  │  legacy CSV) │  │   │
 │  │                          GCP                              │  │  └───────────────┘  │   │
 │  │  ┌──────────────────────────────────────────────────┐    │  └─────────────────────┘   │
-│  │  │  Optimizador de Rutas (batch - GCE / GKE)        │    │                            │
-│  │  │  Analítica (batch semanal - BigQuery + Dataflow) │    │  ┌─────────────────────┐   │
-│  │  │  ML Modelos de Rutas (Vertex AI)                 │    │  │  SAAS EXTERNOS      │   │
+│  │  │  Optimizador de Rutas (batch - GCP)              │    │                            │
+│  │  │  Analítica (batch semanal - GCP)                 │    │  ┌─────────────────────┐   │
+│  │  │  ML / Algoritmo de Rutas (GCP)                   │    │  │  SAAS EXTERNOS      │   │
 │  │  └──────────────────────────────────────────────────┘    │  │  • Portal Clientes  │   │
 │  └───────────────────────────────────────────────────────────┘  │  • Portal Tracking  │   │
 │                                                                   │  • CRM Atención     │   │
@@ -119,9 +119,10 @@ RutaExpress opera en una arquitectura multinube real pero sin estrategia unifica
 │                  │                                               │                         │
 │  ┌───────────────▼───────────────────────────────────────────────▼────────────────────┐   │
 │  │                              GCP                                                    │   │
-│  │  Optimizador Rutas (GKE) - TIEMPO REAL  │  BigQuery (Data Lakehouse Medallion)    │   │
-│  │  Cloud Pub/Sub para eventos de tráfico  │  Looker / Data Studio (dashboards)      │   │
-│  │  Vertex AI (ML modelos predictivos)     │  Dataflow (ETL streaming)               │   │
+│  │  Optimizador Rutas (GKE) - TIEMPO REAL  │  BigQuery (Data Lakehouse)              │   │
+│  │  Cloud Pub/Sub para eventos de tráfico  │  Herramienta BI / dashboards (GCP)      │   │
+│  │  ⚠️ ML predictivo (tecnología a definir │  Dataflow (ETL streaming)               │   │
+│  │  en diseño de solución - HITO 2)        │                                         │   │
 │  └────────────────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                            │
 │  ┌────────────────────────────────────────────────────────────────────────────────────┐   │
@@ -174,7 +175,7 @@ RutaExpress opera en una arquitectura multinube real pero sin estrategia unifica
 |---|---|---|
 | Azure | AKS, API Management, Event Hub, AD | Orquestación de pedidos, TMS, integraciones, identidad |
 | AWS | ECS, DynamoDB, S3, Kinesis, IoT Core | App conductores, evidencias, tracking, IoT temperatura |
-| GCP | BigQuery, Vertex AI, GKE, Pub/Sub | Analítica, ML, optimización de rutas en tiempo real |
+| GCP | BigQuery, GKE, Pub/Sub | Analítica, ML, optimización de rutas en tiempo real |
 | On Premises | ERP, WMS legacy | Transición hasta migración completa |
 
 ---
