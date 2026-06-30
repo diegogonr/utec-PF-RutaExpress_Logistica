@@ -7,6 +7,24 @@
 
 Inventario completo de las aplicaciones de RutaExpress, clasificadas por **capa arquitectónica**. Permite identificar redundancias, obsolescencia, riesgos tecnológicos y brechas de capacidad en cada capa del esquema de portafolio.
 
+### Nomenclatura oficial — Portales B2B
+
+| ID | Nombre oficial | Función | Fase del caso |
+|---|---|---|---|
+| APP-03 | **Portal B2B (Carga CSV/Excel)** | Ingreso manual de órdenes por clientes medianos | Fase 1 — Recepción |
+| APP-18 | **Portal B2B (Trazabilidad)** | Visibilidad de estados y tracking para clientes empresariales | Fases 2, 4 y 5 |
+
+> En el caso de negocio (Caso 6a) ambos portales aparecen como un único “portal de clientes SaaS”. En el portafolio se descomponen en dos aplicaciones porque cumplen funciones distintas: **carga de órdenes** vs. **trazabilidad**. No usar el término genérico “Portal Clientes” sin especificar cuál.
+
+### Nomenclatura oficial — WMS
+
+| ID | Nombre oficial AS IS | Nombre oficial TO BE | Función |
+|---|---|---|---|
+| APP-06 | **WMS Principal (On Premises)** | **WMS Cloud** (reemplaza APP-06) | WMS central del CD principal; SQL Server on premises |
+| APP-07 | **WMS Satélite (On Premises local)** | Absorbido por **WMS Cloud** (modo degradado local) | WMS local en almacenes pequeños; sync horaria con APP-06 |
+
+> No usar indistintamente “WMS on premises”, “WMS central” o “WMS” en tablas de aplicaciones: referirse siempre al nombre oficial con ID (**APP-06** / **APP-07**). “WMS Cloud” es el reemplazo TO BE a partir de F2.
+
 ---
 
 ## 2. Mapa Visual por Capas Arquitectónicas
@@ -23,9 +41,9 @@ Inventario completo de las aplicaciones de RutaExpress, clasificadas por **capa 
 │  CAPA CANALES (Puntos de contacto con clientes y conductores)                                │
 │  ┌─────────────────────┐  ┌─────────────────────┐  ┌───────────────────┐  ┌─────────────┐  │
 │  │  APP-03             │  │  APP-18 ⚠️          │  │  APP-19           │  │  APP-15 ⚠️ │  │
-│  │  Portal Clientes    │  │  Portal Trazabilidad │  │  Portal Tracking  │  │  App        │  │
-│  │  B2B (SaaS)         │  │  Clientes B2B (SaaS) │  │  Destinatarios    │  │  Conductores│  │
-│  │  Carga CSV/Excel    │  │  Estados inconsist.  │  │  (PWA/SaaS)       │  │  (AWS)  ⚠️ │  │
+│  │  Portal B2B        │  │  Portal B2B         │  │  Portal Tracking  │  │  App        │  │
+│  │  (Carga CSV/Excel) │  │  (Trazabilidad)     │  │  Destinatarios    │  │  Conductores│  │
+│  │  (SaaS) ⚠️         │  │  (SaaS) ⚠️          │  │  (SaaS)           │  │  (AWS) ⚠️  │  │
 │  └─────────────────────┘  └─────────────────────┘  └───────────────────┘  └─────────────┘  │
 ├──────────────────────────────────────────────────────────────────────────────────────────────┤
 │  CAPA INTEGRACIÓN (APIs · Bus de Eventos · Mensajería · Conectores)                         │
@@ -110,14 +128,14 @@ Leyenda:  ⚠️ = Problemas críticos / riesgos     🗑️ = Candidato a depre
 
 | ID | Aplicación | Tipo | Plataforma | Estado | Criticidad | Observaciones |
 |---|---|---|---|---|---|---|
-| APP-03 | Portal Clientes B2B (carga manual) | SaaS externo | Nube proveedor | Activo | Media | Carga CSV/Excel — deuda técnica a eliminar |
-| APP-18 | Portal Trazabilidad Clientes B2B | SaaS externo | Nube proveedor | ⚠️ Activo | Alta | Muestra estados inconsistentes por eventos fuera de orden |
+| APP-03 | Portal B2B (Carga CSV/Excel) | SaaS externo | Nube proveedor | Activo | Media | Carga manual CSV/Excel — deuda técnica a eliminar |
+| APP-18 | Portal B2B (Trazabilidad) | SaaS externo | Nube proveedor | ⚠️ Activo | Alta | Muestra estados inconsistentes por eventos fuera de orden |
 | APP-19 | Portal Tracking Destinatarios | Web/PWA | SaaS | Activo | Media | Seguimiento para destinatarios finales |
 | APP-15 | App de Conductores | Custom Mobile | AWS (ECS/EC2) | ⚠️ Activo | Crítica | Android/iOS · Offline frágil · 1,200 firmas perdidas |
 
 **Brechas de Canales:**
 - No existe canal de comunicación proactiva al destinatario (WhatsApp/SMS antes de la entrega)
-- APP-18 y APP-19 muestran datos de fuentes distintas → inconsistencia percibida por el cliente
+- APP-18 (Portal B2B de Trazabilidad) y APP-19 muestran datos de fuentes distintas → inconsistencia percibida por el cliente
 
 ---
 
@@ -143,8 +161,8 @@ Leyenda:  ⚠️ = Problemas críticos / riesgos     🗑️ = Candidato a depre
 |---|---|---|---|---|---|---|
 | APP-02 | Orquestador de Pedidos | Custom (tecnología no especificada en el caso) | Azure AKS | ⚠️ Activo | Crítica | Sin backpressure · Cola descontrolada ante degradación WMS |
 | APP-05 | Validador de Pedidos | Custom (tecnología no especificada en el caso) | Azure AKS | ⚠️ Activo | Alta | Falla deduplicación cuando ID externo cambia |
-| APP-06 | WMS Principal | On Premises · SQL Server (✅ caso) | On Premises | ⚠️ Activo | Crítica | Se degrada en campaña (6h Cyber Days) · Bloqueo de tablas |
-| APP-07 | WMS Satélite (almacenes) | On Premises local (✅ caso) | On Premises local | ⚠️ Activo | Alta | Sync horaria → 4,900 movimientos en conflicto |
+| APP-06 | WMS Principal (On Premises) | On Premises · SQL Server (✅ caso) | On Premises | ⚠️ Activo | Crítica | Se degrada en campaña (6h Cyber Days) · Bloqueo de tablas |
+| APP-07 | WMS Satélite (On Premises local) | On Premises local (✅ caso) | On Premises local | ⚠️ Activo | Alta | Sync horaria → 4,900 movimientos en conflicto |
 | APP-10 | App Handhelds (picking) | ⚠️ Suposición: dispositivo Android o similar | Wi-Fi interno (✅ caso) | Activo | Alta | Operación de picking en almacén |
 | APP-11 | TMS (Transportation Mgmt) | Azure (✅ caso) · Tecnología interna no especificada | Azure | Activo | Crítica | Gestión rutas, manifiestos, transportistas |
 | APP-12 | Optimizador de Rutas | GCP batch (✅ caso) · Stack interno no especificado | GCP (batch) | ⚠️ Activo | Alta | Solo batch · Datos tráfico desactualizados · 380 rutas inviables |
@@ -215,7 +233,7 @@ Leyenda:  ⚠️ = Problemas críticos / riesgos     🗑️ = Candidato a depre
 | Capa | Acción Principal | Aplicaciones |
 |---|---|---|
 | Transversal | Crear desde cero | Bus de eventos, IaC Terraform, Observabilidad unificada, Zero Trust |
-| Canales | Mejorar integración + nuevo canal proactivo | APP-15 (rediseño), APP-18 (datos consistentes), nuevo canal WhatsApp |
+| Canales | Mejorar integración + nuevo canal proactivo | APP-15 (rediseño), Portal B2B (Trazabilidad) / APP-18 (datos consistentes), nuevo canal WhatsApp |
 | Integración | Reemplazar P2P + deprecar legado | APP-04 (deprecar), APP-21 (mantener), nuevo Event Hub/Kafka |
 | Core | Modernizar críticos + batch→RT | APP-06 (migrar cloud), APP-12 (batch→RT), APP-15 (offline robusto) |
 | Data | Pasar a streaming + limpiar datos | APP-22 (streaming), APP-24 (datos limpios), Event Store nuevo |

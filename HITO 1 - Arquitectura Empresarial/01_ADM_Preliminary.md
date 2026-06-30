@@ -69,7 +69,7 @@ Esta fase establece el marco de trabajo, el modelo de gobierno y los principios 
 |---|---|---|
 | PA-01 | API-First | Toda integración entre sistemas internos y con clientes externos se realizará vía APIs RESTful o eventos, eliminando integraciones punto a punto y archivos. |
 | PA-02 | Evitar acoplamiento directo | Los sistemas no deben llamarse directamente entre sí en flujos críticos. Se usarán colas de mensajes, buses de eventos o API Gateways como intermediarios. |
-| PA-03 | Preferencia SaaS cuando sea viable | Para funcionalidades no diferenciadas (CRM, portal de clientes, firma digital, pagos) se preferirán soluciones SaaS sobre desarrollo propio. |
+| PA-03 | Preferencia SaaS cuando sea viable | Para funcionalidades no diferenciadas (CRM, portales B2B de carga y trazabilidad, firma digital, pagos) se preferirán soluciones SaaS sobre desarrollo propio. |
 | PA-04 | Dominios de negocio alineados a arquitectura | Los sistemas se alinearán a dominios: Gestión de Pedidos, Almacén, Transporte, Última Milla, Trazabilidad, Liquidación. Cada dominio tendrá su propio equipo y responsabilidad. |
 | PA-05 | Idempotencia y deduplicación | Todos los servicios receptores de mensajes deben implementar idempotencia para evitar duplicaciones como el incidente de los 32,000 pedidos repetidos. |
 
@@ -77,7 +77,7 @@ Esta fase establece el marco de trabajo, el modelo de gobierno y los principios 
 
 | # | Principio | Descripción |
 |---|---|---|
-| PT-01 | Cloud-First (Nube pública) | Las nuevas capacidades se construirán en nube pública (AWS, Azure, GCP). El WMS on premises se migrará progresivamente. |
+| PT-01 | Cloud-First (Nube pública) | Las nuevas capacidades se construirán en nube pública (AWS, Azure, GCP). WMS Principal (On Premises) — APP-06 — migrará progresivamente a WMS Cloud. |
 | PT-02 | Infraestructura como Código (IaC) | Toda la infraestructura debe definirse con Terraform o herramientas nativas cloud. No se aprovisiona infraestructura manualmente en producción. |
 | PT-03 | Seguridad desde el diseño (Security by Design) | La seguridad se incorpora en el diseño, no como capa posterior. Incluye autenticación, autorización, cifrado en tránsito y reposo, y auditoría de accesos. |
 | PT-04 | Observabilidad nativa | Los sistemas deben emitir métricas, logs y trazas distribuidas desde el inicio. Se centralizará en una plataforma de observabilidad unificada. |

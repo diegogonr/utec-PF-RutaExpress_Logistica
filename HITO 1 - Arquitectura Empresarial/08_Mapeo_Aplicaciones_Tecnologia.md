@@ -19,11 +19,11 @@ Mostrar la relación entre cada aplicación del portafolio y las tecnologías, p
 |---|---|---|---|---|---|
 | APP-01 | Azure API Management | Azure (PaaS) | Azure API Management | N/A | ✅ Caso 6a F1 |
 | APP-02 | Orquestador de Pedidos | Azure AKS | ⚠️ Suposición: posiblemente Java o .NET, no especificado en el caso | ⚠️ Suposición: BD relacional en Azure | ✅ AKS mencionado en Caso 6b |
-| APP-03 | Portal de Clientes (carga manual) | SaaS (proveedor no especificado) | N/A (SaaS externo) | SaaS | ✅ Caso 6a F1 |
+| APP-03 | Portal B2B (Carga CSV/Excel) | SaaS (proveedor no especificado) | N/A (SaaS externo) | SaaS | ✅ Caso 6a F1 |
 | APP-04 | Bucket S3 legado (archivos) | AWS S3 | N/A | N/A | ✅ Caso 6a F1 |
 | APP-05 | Validador de Pedidos | Azure AKS | ⚠️ Suposición: mismo stack que orquestador | ⚠️ Suposición: BD relacional en Azure | ⚠️ Inferido del problema de deduplicación (Caso 6a F1) |
-| APP-06 | WMS Principal | On Premises | ⚠️ Suposición: tecnología COTS o custom, no especificada | SQL Server (✅ Caso 6b R1) | ✅ On premises + SQL Server en Caso 6b |
-| APP-07 | WMS Satélite (almacenes pequeños) | On Premises local | ⚠️ Suposición: versión reducida del mismo WMS | ⚠️ Suposición: BD local (tipo no especificado) | ✅ Caso 6a F2: "versión local con sincronización cada hora" |
+| APP-06 | WMS Principal (On Premises) | On Premises | ⚠️ Suposición: tecnología COTS o custom, no especificada | SQL Server (✅ Caso 6b R1) | ✅ On premises + SQL Server en Caso 6b |
+| APP-07 | WMS Satélite (On Premises local) | On Premises local | ⚠️ Suposición: versión reducida del mismo WMS | ⚠️ Suposición: BD local (tipo no especificado) | ✅ Caso 6a F2: "versión local con sincronización cada hora" |
 | APP-08 | Control de Inventario | On Premises | ⚠️ Suposición: sistema complementario al WMS | ⚠️ Suposición: BD relacional on-prem (tipo no especificado) | ⚠️ Inferido de Caso 6a F2: ERP conserva inventario valorizado |
 | APP-09 | IoT Core (sensores temperatura) | AWS IoT Core | AWS IoT Core / MQTT | ⚠️ Suposición: DynamoDB u otra BD AWS | ✅ Caso 6a F2 |
 | APP-10 | App Handhelds (picking) | Wi-Fi interno | ⚠️ Suposición: Android nativo o similar | SQLite local (⚠️ Suposición) | ✅ Caso 6a F2: handhelds con Wi-Fi |
@@ -34,7 +34,7 @@ Mostrar la relación entre cada aplicación del portafolio y las tecnologías, p
 | APP-15 | App de Conductores | AWS | ⚠️ Suposición: React Native u otro framework mobile, no especificado | DynamoDB (✅ Caso 6a F4) | ✅ AWS + DynamoDB en Caso 6a F4 |
 | APP-16 | Almacenamiento de Evidencias | AWS S3 | N/A (storage) | AWS S3 | ✅ Caso 6a F4 |
 | APP-17 | Pasarela de Pago Contra Entrega | SaaS (proveedor externo) | N/A (SaaS externo) | SaaS | ✅ Caso 6a F4 |
-| APP-18 | Portal Trazabilidad Clientes B2B | SaaS (proveedor no especificado) | ⚠️ Suposición: aplicación web, tecnología no especificada | SaaS | ✅ Caso 6a F4: "portal SaaS de clientes" |
+| APP-18 | Portal B2B (Trazabilidad) | SaaS (proveedor no especificado) | ⚠️ Suposición: aplicación web, tecnología no especificada | SaaS | ✅ Caso 6a F4: "portal SaaS de clientes" (función trazabilidad) |
 | APP-19 | Portal Tracking Destinatarios | SaaS (proveedor no especificado) | ⚠️ Suposición: web/PWA, tecnología no especificada | SaaS | ⚠️ Inferido de Caso 6a F4: destinatarios consultan tracking |
 | APP-20 | CRM de Atención al Cliente | SaaS (proveedor no especificado) | N/A (SaaS externo) | SaaS | ✅ Caso 6a F5: "Atención usa un CRM SaaS" |
 | APP-21 | Notification Service | SaaS (proveedor externo) | N/A (SaaS externo) | SaaS | ⚠️ Inferido: necesario para comunicar estados a destinatarios |
@@ -54,8 +54,9 @@ Mostrar la relación entre cada aplicación del portafolio y las tecnologías, p
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  CAPA CANALES                                                                │
 │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐   │
-│  │ Portal B2B   │ │ Portal Track.│ │ App Drivers  │ │ Portal Transport │   │
-│  │ (SaaS)       │ │ (SaaS)       │ │ (AWS)        │ │ (Azure, web)     │   │
+│  │ Portal B2B     │ │ Portal B2B     │ │ App Drivers  │ │ Portal Transport │   │
+│  │ (Carga CSV/    │ │ (Trazabilidad) │ │ (AWS)        │ │ (Azure, web)     │   │
+│  │  Excel)        │ │ (SaaS)         │ │              │ │                  │   │
 │  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘   │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  CAPA API / INTEGRACIÓN                                                      │
@@ -73,7 +74,7 @@ Mostrar la relación entre cada aplicación del portafolio y las tecnologías, p
 │  CAPA DATOS                                                                  │
 │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐   │
 │  │ SQL Server   │ │ BD Azure     │ │ DynamoDB     │ │ GCP (BigQuery    │   │
-│  │ (On-Prem WMS)│ │ (AKS/TMS)   │ │ (AWS - app   │ │ / analítica)     │   │
+│  │ (WMS Principal)│ │ (AKS/TMS)   │ │ (AWS - app   │ │ / analítica)     │   │
 │  │ ✅ caso      │ │ ⚠️ supuesto  │ │ conductores) │ │ ✅/⚠️ mixto     │   │
 │  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘   │
 │  ┌──────────────┐ ┌──────────────┐                                          │
@@ -107,7 +108,7 @@ Mostrar la relación entre cada aplicación del portafolio y las tecnologías, p
 |---|---|---|---|
 | Gateway de APIs | Azure API Management | Azure API Management + políticas de rate limiting, backpressure y OAuth 2.0 | Ya existe en el caso; ampliar capacidades |
 | Orquestación Pedidos | AKS (Azure) sin backpressure | AKS + Azure Service Bus o Event Hubs + Circuit Breaker | Mismo proveedor cloud (Azure) + patrones de resiliencia |
-| WMS | On premises SQL Server | WMS modernizado en cloud (Azure preferido por alineación con TMS) con auto-scaling | Eliminar punto único de falla; Azure ya usado para TMS |
+| WMS Principal (On Premises) | On premises SQL Server | WMS Cloud (Azure; reemplaza APP-06 y APP-07) con auto-scaling | Eliminar punto único de falla; Azure ya usado para TMS |
 | Optimizador Rutas | GCP batch | GCP en tiempo real (GKE + Cloud Pub/Sub) | Misma nube GCP; pasar de batch a streaming |
 | App Conductores | AWS / DynamoDB | AWS ECS + DynamoDB + Kinesis (mismo proveedor) + offline robusto | Mantener AWS donde ya está; agregar Kinesis para streaming |
 | Almacenamiento Evidencias | AWS S3 | AWS S3 con cifrado AES-256 y hash de integridad | Misma plataforma; mejorar seguridad |

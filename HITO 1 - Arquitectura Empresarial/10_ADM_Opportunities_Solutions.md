@@ -26,8 +26,8 @@ Identificar y consolidar las brechas (gaps) entre el estado AS IS y el TO BE en 
 
 | ID Gap | Descripción | Impacto | Dominio |
 |---|---|---|---|
-| GD-01 | Sin modelo canónico de estados de pedido entre WMS, TMS, App y Portal | Crítico - estados contradictorios visibles al cliente | Todos |
-| GD-02 | Múltiples fuentes de verdad para inventario (WMS on-prem, satélites, ERP) | Alto - 2.8% movimientos con ajuste, conflictos en reconexión | Almacén |
+| GD-01 | Sin modelo canónico de estados de pedido entre WMS, TMS, App y Portal B2B (Trazabilidad) | Crítico - estados contradictorios visibles al cliente | Todos |
+| GD-02 | Múltiples fuentes de verdad para inventario (WMS Principal, WMS Satélite, ERP) | Alto - 2.8% movimientos con ajuste, conflictos en reconexión | Almacén |
 | GD-03 | Eventos de tracking sin orden garantizado, pérdida en offline | Alto - 1,200 entregas sin firma, clientes disputan estados | Tracking |
 | GD-04 | Analítica consolidada semanalmente, sin visibilidad operativa real | Medio - no se detectan degradaciones hasta que explotan | Analítica |
 | GD-05 | Datos de excepciones inconsistentes impiden entrenar modelos ML correctamente | Medio - optimizador GCP aprende con datos sucios | ML/Rutas |
@@ -36,7 +36,7 @@ Identificar y consolidar las brechas (gaps) entre el estado AS IS y el TO BE en 
 
 | ID Gap | Descripción | Impacto | Dominio |
 |---|---|---|---|
-| GA-01 | WMS on premises sin capacidad de auto-scaling ni HA | Crítico - degradación en Cyber Days, USD 1.1M penalidades | Almacén |
+| GA-01 | WMS Principal (On Premises) sin capacidad de auto-scaling ni HA | Crítico - degradación en Cyber Days, USD 1.1M penalidades | Almacén |
 | GA-02 | Orquestador sin backpressure por cliente ni prioridad SLA | Crítico - cola sin control ante degradación WMS | Recepción |
 | GA-03 | Optimizador de rutas en batch, no tiempo real | Alto - rutas inviables por datos de tráfico desactualizados | Transporte |
 | GA-04 | App conductores con offline frágil y evidencias que se pierden | Alto - disputas de liquidación, reclamos de custodia | Última Milla |
@@ -48,7 +48,7 @@ Identificar y consolidar las brechas (gaps) entre el estado AS IS y el TO BE en 
 
 | ID Gap | Descripción | Impacto | Dominio |
 |---|---|---|---|
-| GT-01 | WMS sobre SQL Server on premises sin capacidad de escalado ni alta disponibilidad | Crítico - sin auto-scaling, degradación en campañas, vulnerabilidades en versión antigua | Almacén |
+| GT-01 | WMS Principal (On Premises) sobre SQL Server sin capacidad de escalado ni alta disponibilidad | Crítico - sin auto-scaling, degradación en campañas, vulnerabilidades en versión antigua | Almacén |
 | GT-02 | Sin IaC para infraestructura actual | Alto - cambios manuales, no reproducibles, riesgo en campaña | Todos |
 | GT-03 | Sin seguridad Zero Trust ni Security by Design | Alto - APIs expuestas, datos personales en riesgo | Seguridad |
 | GT-04 | Sin conexión privada entre nubes (tráfico por Internet público) | Medio - latencia variable, costos de egress, riesgo seguridad | Multinube |
@@ -66,7 +66,7 @@ Identificar y consolidar las brechas (gaps) entre el estado AS IS y el TO BE en 
 **Duración estimada**: 6-9 meses
 
 ### Iniciativa 2: Modernización del WMS (Cloud-Ready)
-**Descripción**: Migrar o modernizar el WMS on premises a una plataforma cloud con auto-scaling, modo degradado automático y sincronización en tiempo real.
+**Descripción**: Migrar WMS Principal (On Premises) — APP-06 — y WMS Satélite (On Premises local) — APP-07 — a WMS Cloud con auto-scaling, modo degradado automático y sincronización en tiempo real.
 **Gaps que cierra**: GA-01, GD-02, GT-01, GT-05
 **Valor**: Elimina el principal punto de falla en campañas, evita USD 1.1M+ en penalidades.
 **Complejidad**: Muy Alta
@@ -116,7 +116,7 @@ Identificar y consolidar las brechas (gaps) entre el estado AS IS y el TO BE en 
 ```
 AS IS (Año 0):
 ────────────────────────────────────────────────
-• WMS on premises SQL Server
+• WMS Principal (On Premises) — SQL Server
 • Integraciones punto a punto
 • Optimizador batch semanal/diario
 • App offline frágil
@@ -134,14 +134,14 @@ TRANSICIÓN 1 (Año 1 - primeros 12 meses):
 • Servicio de validación de órdenes
 • IaC con Terraform para infraestructura cloud
 • Observabilidad básica unificada (logs + métricas)
-• WMS en modo "puente": API sobre WMS on-prem (no migrado aún)
+• WMS Principal en modo puente: API sobre APP-06 (no migrado aún)
 
          │
          ▼
 
 TRANSICIÓN 2 (Año 2 - meses 12-24):
 ────────────────────────────────────────────────
-• WMS modernizado en cloud (migración completada)
+• WMS Cloud (migración completada; reemplaza APP-06 y APP-07)
 • Optimizador de rutas en tiempo real (GKE + Pub/Sub)
 • Servicio de Liquidación automatizado (reemplaza Excel)
 • Comunicación proactiva con destinatarios

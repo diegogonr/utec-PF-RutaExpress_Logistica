@@ -17,7 +17,7 @@ Definir la visión de arquitectura que guiará la transformación de RutaExpress
 |---|---|
 | Competencia del mercado | Los grandes marketplaces construyen redes logísticas propias. El mercado exige entrega el mismo día, trazabilidad en vivo y devoluciones simples. |
 | Penalidades económicas | En el último Cyber Days se pagaron USD 1.1M en penalidades por 19% de entregas tardías. Una cadena retail retuvo USD 2.4M por falta de evidencia de entrega. |
-| Fragmentación tecnológica | WMS on premises, TMS en Azure, app conductores en AWS, analítica en GCP y portales SaaS operan sin integración real. No existe visibilidad end-to-end. |
+| Fragmentación tecnológica | WMS Principal (On Premises), TMS en Azure, app conductores en AWS, analítica en GCP y portales SaaS operan sin integración real. No existe visibilidad end-to-end. |
 | Problemas de datos | 6% de órdenes con defectos, 2.8% de movimientos de inventario con ajuste, 8% de eventos de tracking con retraso >20 min, 7% de facturas observadas por clientes. |
 | Capacidad en campañas | El WMS se degrada durante picos. En Cyber Days se acumularon 240,000 pedidos en cola durante 6 horas. |
 | Costos crecientes | Combustible, mano de obra y reintentos de entrega elevan costos sin mejorar la tasa de éxito. El 34% de entregas fallidas se debe a problemas prevenibles. |
@@ -25,7 +25,7 @@ Definir la visión de arquitectura que guiará la transformación de RutaExpress
 ### 2.2 Dolores Críticos Actuales
 
 - **Pedidos duplicados** por fallo de deduplicación en API (caso: 32,000 pedidos duplicados)
-- **Inventario desalineado** entre WMS on premises y sistemas cloud; sincronización horaria insuficiente
+- **Inventario desalineado** entre WMS Principal (On Premises), WMS Satélite y sistemas cloud; sincronización horaria insuficiente
 - **Rutas asignadas manualmente** en 17% de los casos por datos de tráfico y flota no confiables
 - **Baja visibilidad de última milla**: 8% de eventos de tracking con >20 minutos de retraso
 - **Evidencias perdidas** cuando conductores operan offline y reinstalan app (1,200 entregas sin firma)
@@ -82,7 +82,7 @@ Definir la visión de arquitectura que guiará la transformación de RutaExpress
 - Plataforma de tracking y eventos unificada
 - Gestión de evidencias (fotos, firmas, geolocalización) con resiliencia offline
 - Plataforma de analítica predictiva para optimización de rutas y detección de excepciones
-- Portal unificado de clientes con trazabilidad en tiempo real
+- Portal unificado de clientes B2B con trazabilidad en tiempo real (consolida APP-03 y APP-18 en TO BE)
 - Seguridad de datos personales (destinatarios) y operación móvil
 
 ### 5.2 Fuera de Alcance (Hito 1)
@@ -111,7 +111,7 @@ Definir la visión de arquitectura que guiará la transformación de RutaExpress
 
 ### Restricciones
 
-- El WMS on premises no puede migrarse completamente en el primer año; debe convivir con sistemas cloud durante la transición.
+- El WMS Principal (On Premises) no puede migrarse completamente en el primer año; debe convivir con WMS Cloud en transición progresiva (F1 → F2).
 - Los clientes grandes tienen integraciones API que no pueden romperse; los cambios deben ser backward-compatible.
 - Presupuesto de transformación debe ser aprobado por el Board Tecnológico por fases.
 - Todos los datos de destinatarios deben cumplir con regulaciones de privacidad (Ley 29733 - Perú).

@@ -201,14 +201,14 @@ LIQUIDACIÓN
 | Entidad | Sistema Maestro (AS IS) | Sistema Maestro (TO BE) |
 |---|---|---|
 | Orden / Pedido | Orquestador AKS (Azure) | Servicio de Gestión de Pedidos (Azure) |
-| SKU / Producto | WMS on premises | Catálogo de Productos (API centralizada) |
-| Inventario | WMS on premises | WMS modernizado + Event Store |
+| SKU / Producto | WMS Principal (On Premises) | Catálogo de Productos (API centralizada) |
+| Inventario | WMS Principal (On Premises) | WMS Cloud + Event Store |
 | Ruta | TMS (Azure) | TMS (Azure) |
 | Evento de Tracking | DynamoDB (AWS) | Event Store unificado (AWS Kinesis) |
 | Evidencia de Entrega | S3 (AWS) | S3 (AWS) - con hash de integridad |
 | Excepción | App conductores + TMS | Servicio de Excepciones (normalizado) |
 | Liquidación / Factura | ERP on premises | ERP on premises (integrado) |
-| Cliente Empresarial | Portal SaaS | Portal SaaS + CRM |
+| Cliente Empresarial | Portal B2B (Trazabilidad) | Portal B2B unificado + CRM |
 | Destinatario | Distribuido (WMS+TMS+App) | Servicio de Destinatarios (centralizado) |
 
 ---
@@ -224,7 +224,7 @@ LIQUIDACIÓN
     → [LIQUIDADO]
 ```
 
-Este modelo canónico debe ser adoptado por WMS, TMS, App de Conductores, Portal y ERP. Las transiciones de estado solo pueden avanzar (no retroceder) salvo en el flujo de devolución.
+Este modelo canónico debe ser adoptado por WMS, TMS, App de Conductores, Portales B2B (Carga CSV/Excel y Trazabilidad) y ERP. Las transiciones de estado solo pueden avanzar (no retroceder) salvo en el flujo de devolución.
 
 ---
 

@@ -269,7 +269,7 @@ INI-04 (Optimizador RT) ──────────────────�
 | Riesgo | Probabilidad | Impacto | Mitigación |
 |---|---|---|---|
 | Resistencia al cambio en almacenes (WMS nuevo) | Alta | Alto | Plan de change management, capacitación, piloto en 1 CD |
-| Migración WMS más larga de lo esperado | Media | Alto | Modo puente: API sobre WMS legacy durante transición |
+| Migración WMS más larga de lo esperado | Media | Alto | Modo puente: API sobre WMS Principal (On Premises) durante transición a WMS Cloud |
 | Clientes que no actualizan sus integraciones | Media | Medio | Backward-compatibility garantizada 18 meses |
 | Costo real superior al estimado (COTS WMS) | Media | Alto | Reserva de contingencia 20% del presupuesto |
 | Disponibilidad del equipo técnico | Baja | Medio | Contratación anticipada + alianza con consultoras |

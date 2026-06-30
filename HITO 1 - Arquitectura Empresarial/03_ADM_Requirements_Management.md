@@ -33,8 +33,8 @@ Capturar, clasificar y mantener trazabilidad de todos los requisitos que guían 
 |---|---|---|---|---|
 | RF-01 | El sistema debe validar automáticamente la dirección, SKU y duplicación de cada orden antes de aceptarla en el flujo | Incidente duplicados | Alta | B, C |
 | RF-02 | Se debe implementar deduplicación idempotente usando ID externo del cliente + hash de contenido | Incidente 32K pedidos | Alta | C |
-| RF-03 | Las órdenes deben procesarse en tiempo real desde APIs, archivos y portal, con prioridad por SLA | Operaciones | Alta | C |
-| RF-04 | El estado del pedido debe propagarse en tiempo real a todos los sistemas consumidores (WMS, TMS, portal) | Trazabilidad | Alta | B, C |
+| RF-03 | Las órdenes deben procesarse en tiempo real desde APIs, archivos y Portal B2B (Carga CSV/Excel), con prioridad por SLA | Operaciones | Alta | C |
+| RF-04 | El estado del pedido debe propagarse en tiempo real a todos los sistemas consumidores (WMS, TMS, Portal B2B de Trazabilidad) | Trazabilidad | Alta | B, C |
 | RF-05 | Se deben manejar picos de hasta 180,000 órdenes/día sin degradación | Cyber Days | Alta | D |
 
 #### Dominio: Almacén / WMS
@@ -62,7 +62,7 @@ Capturar, clasificar y mantener trazabilidad de todos los requisitos que guían 
 | RF-14 | La app de conductores debe funcionar completamente offline con sincronización segura al reconectar | Incidente 1,200 firmas perdidas | Alta | C, D |
 | RF-15 | Las evidencias (foto, firma, geolocalización, timestamp) deben cifrarse localmente y subirse de forma atómica | Seguridad + Auditoría | Alta | C, D |
 | RF-16 | Los motivos de excepción deben ser taxonomía normalizada y obligatoria (sin texto libre para el motivo principal) | Incidente excepciones no comparables | Alta | B, C |
-| RF-17 | El tracking de ubicación debe publicarse cada 2 minutos hacia el portal de clientes y centro de atención | Visibilidad | Alta | C |
+| RF-17 | El tracking de ubicación debe publicarse cada 2 minutos hacia el Portal B2B (Trazabilidad) — APP-18 — y centro de atención | Visibilidad | Alta | C |
 
 #### Dominio: Trazabilidad y Eventos
 
@@ -120,7 +120,7 @@ Capturar, clasificar y mantener trazabilidad de todos los requisitos que guían 
 |---|---|---|---|
 | RNF-16 | Deduplicación idempotente en todos los puntos de entrada de mensajes | Exactamente-una-vez semántica | Incidente duplicados |
 | RNF-17 | Consistencia eventual garantizada con tiempo máximo de convergencia | < 60 segundos entre sistemas | Integridad |
-| RNF-18 | Detección y alerta automática de inconsistencias entre WMS, TMS y portal | Monitoreo activo | Riesgo integridad |
+| RNF-18 | Detección y alerta automática de inconsistencias entre WMS, TMS y Portal B2B (Trazabilidad) | Monitoreo activo | Riesgo integridad |
 
 #### Observabilidad
 

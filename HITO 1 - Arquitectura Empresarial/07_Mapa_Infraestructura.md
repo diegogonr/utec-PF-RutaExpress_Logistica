@@ -32,7 +32,7 @@ RutaExpress opera en una arquitectura multinube real pero sin estrategia unifica
 │  │  └──────────────────┘   │   │  │  Pedidos (AKS)   │   │   │  │  (eventos     │  │   │
 │  │                          │   │  └────────┬─────────┘   │   │  │  tracking)    │  │   │
 │  │  ┌──────────────────┐   │   │  ┌────────▼─────────┐   │   │  └───────────────┘  │   │
-│  │  │  WMS Satélites   │   │   │  │  TMS             │   │   │                     │   │
+│  │  │  WMS Satélite    │   │   │  │  TMS             │   │   │                     │   │
 │  │  │  (sync. horaria) │   │   │  │  (Azure VM/      │   │   │  ┌───────────────┐  │   │
 │  │  └──────────────────┘   │   │  │  App Service)    │   │   │  │  S3 Evidencias│  │   │
 │  │                          │   │  └────────┬─────────┘   │   │  │  (fotos/firmas│  │   │
@@ -53,8 +53,9 @@ RutaExpress opera en una arquitectura multinube real pero sin estrategia unifica
 │  │  │  Optimizador de Rutas (batch - GCP)              │    │                            │
 │  │  │  Analítica (batch semanal - GCP)                 │    │  ┌─────────────────────┐   │
 │  │  │  ML / Algoritmo de Rutas (GCP)                   │    │  │  SAAS EXTERNOS      │   │
-│  │  └──────────────────────────────────────────────────┘    │  │  • Portal Clientes  │   │
-│  └───────────────────────────────────────────────────────────┘  │  • Portal Tracking  │   │
+│  │  └──────────────────────────────────────────────────┘    │  │  • Portal B2B (Carga CSV/Excel) │   │
+│  └───────────────────────────────────────────────────────────┘  │  • Portal B2B (Trazabilidad)    │   │
+│                                                                   │  • Portal Tracking Destinat.  │   │
 │                                                                   │  • CRM Atención     │   │
 │  ┌──────────────────────────────────────────────────────────┐   │  • Pagos (POS)      │   │
 │  │              REDES DE ALMACENES (14 CDs)                 │   │  • Notificaciones   │   │
@@ -67,8 +68,8 @@ RutaExpress opera en una arquitectura multinube real pero sin estrategia unifica
 
 | Componente | Problema | Impacto |
 |---|---|---|
-| WMS on premises | Sin capacidad de auto-scaling | Se degrada en campañas (Cyber Days: 6h caído) |
-| WMS Satélites | Sincronización horaria por lotes | 4,900 movimientos en conflicto en una sola desconexión |
+| WMS Principal (On Premises) — APP-06 | Sin capacidad de auto-scaling | Se degrada en campañas (Cyber Days: 6h caído) |
+| WMS Satélite (On Premises local) — APP-07 | Sincronización horaria por lotes | 4,900 movimientos en conflicto en una sola desconexión |
 | Integraciones multinube | Punto a punto sin bus de eventos | Datos inconsistentes entre sistemas |
 | Optimizador GCP | Proceso batch, no tiempo real | Rutas generadas con datos de tráfico desactualizados |
 | Analítica GCP | Consolidación semanal | Sin visibilidad operativa en tiempo real |
@@ -140,7 +141,7 @@ RutaExpress opera en una arquitectura multinube real pero sin estrategia unifica
 │  ┌────────────────────────────────────────────────────────────────────────────────────┐   │
 │  │           ON PREMISES (Reducido - Solo Transición)                                 │   │
 │  │  ERP Financiero (integrado vía API con Event Hub)                                  │   │
-│  │  WMS Legacy (modo puente durante migración)                                        │   │
+│  │  WMS Principal (modo puente durante migración)                                       │   │
 │  └────────────────────────────────────────────────────────────────────────────────────┘   │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -152,7 +153,7 @@ RutaExpress opera en una arquitectura multinube real pero sin estrategia unifica
 ### AS IS
 | Conexión | Tipo | Problema |
 |---|---|---|
-| Centros de distribución ↔ WMS central | LAN / WAN privada | Sin redundancia, cortes de 74 min registrados |
+| Centros de distribución ↔ WMS Principal | LAN / WAN privada | Sin redundancia, cortes de 74 min registrados |
 | Handhelds ↔ WMS | Wi-Fi interno | Sin failover, dependencia total de conectividad local |
 | App conductores ↔ Backend AWS | Internet móvil (4G) | Zonas sin señal → modo offline → eventos fuera de orden |
 | Azure ↔ GCP | Internet público | Sin SLA de latencia garantizado |
@@ -176,7 +177,7 @@ RutaExpress opera en una arquitectura multinube real pero sin estrategia unifica
 | Azure | AKS, API Management, Event Hub, AD | Orquestación de pedidos, TMS, integraciones, identidad |
 | AWS | ECS, DynamoDB, S3, Kinesis, IoT Core | App conductores, evidencias, tracking, IoT temperatura |
 | GCP | BigQuery, GKE, Pub/Sub | Analítica, ML, optimización de rutas en tiempo real |
-| On Premises | ERP, WMS legacy | Transición hasta migración completa |
+| On Premises | ERP, WMS Principal (modo puente durante migración) | Transición hasta migración completa a WMS Cloud |
 
 ---
 
@@ -184,7 +185,7 @@ RutaExpress opera en una arquitectura multinube real pero sin estrategia unifica
 
 | Riesgo | Probabilidad | Impacto | Mitigación TO BE |
 |---|---|---|---|
-| WMS on premises degradado en campaña | Alta | Crítico | Migración a cloud con auto-scaling |
+| WMS Principal (On Premises) degradado en campaña | Alta | Crítico | Migración a WMS Cloud con auto-scaling |
 | Pérdida de conectividad en almacenes | Media | Alto | SD-WAN con failover 4G |
 | Inconsistencia de datos entre nubes | Alta | Alto | Bus de eventos central con exactly-once |
 | Pérdida de evidencias en app móvil | Media | Alto | Cifrado local + retry robusto + MDM |
