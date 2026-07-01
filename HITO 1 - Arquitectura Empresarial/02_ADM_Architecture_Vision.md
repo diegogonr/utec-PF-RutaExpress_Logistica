@@ -1,6 +1,8 @@
 # ADM - Fase A: Architecture Vision
 ## RutaExpress Fulfillment & Transporte
 
+> **Para el comité de arquitectura** — Responde **por qué transformar**: drivers de negocio (USD 1.1M penalidades Cyber Days), dolores operativos y **visión TO BE** con KPIs medibles (82%→94% cumplimiento promesa). **Mensaje clave:** la fragmentación entre **APP-06**, **APP-11**, **APP-15** y **APP-22** sin **PLT-03** impide trazabilidad end-to-end; este documento alinea a stakeholders antes de invertir.
+
 ---
 
 ## 1. Propósito
@@ -17,15 +19,15 @@ Definir la visión de arquitectura que guiará la transformación de RutaExpress
 |---|---|
 | Competencia del mercado | Los grandes marketplaces construyen redes logísticas propias. El mercado exige entrega el mismo día, trazabilidad en vivo y devoluciones simples. |
 | Penalidades económicas | En el último Cyber Days se pagaron USD 1.1M en penalidades por 19% de entregas tardías. Una cadena retail retuvo USD 2.4M por falta de evidencia de entrega. |
-| Fragmentación tecnológica | WMS Principal (On Premises), TMS (Transportation Management) en Azure, App de Conductores en AWS, Plataforma de Analítica en GCP y portales SaaS operan sin integración real. No existe visibilidad end-to-end. |
+| Fragmentación tecnológica | **APP-06** WMS Principal, **APP-11** TMS (Azure), **APP-15** App de Conductores (AWS), **APP-22** Plataforma de Analítica (GCP) y portales SaaS (**APP-03**, **APP-18**) operan sin integración real. No existe **PLT-01** ni **PLT-03**. |
 | Problemas de datos | 6% de órdenes con defectos, 2.8% de movimientos de inventario con ajuste, 8% de eventos de tracking con retraso >20 min, 7% de facturas observadas por clientes. |
-| Capacidad en campañas | El WMS se degrada durante picos. En Cyber Days se acumularon 240,000 pedidos en cola durante 6 horas. |
+| Capacidad en campañas | **APP-06** WMS se degrada durante picos | En Cyber Days se acumularon 240,000 pedidos en cola durante 6 horas |
 | Costos crecientes | Combustible, mano de obra y reintentos de entrega elevan costos sin mejorar la tasa de éxito. El 34% de entregas fallidas se debe a problemas prevenibles. |
 
 ### 2.2 Dolores Críticos Actuales
 
 - **Pedidos duplicados** por fallo de deduplicación en API (caso: 32,000 pedidos duplicados)
-- **Inventario desalineado** entre WMS Principal (On Premises), WMS Satélite y sistemas cloud; sincronización horaria insuficiente
+- **Inventario desalineado** entre **APP-06** WMS Principal, **APP-07** WMS Satélite y **APP-25** ERP; sincronización horaria insuficiente
 - **Rutas asignadas manualmente** en 17% de los casos por datos de tráfico y flota no confiables
 - **Baja visibilidad de última milla**: 8% de eventos de tracking con >20 minutos de retraso
 - **Evidencias perdidas** cuando conductores operan offline y reinstalan app (1,200 entregas sin firma)
@@ -76,19 +78,19 @@ Definir la visión de arquitectura que guiará la transformación de RutaExpress
 ### 5.1 En Alcance
 
 - Integración de la cadena de valor completa: Recepción → Preparación → Despacho → Entrega → Excepciones → Liquidación
-- Plataforma de integración (API Management + Event Streaming)
-- Modernización del WMS (migración a cloud o conexión en tiempo real)
-- Integración TMS (Transportation Management) (Azure) - WMS Principal (On Premises) - App de Conductores (AWS) - Optimizador de Rutas (GCP batch)
-- Plataforma de tracking y eventos unificada
-- Gestión de evidencias (fotos, firmas, geolocalización) con resiliencia offline
-- Plataforma de analítica predictiva para optimización de rutas y detección de excepciones
-- Portal unificado de clientes B2B con trazabilidad en tiempo real (consolida APP-03 y APP-18 en TO BE)
+- Plataforma de integración (**APP-01** Azure API Management + **PLT-03** Event Streaming)
+- Modernización del WMS (**APP-06** / **APP-07** → WMS Cloud)
+- Integración **APP-11** TMS — **APP-06** WMS — **APP-15** App de Conductores — **APP-12** Optimizador de Rutas
+- Plataforma de tracking y eventos unificada (**PLT-03**)
+- Gestión de evidencias (**APP-16** Almacenamiento Evidencias S3) con resiliencia offline en **APP-15**
+- Plataforma analítica predictiva (**APP-22**, **APP-24** ML) para rutas y excepciones
+- Portal unificado B2B con trazabilidad en tiempo real (consolida **APP-03** y **APP-18** en TO BE)
 - Seguridad de datos personales (destinatarios) y operación móvil
 
 ### 5.2 Fuera de Alcance (Hito 1)
 
-- Rediseño del ERP financiero (se integra, no se reemplaza)
-- Rediseño del CRM SaaS (se mejora la taxonomía de excepciones)
+- Rediseño del **APP-25** ERP Financiero (se integra, no se reemplaza)
+- Rediseño del **APP-20** CRM SaaS (se mejora la taxonomía de excepciones)
 - Operaciones internacionales o expansión de cobertura geográfica
 
 ---
@@ -111,7 +113,7 @@ Definir la visión de arquitectura que guiará la transformación de RutaExpress
 
 ### Restricciones
 
-- El WMS Principal (On Premises) no puede migrarse completamente en el primer año; debe convivir con WMS Cloud en transición progresiva (F1 → F2).
+- **APP-06** WMS Principal no puede migrarse completamente en el primer año; debe convivir con WMS Cloud en transición progresiva (F1 → F2).
 - Los clientes grandes tienen integraciones API que no pueden romperse; los cambios deben ser backward-compatible.
 - Presupuesto de transformación debe ser aprobado por el Board Tecnológico por fases.
 - Todos los datos de destinatarios deben cumplir con regulaciones de privacidad (Ley 29733 - Perú).

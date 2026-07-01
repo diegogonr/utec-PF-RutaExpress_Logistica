@@ -1,6 +1,8 @@
 # Mapa de Infraestructura
 ## RutaExpress Fulfillment & Transporte
 
+> **Para el comité de arquitectura** — Topología **multinube** AS IS y TO BE en un recuadro único (On Premises, Azure, AWS, GCP, SaaS). **Mensaje clave:** hoy las integraciones son P2P sin **PLT-03**; TO BE centraliza el bus de eventos y despliega **PLT-01** Observabilidad y **PLT-02** Zero Trust como capas transversales.
+
 ---
 
 ## 1. Propósito
@@ -91,7 +93,7 @@ flowchart TB
 | APP-12 Optimizador de Rutas (GCP batch) | Proceso batch, no tiempo real | Rutas generadas con datos de tráfico desactualizados |
 | APP-22 Plataforma de Analítica (GCP batch) | Consolidación semanal | Sin visibilidad operativa en tiempo real |
 | APP-25 ERP Financiero (On Premises) | Sin integración en tiempo real | Facturación con datos del mes anterior |
-| Red almacenes (APP-10 App Handhelds) | Wi-Fi sin redundancia | APP-15 App de Conductores pierde conectividad |
+| Red almacenes (conectividad APP-10 ↔ WMS) | Wi-Fi sin redundancia | APP-10 Handhelds pierde enlace con WMS; picking detenido en el CD |
 
 ---
 
@@ -147,6 +149,8 @@ flowchart TB
 ---
 
 ## 4. Infraestructura de Red y Conectividad
+
+> **Nota:** Wi-Fi interno del almacén es **conectividad** (red LAN del CD), no plataforma de aplicación. App Handhelds (APP-10) se despliega **On Premises** en dispositivos del almacén y usa esa red para hablar con el WMS.
 
 ### AS IS
 | Conexión | Tipo | Problema |

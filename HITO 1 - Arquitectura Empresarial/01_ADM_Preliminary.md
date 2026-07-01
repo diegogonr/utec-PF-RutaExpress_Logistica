@@ -1,6 +1,8 @@
 # ADM - Preliminary
 ## RutaExpress Fulfillment & Transporte
 
+> **Para el comité de arquitectura** — Este documento fija el **marco de gobierno** (Comité quincenal, Board mensual), los **principios** que toda iniciativa debe cumplir (PN/PD/PA/PT) y la **madurez actual** (gobierno e observabilidad en nivel 1). **Mensaje clave:** antes de aprobar diseños, validar que respeten principios como API-First (PA-01), PLT-03 event-driven y migración progresiva de **APP-06** hacia WMS Cloud.
+
 ---
 
 ## 1. Propósito
@@ -25,7 +27,7 @@ Esta fase establece el marco de trabajo, el modelo de gobierno y los principios 
 - Todas las iniciativas de la empresa se presentan al Comité de Arquitectura antes de iniciar diseño.
 - Se asigna un Arquitecto Empresarial por cada iniciativa de impacto transversal.
 - Las iniciativas de menor alcance son validadas por el Arquitecto de Dominio correspondiente.
-- Todo cambio en sistemas críticos (WMS Principal (On Premises), TMS (Transportation Management), App de Conductores, Azure API Management) requiere Architecture Decision Record (ADR) aprobado.
+- Todo cambio en sistemas críticos (**APP-06** WMS Principal, **APP-11** TMS, **APP-15** App de Conductores, **APP-01** Azure API Management) requiere Architecture Decision Record (ADR) aprobado.
 - Se usará TOGAF ADM como metodología de Arquitectura Empresarial.
 - Los entregables se documentarán en plantillas estándar y se almacenarán en el SharePoint de Arquitectura con control de versiones.
 
@@ -68,7 +70,7 @@ Esta fase establece el marco de trabajo, el modelo de gobierno y los principios 
 | # | Principio | Descripción |
 |---|---|---|
 | PA-01 | API-First | Toda integración entre sistemas internos y con clientes externos se realizará vía APIs RESTful o eventos, eliminando integraciones punto a punto y archivos. |
-| PA-02 | Evitar acoplamiento directo | Los sistemas no deben llamarse directamente entre sí en flujos críticos. Se usarán colas de mensajes, buses de eventos o API Gateways como intermediarios. |
+| PA-02 | Evitar acoplamiento directo | Los sistemas no deben llamarse directamente en flujos críticos. Se usarán **PLT-03** Bus de Eventos o **APP-01** Azure API Management como intermediarios. |
 | PA-03 | Preferencia SaaS cuando sea viable | Para funcionalidades no diferenciadas (CRM, portales B2B de carga y trazabilidad, firma digital, pagos) se preferirán soluciones SaaS sobre desarrollo propio. |
 | PA-04 | Dominios de negocio alineados a arquitectura | Los sistemas se alinearán a dominios: Gestión de Pedidos, Almacén, Transporte, Última Milla, Trazabilidad, Liquidación. Cada dominio tendrá su propio equipo y responsabilidad. |
 | PA-05 | Idempotencia y deduplicación | Todos los servicios receptores de mensajes deben implementar idempotencia para evitar duplicaciones como el incidente de los 32,000 pedidos repetidos. |
@@ -80,8 +82,8 @@ Esta fase establece el marco de trabajo, el modelo de gobierno y los principios 
 | PT-01 | Cloud-First (Nube pública) | Las nuevas capacidades se construirán en nube pública (AWS, Azure, GCP). WMS Principal (On Premises) — APP-06 — migrará progresivamente a WMS Cloud. |
 | PT-02 | Infraestructura como Código (IaC) | Toda la infraestructura debe definirse con Terraform o herramientas nativas cloud. No se aprovisiona infraestructura manualmente en producción. |
 | PT-03 | Seguridad desde el diseño (Security by Design) | La seguridad se incorpora en el diseño, no como capa posterior. Incluye autenticación, autorización, cifrado en tránsito y reposo, y auditoría de accesos. |
-| PT-04 | Observabilidad nativa | Los sistemas deben emitir métricas, logs y trazas distribuidas desde el inicio. Se centralizará en una plataforma de observabilidad unificada. |
-| PT-05 | Multinube por resiliencia y capacidad | AWS, Azure y GCP se usarán según fortaleza: Azure para orquestación y TMS, AWS para móvil e IoT, GCP para analítica y optimización de rutas. |
+| PT-04 | Observabilidad nativa | Los sistemas deben emitir métricas, logs y trazas distribuidas desde el inicio. Se centralizará en **PLT-01** Plataforma de Observabilidad Unificada. |
+| PT-05 | Multinube por resiliencia y capacidad | AWS, Azure y GCP se usarán según fortaleza: Azure para **APP-02** Orquestador y **APP-11** TMS, AWS para **APP-15** App de Conductores e **APP-09** IoT Core, GCP para **APP-12** Optimizador y **APP-22** Analítica. |
 
 ---
 
@@ -121,7 +123,7 @@ Esta fase establece el marco de trabajo, el modelo de gobierno y los principios 
 | Datos | 1 - Inicial | Sin modelo canónico, múltiples fuentes de verdad por sistema |
 | Infraestructura | 2 - Repetible | Multinube real pero sin estrategia unificada |
 | Seguridad | 2 - Repetible | Controles básicos, sin Security by Design |
-| Observabilidad | 1 - Inicial | Monitoreo parcial por sistema, sin visibilidad end-to-end |
+| Observabilidad | 1 - Inicial | Monitoreo parcial por APP; sin **PLT-01** unificada ni visibilidad end-to-end |
 
 ---
 

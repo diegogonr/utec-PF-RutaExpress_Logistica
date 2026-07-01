@@ -1,6 +1,14 @@
 # Business Model Canvas
 ## RutaExpress Fulfillment & Transporte
 
+> **Para el comité de arquitectura** — Contexto **de negocio** del canvas: propuesta de valor, segmentos, canales y costos. **Mensaje clave:** el ingreso depende de SLA y trazabilidad; los canales digitales (**APP-01**, **APP-03**, **APP-15**, **APP-18**, **APP-19**) y la plataforma multinube son recursos clave — la arquitectura debe protegerlos.
+
+---
+
+## 1. Propósito
+
+Documentar el modelo de negocio de RutaExpress en formato Business Model Canvas, vinculando actividades logísticas con los sistemas del portafolio (**APP-01** … **APP-26**).
+
 ---
 
 ```
@@ -80,7 +88,7 @@ RutaExpress entrega a sus clientes la capacidad de tercerizar su operación log�
 Clientes B2B de alto volumen que no quieren o no pueden construir su propia operación logística. El segmento principal son los marketplaces y el e-commerce, que representan el mayor volumen pero también las exigencias más altas de trazabilidad, integración API y penalidades.
 
 ### 3. Canales
-Multicanal para integración: Azure API Management para grandes clientes, Portal B2B (Carga CSV/Excel) para medianos, Bucket S3 Legado (archivos) para legacy. La App de Conductores es el canal de ejecución en campo. El Portal B2B (Trazabilidad) y el Portal Tracking Destinatarios (APP-19) son los canales de visibilidad para clientes empresariales y destinatarios finales, respectivamente.
+Multicanal para integración: **APP-01** Azure API Management para grandes clientes, **APP-03** Portal B2B (Carga CSV/Excel) para medianos, **APP-04** Bucket S3 Legado (archivos) para legacy. **APP-15** App de Conductores es el canal de ejecución en campo. **APP-18** Portal B2B (Trazabilidad) y **APP-19** Portal Tracking Destinatarios son los canales de visibilidad para clientes empresariales y destinatarios finales, respectivamente.
 
 ### 4. Relación con Clientes
 Relaciones contractuales de largo plazo con SLA y penalidades. La visibilidad en tiempo real y la comunicación proactiva son habilitadores de fidelización y diferenciación.

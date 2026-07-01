@@ -1,6 +1,8 @@
 # Mapa Portafolio de Aplicaciones
 ## RutaExpress Fulfillment & Transporte
 
+> **Para el comité de arquitectura** — Catálogo maestro del Hito 1: veintiséis aplicaciones de negocio (APP-01 … APP-26) y cuatro plataformas habilitadoras (PLT-01 … PLT-04). En AS IS solo aparecen aplicaciones desplegadas más la Plataforma de Identidad (PLT-02) de forma parcial; Observabilidad (PLT-01), Bus de Eventos (PLT-03) e IaC (PLT-04) siguen siendo brechas TO BE.
+
 ---
 
 ## 1. Propósito
@@ -11,7 +13,7 @@ Inventario de las aplicaciones de RutaExpress, clasificadas por **capa arquitect
 
 | Pregunta | Respuesta |
 |---|---|
-| **¿Incluyo plataformas (PLT)?** | **Sí, si están desplegadas o parcialmente desplegadas** (ej. PLT-02 con Azure AD básico). Son apps habilitadoras TOGAF, no APP de negocio. |
+| **¿Incluyo plataformas (PLT)?** | **Sí, si están desplegadas o parcialmente desplegadas** (ej. **PLT-02** Plataforma de Identidad y Accesos (IAM) con Azure AD + OAuth en **APP-01**). Son apps habilitadoras TOGAF, no APP de negocio. |
 | **¿Qué es un “gap”?** | **Brecha**: algo **requerido pero ausente** hoy. No es un sistema en producción; es un hallazgo del análisis. |
 | **¿Los gaps van en el mapa aunque no existan?** | **En AS IS no como app desplegada** — se marcan `❌ GAP`. **La definición del componente nuevo va en TO BE** (§4 y doc `09`). |
 | **¿Azure / AWS / GCP son plataformas del portafolio?** | **No** — son nubes proveedoras (Arq. Tecnológica). Aquí solo se indica dónde corre cada APP/PLT. |
@@ -39,38 +41,71 @@ Plan TO BE (§4, 09) →  PLT a crear/completar  +  APP a modificar/eliminar
 
 > No usar indistintamente “WMS on premises”, “WMS central” o “WMS” en tablas de aplicaciones: referirse siempre al nombre oficial con ID (**APP-06** / **APP-07**). “WMS Cloud” es el reemplazo TO BE a partir de F2.
 
+### Convención — Plataforma, origen y “tercerizado”
+
+En el catálogo se usan **tres clasificaciones distintas**. No son intercambiables:
+
+| Dimensión | Pregunta que responde | Valores típicos | Ejemplo |
+|---|---|---|---|
+| **Plataforma AS IS** | ¿**Dónde** corre o se despliega? | Azure, AWS, GCP, On Premises, SaaS | App de Conductores (APP-15) → **AWS** |
+| **Origen** | ¿**Quién** provee el software? | Custom, COTS, SaaS externo, PaaS/IaaS proveedor, Manual | CRM (APP-20) → **SaaS externo** (vendor, no código propio) |
+| **Usuario de negocio** | ¿**Quién** lo usa en operación? | Interno RutaExpress, cliente B2B, destinatario, transportista tercerizado | Portal Transportistas (APP-13) → **transportistas tercerizados**; la app es **Custom** en **Azure** |
+
+**Aclaraciones:**
+
+- **SaaS** en *Plataforma* = el software lo **hostea un proveedor** (nube del vendor). No implica por sí solo que sea “tercerizado” en sentido operativo.
+- **SaaS externo** en *Origen* = producto **contratado** a un vendor; RutaExpress **no desarrolla ni opera** el código (CRM, pasarela, portales B2B del caso).
+- **Custom** = desarrollada o mantenida por **TI RutaExpress** (orquestador, app de conductores, portal transportistas, etc.).
+- **COTS ⚠️** = producto comercial licenciado; el caso **no indica marca** (WMS, TMS, ERP).
+- **PaaS/IaaS proveedor** = servicio gestionado de la nube (API Management, S3, IoT Core) — no es una app de negocio “propia”, sino capacidad del proveedor cloud.
+- **Transportista tercerizado** ≠ **software externo**: APP-13 es **Custom en Azure** para usuarios externos a la nómina, pero **pertenece al ecosistema RutaExpress**.
+
+Principio de arquitectura (doc `01`, PA-03): funciones **no diferenciadoras** (CRM, portales B2B, pagos) → preferencia por **SaaS externo** frente a desarrollo propio.
+
 ### Catálogo oficial de aplicaciones (APP-01 a APP-26)
 
-| ID | Nombre oficial | Término en Caso 6a/6b | Plataforma AS IS |
-|---|---|---|---|
-| APP-01 | Azure API Management | Azure API Management | Azure |
-| APP-02 | Orquestador de Pedidos | Orquestador en AKS | Azure AKS |
-| APP-03 | Portal B2B (Carga CSV/Excel) | Portal SaaS — carga manual CSV/Excel | SaaS |
-| APP-04 | Bucket S3 Legado (archivos) | Bucket S3 histórico | AWS S3 |
-| APP-05 | Validador de Pedidos | Validador / deduplicación (inferido) | Azure AKS |
-| APP-06 | WMS Principal (On Premises) | WMS principal / WMS on premises | On Premises · SQL Server |
-| APP-07 | WMS Satélite (On Premises local) | WMS local / versión local sync horaria | On Premises local |
-| APP-08 | Control de Inventario | *(inferido del ERP/WMS)* | On Premises |
-| APP-09 | IoT Core (sensores temperatura) | AWS IoT Core | AWS IoT Core |
-| APP-10 | App Handhelds (picking) | Handhelds | Wi-Fi interno |
-| APP-11 | TMS (Transportation Management) | TMS en Azure | Azure |
-| APP-12 | Optimizador de Rutas (GCP batch) | Optimización de rutas en GCP (batch) | GCP |
-| APP-13 | Portal Transportistas Tercerizados | Portal transportistas tercerizados | Azure |
-| APP-14 | Sistema Impresión Manifiestos | Manifiestos impresos localmente | On Premises |
-| APP-15 | App de Conductores | App de conductores en AWS | AWS · DynamoDB |
-| APP-16 | Almacenamiento Evidencias (S3) | Evidencias en S3 | AWS S3 |
-| APP-17 | Pasarela de Pago Contra Entrega | Pasarela SaaS pagos contra entrega | SaaS |
-| APP-18 | Portal B2B (Trazabilidad) | Portal SaaS de clientes (trazabilidad) | SaaS |
-| APP-19 | Portal Tracking Destinatarios | Tracking para destinatarios finales *(inferido F4)* | SaaS |
-| APP-20 | CRM de Atención al Cliente | CRM SaaS | SaaS |
-| APP-21 | Servicio de Notificación (SMS/Email) | Notificaciones a destinatarios *(inferido)* | SaaS |
-| APP-22 | Plataforma de Analítica (GCP batch) | Analítica en GCP (semanal) | GCP |
-| APP-23 | Dashboards Operativos | Reportes operativos *(inferido F6)* | GCP |
-| APP-24 | ML / Optimización de Rutas (GCP) | Algoritmo de rutas en GCP (Caso 6b R3) | GCP |
-| APP-25 | ERP Financiero (On Premises) | ERP on premises | On Premises |
-| APP-26 | Sistema de Liquidación (Excel) | Hojas Excel penalidades | Local · Excel |
+| ID | Nombre oficial | Origen | Plataforma AS IS | Término en Caso 6a/6b |
+|---|---|---|---|---|
+| APP-01 | Azure API Management | PaaS proveedor (Microsoft) | Azure | Azure API Management |
+| APP-02 | Orquestador de Pedidos | Custom | Azure AKS | Orquestador en AKS |
+| APP-03 | Portal B2B (Carga CSV/Excel) | SaaS externo | SaaS | Portal SaaS — carga manual CSV/Excel |
+| APP-04 | Bucket S3 Legado (archivos) | PaaS/IaaS proveedor (AWS) | AWS S3 | Bucket S3 histórico |
+| APP-05 | Validador de Pedidos | Custom ⚠️ inferido | Azure AKS | Validador / deduplicación (inferido) |
+| APP-06 | WMS Principal (On Premises) | COTS o Custom ⚠️ | On Premises · SQL Server | WMS principal / WMS on premises |
+| APP-07 | WMS Satélite (On Premises local) | COTS o Custom ⚠️ | On Premises local | WMS local / versión local sync horaria |
+| APP-08 | Control de Inventario | COTS o Custom ⚠️ inferido | On Premises | *(inferido del ERP/WMS)* |
+| APP-09 | IoT Core (sensores temperatura) | PaaS proveedor (AWS) | AWS IoT Core | AWS IoT Core |
+| APP-10 | App Handhelds (picking) | Custom ⚠️ inferido | On Premises · dispositivo móvil | Handhelds |
+| APP-11 | TMS (Transportation Management) | COTS o Custom ⚠️ | Azure | TMS en Azure |
+| APP-12 | Optimizador de Rutas (GCP batch) | Custom ⚠️ | GCP | Optimización de rutas en GCP (batch) |
+| APP-13 | Portal Transportistas Tercerizados | Custom ⚠️ inferido | Azure | Portal transportistas tercerizados |
+| APP-14 | Sistema Impresión Manifiestos | Custom legacy ⚠️ | On Premises | Manifiestos impresos localmente |
+| APP-15 | App de Conductores | Custom | AWS · DynamoDB | App de conductores en AWS |
+| APP-16 | Almacenamiento Evidencias (S3) | PaaS/IaaS proveedor (AWS) | AWS S3 | Evidencias en S3 |
+| APP-17 | Pasarela de Pago Contra Entrega | SaaS externo | SaaS | Pasarela SaaS pagos contra entrega |
+| APP-18 | Portal B2B (Trazabilidad) | SaaS externo | SaaS | Portal SaaS de clientes (trazabilidad) |
+| APP-19 | Portal Tracking Destinatarios | SaaS externo ⚠️ inferido | SaaS | Tracking destinatarios finales *(inferido F4)* |
+| APP-20 | CRM de Atención al Cliente | SaaS externo | SaaS | CRM SaaS |
+| APP-21 | Servicio de Notificación (SMS/Email) | SaaS externo ⚠️ inferido | SaaS | Notificaciones a destinatarios *(inferido)* |
+| APP-22 | Plataforma de Analítica (GCP batch) | Custom ⚠️ | GCP | Analítica en GCP (semanal) |
+| APP-23 | Dashboards Operativos | Custom ⚠️ inferido | GCP | Reportes operativos *(inferido F6)* |
+| APP-24 | ML / Optimización de Rutas (GCP) | Custom ⚠️ | GCP | Algoritmo de rutas en GCP (Caso 6b R3) |
+| APP-25 | ERP Financiero (On Premises) | COTS ⚠️ | On Premises | ERP on premises |
+| APP-26 | Sistema de Liquidación (Excel) | Manual (hoja de cálculo) | Local · Excel | Hojas Excel penalidades |
 
-> En tablas y diagramas usar siempre **nombre oficial + ID**. En narrativa se puede decir “app de conductores” o “portal SaaS” citando el caso, pero la primera mención en cada sección debe usar el nombre oficial.
+**Resumen por origen (AS IS):**
+
+| Origen | APP | Cantidad |
+|---|---|---|
+| Custom (desarrollo RutaExpress) | APP-02, APP-05, APP-10, APP-12, APP-13, APP-14, APP-15, APP-22, APP-23, APP-24 | 10 |
+| SaaS externo (vendor) | APP-03, APP-17, APP-18, APP-19, APP-20, APP-21 | 6 |
+| COTS o Custom ⚠️ (caso no especifica) | APP-06, APP-07, APP-08, APP-11, APP-25 | 5 |
+| PaaS/IaaS proveedor cloud | APP-01, APP-04, APP-09, APP-16 | 4 |
+| Manual | APP-26 | 1 |
+
+> En tablas y diagramas usar **nombre oficial + ID**. En narrativa y exposición oral, decir el nombre oficial y colocar el identificador entre paréntesis la primera vez: *Azure API Management (APP-01)*.
+>
+> **Plataforma vs conectividad:** en la columna *Plataforma* van Azure, AWS, GCP, On Premises, SaaS, etc. (dónde se ejecuta o despliega la app). La **red Wi-Fi interna del almacén** no es plataforma: es **conectividad** (Fase D — ver `07_Mapa_Infraestructura.md`, *Red almacenes*). Ejemplo: App Handhelds (APP-10) → plataforma **On Premises** (dispositivo en el CD); se conecta al WMS por **Wi-Fi interno**.
 
 **Prohibido abreviar nombres oficiales:** no usar Mgmt, Svc, On-Prem, RT, Driver, Bucket sin el nombre completo del catálogo. Ejemplos incorrectos → correctos: `Azure API Mgmt` → **Azure API Management**; `S3 Bucket Legado` → **Bucket S3 Legado (archivos)**; `Notification Svc` → **Servicio de Notificación (SMS/Email)**; `Optimizador RT` → **Optimizador de Rutas en Tiempo Real**.
 
@@ -86,16 +121,16 @@ Por eso **sí corresponde** que aparezcan en este mapa, en la **capa transversal
 | **Aplicaciones de plataforma / habilitadoras** | PLT-01 … PLT-04 | Observabilidad, identidad, bus de eventos (cuando existan como componentes desplegados) |
 | **Servicios tecnológicos** (Fase D — Arq. Tecnológica) | *(sin ID APP/PLT)* | IaC (Terraform), redes, cómputo — ver `07_Mapa_Infraestructura.md` |
 
-| ID | Aplicación de plataforma | Tipo TOGAF | AS IS (este mapa) | TO BE (§4 y doc 09) |
-|---|---|---|---|---|
-| PLT-01 | Plataforma de Observabilidad Unificada | Habilitadora | ❌ **Gap** — no desplegada; monitoreo aislado por APP | Crear: Datadog o Azure Monitor + OpenTelemetry |
-| PLT-02 | Plataforma de Identidad y Accesos (IAM) | Habilitadora | ⚠️ **Parcial** — Azure AD básico + OAuth en **APP-01** | Completar: MFA + Zero Trust + políticas IAM |
-| PLT-03 | Bus de Eventos Central | Integración / middleware | ❌ **Gap** — no existe; integraciones P2P | Crear: Azure Event Hubs o Apache Kafka |
-| PLT-04 | Plataforma IaC | Arq. Tecnológica (Fase D) | ❌ **Gap** — infra manual *(ver doc 07)* | Crear: Terraform multinube *(detalle en infra)* |
+| ID | Aplicación de plataforma | Tipo TOGAF | Origen | AS IS (este mapa) | TO BE (§4 y doc 09) |
+|---|---|---|---|---|---|
+| PLT-01 | Plataforma de Observabilidad Unificada | Habilitadora | A crear — herramienta seleccionada (Datadog / Azure Monitor + OpenTelemetry) | ❌ **Gap** — no desplegada; monitoreo aislado por APP | Crear: observabilidad unificada cross-cloud |
+| PLT-02 | Plataforma de Identidad y Accesos (IAM) | Habilitadora | Híbrido — **PaaS Microsoft (Azure AD)** + políticas OAuth en **APP-01** (config propia) | ⚠️ **Parcial** | Completar: MFA + Zero Trust + políticas IAM |
+| PLT-03 | Bus de Eventos Central | Integración / middleware | A crear — Event Hubs o Kafka (decisión TO BE) | ❌ **Gap** — no existe; integraciones P2P | Crear: bus central multinube |
+| PLT-04 | Plataforma IaC | Arq. Tecnológica (Fase D) | A crear — Terraform (capacidad propia TI + repos) | ❌ **Gap** — infra manual *(ver doc 07)* | Crear: IaC multinube |
 
 > **Gap ≠ aplicación en producción.** Un gap es una **entrada de catálogo + brecha documentada**: identifica *qué falta* en AS IS y *qué se creará* en TO BE. No se cuenta como “26 + 4 apps activas”; se cuenta aparte en el resumen de brechas.
 
-> **OAuth básico** no es una aplicación: es una **política** de **Azure API Management (APP-01)**. **Azure AD** es el PaaS que sustenta **PLT-02** de forma incompleta hoy.
+> **Política OAuth 2.0** no es una aplicación: es una **configuración** de **APP-01 Azure API Management**. **Azure AD** es el PaaS de Microsoft que **sustenta parcialmente** **PLT-02 Plataforma de Identidad y Accesos (IAM)** — no sustituye a PLT-02 ni convierte APP-01 en PLT-02.
 
 ---
 
@@ -103,69 +138,87 @@ Por eso **sí corresponde** que aparezcan en este mapa, en la **capa transversal
 
 ### Regla del diagrama AS IS
 
+El mapa AS IS incluye las veintiséis aplicaciones de negocio que el caso describe como existentes, aunque estén degradadas o marcadas para deprecación, más la Plataforma de Identidad (PLT-02) en estado parcial. Las brechas de Observabilidad (PLT-01), Bus de Eventos (PLT-03) e IaC (PLT-04) no se dibujan como cajas: se listan al pie como hallazgos. En cambio, componentes TO BE como WMS Cloud o el microservicio de liquidación no aparecen en AS IS porque hoy sí existe un WMS on premises y hojas Excel — lo que falta es la versión futura, no la función. Cualquier solución nueva se documenta en la sección TO BE y en el documento de fases.
+
 | En el mapa AS IS **sí van** | En el mapa AS IS **no van** (van en **§4 TO BE** o doc `09`) |
 |---|---|
-| Las **26 APP** que el caso describe como **existentes** (aunque estén malas, ⚠️ o 🗑️) | **PLT-01, PLT-03, PLT-04** — no están desplegadas; solo se listan como brecha abajo del diagrama |
-| **PLT-02** IAM — **parcial** (Azure AD + OAuth en APP-01) | **WMS Cloud**, **Servicio de Validación de Órdenes**, **Manifiesto Digital**, etc. — son **reemplazos o apps nuevas TO BE**, no faltantes AS IS |
-| Anotación de **brechas** en texto (pie del mapa), sin dibujarlas como cajas | Cualquier componente que **aún no existe en producción** dibujado como si fuera una app más |
+| Aplicaciones desplegadas (APP-01 … APP-26), aunque tengan ⚠️ o 🗑️ | Plataformas en brecha: Observabilidad (PLT-01), Bus (PLT-03), IaC (PLT-04) |
+| Plataforma de Identidad (PLT-02) parcial — Azure AD + OAuth en Azure API Management (APP-01) | Reemplazos TO BE: WMS Cloud, Servicio de Validación, Manifiesto Digital, etc. |
+| Brechas anotadas en texto al pie, sin caja | Componentes que aún no existen en producción dibujados como si fueran apps |
 
-**¿Por qué antes aparecían PLT inexistentes en el AS IS y no APP inexistentes?**  
-Era **inconsistente**. Las PLT en gap se mostraban como cajas `❌ GAP` para marcar el hueco en la capa; las APP TO BE (WMS Cloud, microservicio de liquidación…) nunca se mostraron así porque **en AS IS sí hay WMS y Excel** — lo que falta es la **versión futura**, no la función. Lo mismo aplica a PLT: **no hay bus ni observabilidad unificada**, pero eso se documenta como **brecha**, no como componente del mapa. **La solución TO BE va en §4 y en `09`.**
+### PLT-02 vs APP-01 — aclaración para la exposición
+
+La Plataforma de Identidad y Accesos (PLT-02) y Azure API Management (APP-01) son dos entradas distintas del catálogo y no se fusionan en una sola caja. La plataforma IAM va en la capa transversal con estado parcial; el gateway de APIs va en la capa de integración como aplicación desplegada. La plataforma no “contiene” al gateway: hoy la identidad se cubre en parte con Azure AD y con una política OAuth configurada en Azure API Management (APP-01), pero eso no equivale a MFA, Zero Trust ni SIEM. Por eso documentamos la plataforma como parcial arriba y referenciamos al gateway; la caja desplegada de Azure API Management (APP-01) aparece una sola vez, en integración.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
 │              MAPA PORTAFOLIO DE APLICACIONES — AS IS · RUTAEXPRESS                           │
 │              (solo componentes desplegados o parciales — ver §4 para TO BE)                  │
 ├──────────────────────────────────────────────────────────────────────────────────────────────┤
-│  CAPA TRANSVERSAL — único PLT desplegado (parcial)                                           │
-│  ┌─────────────────────────────┐                                                             │
-│  │  PLT-02 · IAM  ⚠️ PARCIAL   │   Brechas → TO BE §4: PLT-01 Observabilidad · PLT-03 Bus   │
-│  │  Azure AD básico + OAuth    │   de Eventos · PLT-04 IaC (detalle en doc 07)              │
-│  │  en APP-01                  │                                                             │
-│  └─────────────────────────────┘                                                             │
+│  CAPA TRANSVERSAL — única PLT desplegada (parcial)                                           │
+│  ┌──────────────────────────────────────────────────────────────────────────────────────┐  │
+│  │  PLT-02 Plataforma de Identidad y Accesos (IAM)  ⚠️ PARCIAL                          │  │
+│  │  Cobertura parcial AS IS: Azure AD (PaaS) + política OAuth 2.0 en                    │  │
+│  │  APP-01 Azure API Management (ver caja APP-01 en capa Integración)                   │  │
+│  │  ⚠️ Por qué: sin MFA · Zero Trust · SIEM · políticas IAM unificadas                   │  │
+│  └──────────────────────────────────────────────────────────────────────────────────────┘  │
+│  Brechas TO BE §4 (no desplegadas — sin caja en AS IS):                                      │
+│  · PLT-01 Plataforma de Observabilidad Unificada                                             │
+│  · PLT-03 Bus de Eventos Central                                                             │
+│  · PLT-04 Plataforma IaC (detalle: doc 07)                                                   │
 ├──────────────────────────────────────────────────────────────────────────────────────────────┤
 │  CAPA CANALES (Puntos de contacto con clientes y conductores)                                │
 │  ┌─────────────────────┐  ┌─────────────────────┐  ┌───────────────────┐  ┌─────────────┐  │
-│  │  APP-03             │  │  APP-18 ⚠️          │  │  APP-19           │  │  APP-15 ⚠️ │  │
-│  │  Portal B2B        │  │  Portal B2B         │  │  Portal Tracking  │  │  App de     │  │
-│  │  (Carga CSV/Excel) │  │  (Trazabilidad)     │  │  Destinatarios    │  │  Conductores│  │
-│  │  (SaaS) ⚠️         │  │  (SaaS) ⚠️          │  │  (SaaS)           │  │  (AWS) ⚠️  │  │
+│  │  APP-03 ⚠️          │  │  APP-18 ⚠️          │  │  APP-19           │  │  APP-15 ⚠️ │  │
+│  │  Portal B2B         │  │  Portal B2B         │  │  Portal Tracking  │  │  App de     │  │
+│  │  (Carga CSV/Excel)  │  │  (Trazabilidad)     │  │  Destinatarios    │  │  Conductores│  │
+│  │  (SaaS)             │  │  (SaaS)             │  │  (SaaS)           │  │  (AWS)      │  │
+│  │  ⚠️ Carga manual ·  │  │  ⚠️ Estados         │  │                   │  │  ⚠️ Offline │  │
+│  │  sin validación auto│  │  inconsistentes     │  │                   │  │  · 1.200    │  │
+│  │                     │  │  (eventos desorden) │  │                   │  │  firmas perd.│  │
 │  └─────────────────────┘  └─────────────────────┘  └───────────────────┘  └─────────────┘  │
 ├──────────────────────────────────────────────────────────────────────────────────────────────┤
-│  CAPA INTEGRACIÓN (APIs · Mensajería · Conectores) — sin Bus de Eventos (brecha PLT-03 → TO BE)│
+│  CAPA INTEGRACIÓN — sin PLT-03 Bus de Eventos Central (brecha → TO BE §4)                     │
 │  ┌─────────────────────┐  ┌─────────────────────┐  ┌───────────────────┐                   │
 │  │  APP-01             │  │  APP-04 🗑️          │  │  APP-21           │                   │
 │  │  Azure API          │  │  Bucket S3 Legado   │  │  Servicio de      │                   │
 │  │  Management         │  │  (archivos)         │  │  Notificación     │                   │
-│  │  (Gateway APIs)     │  │  (SFTP/CSV)         │  │  (SMS/Email)      │                   │
+│  │                     │  │  🗑️ SFTP/CSV legado │  │  (SMS/Email)      │                   │
+│  │                     │  │  sin validación     │  │                   │                   │
 │  └─────────────────────┘  └─────────────────────┘  └───────────────────┘                   │
 ├──────────────────────────────────────────────────────────────────────────────────────────────┤
 │  CAPA CORE (Sistemas Operacionales Centrales del Negocio)                                    │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐ │
-│  │  APP-02 ⚠️     │  │  APP-06 ⚠️     │  │  APP-11         │  │  APP-15 ⚠️             │ │
-│  │  Orquestador    │  │  WMS Principal  │  │  TMS            │  │  App de                 │ │
-│  │  Pedidos (AKS)  │  │  (On Premises)  │  │  (Transportation│  │  Conductores            │ │
-│  │  Sin backpressure│  │  SQL Server ✅  │  │  Management)    │  │  (AWS / DynamoDB)       │ │
+│  │  APP-02 ⚠️          │  │  APP-06 ⚠️          │  │  APP-11             │  │  APP-15 ⚠️            │ │
+│  │  Orquestador de     │  │  WMS Principal      │  │  TMS (Transportation│  │  App de Conductores   │ │
+│  │  Pedidos (AKS)      │  │  (On Premises)      │  │  Management)        │  │  (AWS / DynamoDB)     │ │
+│  │  ⚠️ Sin backpressure│  │  ⚠️ 6 h caído       │  │  (Azure)            │  │  ⚠️ Offline frágil ·  │ │
+│  │  · cola ilimitada   │  │  Cyber Days · bloq. │  │                     │  │  1.200 firmas perdidas│ │
+│  │  ante WMS lento     │  │  tablas en campaña  │  │                     │  │                       │ │
 │  └─────────────────┘  └─────────────────┘  └─────────────────┘  └─────────────────────────┘ │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐ │
-│  │  APP-05 ⚠️     │  │  APP-07 ⚠️     │  │  APP-12 ⚠️     │  │  APP-16                 │ │
-│  │  Validador      │  │  WMS Satélite   │  │  Optimizador    │  │  Almacenamiento         │ │
-│  │  Pedidos (AKS)  │  │  On Premises    │  │  Rutas (GCP)    │  │  Evidencias (S3)        │ │
-│  │  Falla dedup.   │  │  local          │  │  Solo batch     │  │                         │ │
+│  │  APP-05 ⚠️          │  │  APP-07 ⚠️          │  │  APP-12 ⚠️          │  │  APP-16                 │ │
+│  │  Validador de       │  │  WMS Satélite       │  │  Optimizador de     │  │  Almacenamiento         │ │
+│  │  Pedidos (AKS)      │  │  (On Premises local)│  │  Rutas (GCP batch)  │  │  Evidencias (S3)        │ │
+│  │  ⚠️ Falló dedup.    │  │  ⚠️ Sync horaria ·  │  │  ⚠️ Solo batch ·    │  │                         │ │
+│  │  · 32.000 pedidos   │  │  4.900 movim.       │  │  tráfico atrasado · │  │                         │ │
+│  │  duplicados (caso)  │  │  en conflicto       │  │  380 rutas inviables│  │                         │ │
 │  └─────────────────┘  └─────────────────┘  └─────────────────┘  └─────────────────────────┘ │
 │  ┌─────────────────┐  ┌─────────────────┐                                                    │
 │  │  APP-10         │  │  APP-13         │                                                    │
 │  │  App Handhelds  │  │  Portal         │                                                    │
 │  │  (picking)      │  │  Transportistas │                                                    │
-│  │  (Wi-Fi interno)│  │  Tercerizados   │                                                    │
+│  │  (On Premises)  │  │  Tercerizados   │                                                    │
 │  └─────────────────┘  └─────────────────┘                                                    │
 ├──────────────────────────────────────────────────────────────────────────────────────────────┤
 │  CAPA DATA (Almacenamiento · Eventos · Analítica · ML)                                      │
 │  ┌─────────────────────┐  ┌─────────────────────┐  ┌───────────────────┐  ┌─────────────┐  │
-│  │  APP-22 ⚠️          │  │  APP-23             │  │  APP-24 ⚠️        │  │  APP-09     │  │
-│  │  Plataforma         │  │  Dashboards         │  │  ML Modelos       │  │  IoT Core   │  │
-│  │  Analítica (GCP)    │  │  Operativos         │  │  Rutas (GCP       │  │  (sensores     │  │
-│  │  Batch semanal      │  │  (GCP) ⚠️           │  │  batch) ⚠️        │  │  temperatura)  │  │
+│  │  APP-22 ⚠️          │  │  APP-23 ⚠️          │  │  APP-24 ⚠️          │  │  APP-09             │  │
+│  │  Plataforma de      │  │  Dashboards         │  │  ML / Optimización  │  │  IoT Core           │  │
+│  │  Analítica (GCP)    │  │  Operativos (GCP)     │  │  de Rutas (GCP)     │  │  (sensores temp.)   │  │
+│  │  ⚠️ Solo batch      │  │  ⚠️ Sin datos en      │  │  ⚠️ Entrena con     │  │                     │  │
+│  │  semanal · sin      │  │  tiempo real ·        │  │  excepciones        │  │                     │  │
+│  │  alertas operativas │  │  fuentes múltiples    │  │  no normalizadas    │  │                     │  │
 │  └─────────────────────┘  └─────────────────────┘  └───────────────────┘  └─────────────┘  │
 ├──────────────────────────────────────────────────────────────────────────────────────────────┤
 │  CAPA SOPORTE (Back-office · Operaciones Internas · Almacén)                                │
@@ -174,31 +227,102 @@ Era **inconsistente**. Las PLT en gap se mostraban como cajas `❌ GAP` para mar
 │  │  Control de         │  │  Sistema Impresión  │  │  Pasarela de Pago                 │    │
 │  │  Inventario         │  │  Manifiestos        │  │  Contra Entrega (SaaS)            │    │
 │  │  (On Premises)      │  │  (On Premises)      │  │                                   │    │
-│  │  No tiempo real     │  │  Deuda técnica      │  │                                   │    │
+│  │  ⚠️ Inventario no   │  │  🗑️ Manifiestos en  │  │                                   │    │
+│  │  refleja stock RT   │  │  papel · sin traza  │  │                                   │    │
 │  └─────────────────────┘  └─────────────────────┘  └───────────────────────────────────┘    │
 ├──────────────────────────────────────────────────────────────────────────────────────────────┤
 │  CAPA CRM / ATENCIÓN AL CLIENTE                                                              │
 │  ┌─────────────────────────────────────────────────────────────────────────────────────┐     │
 │  │  APP-20 ⚠️                                                                          │     │
-│  │  CRM de Atención al Cliente (SaaS)                                                  │     │
-│  │  Gestión reclamos 18,000 contactos/día · Taxonomía diferente a App de Conductores y TMS ⚠️        │     │
+│  │  CRM de Atención al Cliente (SaaS) · 18.000 contactos/día                          │     │
+│  │  ⚠️ Taxonomía de reclamos distinta a APP-15 App de Conductores y APP-11 TMS          │     │
 │  └─────────────────────────────────────────────────────────────────────────────────────┘     │
 ├──────────────────────────────────────────────────────────────────────────────────────────────┤
 │  CAPA ERP / FINANZAS                                                                         │
 │  ┌──────────────────────────────────────────┐  ┌───────────────────────────────────────┐    │
 │  │  APP-25 ⚠️                               │  │  APP-26 🗑️                            │    │
-│  │  ERP Financiero (On Premises)            │  │  Sistema de Liquidación (Excel)     │    │
-│  │  Facturación · Inv. Valorizado           │  │  Penalidades manuales · Error humano  │    │
-│  │  Sin integración tiempo real             │  │  Conciliación 23 días · DEPRECAR      │    │
+│  │  ERP Financiero (On Premises)            │  │  Sistema de Liquidación (Excel)       │    │
+│  │  ⚠️ Factura con datos del mes anterior · │  │  🗑️ Conciliación manual 23 días ·     │    │
+│  │  sin API tiempo real con operaciones     │  │  USD 2.4M retenidos (1 caso)          │    │
 │  └──────────────────────────────────────────┘  └───────────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────────────────────────────────────────┘
 
-Leyenda:  ⚠️ = Problemas críticos / riesgos     🗑️ = Candidato a deprecar
-
-Brechas AS IS (no son cajas en este mapa — definición TO BE en §4 y doc 09):
-  · PLT-01 Observabilidad · PLT-03 Bus de Eventos · PLT-04 IaC
-  · APP futuras: WMS Cloud (reemplaza APP-06/07) · Servicio Validación (reemplaza APP-05) · Servicio Liquidación (reemplaza APP-26) · etc.
+Leyenda:  ⚠️ = Problemas críticos / riesgos (ver tabla abajo)     🗑️ = Candidato a deprecar
 ```
+
+Brechas AS IS (no son cajas en el mapa — definición TO BE en §4 y doc 09):
+
+- Plataforma de Observabilidad Unificada (PLT-01)
+- Bus de Eventos Central (PLT-03)
+- Plataforma IaC (PLT-04)
+- WMS Cloud reemplaza WMS Principal (APP-06) y WMS Satélite (APP-07), entre otras apps TO BE
+
+### Motivos ⚠️ y 🗑️ — consulta rápida
+
+| Aplicación / plataforma | Por qué ⚠️ o 🗑️ |
+|---|---|
+| Plataforma de Identidad y Accesos (PLT-02) | ⚠️ Parcial: solo Azure AD y OAuth en Azure API Management (APP-01); faltan MFA, Zero Trust y SIEM |
+| Portal B2B Carga CSV/Excel (APP-03) | ⚠️ Carga manual sin validación automática |
+| Portal B2B Trazabilidad (APP-18) | ⚠️ Estados inconsistentes; eventos offline fuera de orden |
+| App de Conductores (APP-15) | ⚠️ Offline frágil; 1.200 firmas perdidas; excepciones en texto libre |
+| Orquestador de Pedidos (APP-02) | ⚠️ Sin backpressure; cola ilimitada si el WMS (APP-06) se degrada |
+| Validador de Pedidos (APP-05) | ⚠️ Falló deduplicación → 32.000 pedidos duplicados |
+| WMS Principal On Premises (APP-06) | ⚠️ Seis horas caído en Cyber Days; bloqueo de tablas |
+| WMS Satélite On Premises local (APP-07) | ⚠️ Sync horaria → 4.900 movimientos en conflicto |
+| Optimizador de Rutas GCP batch (APP-12) | ⚠️ Solo batch; 380 rutas inviables por tráfico atrasado |
+| Plataforma de Analítica GCP batch (APP-22) | ⚠️ Consolidación semanal; sin visibilidad operativa |
+| Dashboards Operativos (APP-23) | ⚠️ Fuentes múltiples; sin streaming |
+| ML Optimización de Rutas (APP-24) | ⚠️ Entrena con excepciones no normalizadas |
+| Control de Inventario (APP-08) | ⚠️ Stock no en tiempo real vs WMS (APP-06/APP-07) |
+| CRM de Atención al Cliente (APP-20) | ⚠️ Taxonomía distinta a App de Conductores (APP-15) y TMS (APP-11) |
+| ERP Financiero On Premises (APP-25) | ⚠️ Factura con datos desactualizados |
+| Bucket S3 Legado (APP-04) | 🗑️ Canal CSV/SFTP legado |
+| Sistema Impresión Manifiestos (APP-14) | 🗑️ Manifiestos en papel |
+| Sistema de Liquidación Excel (APP-26) | 🗑️ Conciliación manual 23 días; USD 2.4M retenidos |
+
+### Guion de exposición al comité
+
+Texto para leer en voz alta (~6 min). Nombre oficial primero; identificador entre paréntesis. Detalle de cada ⚠️ en la tabla de consulta rápida.
+
+#### Apertura
+
+Comité, este es el mapa AS IS del portafolio de RutaExpress, de arriba hacia abajo por capas. Solo incluye lo desplegado hoy, más la Plataforma de Identidad (PLT-02) parcial. Observabilidad (PLT-01), Bus de Eventos (PLT-03) e IaC (PLT-04) son brechas al pie del diagrama; su solución está en TO BE. ⚠️ señala riesgo documentado; 🗑️ marca deprecación propuesta.
+
+#### Capa transversal
+
+Solo la Plataforma de Identidad (PLT-02) está desplegada, e incompleta: Azure AD y OAuth en Azure API Management (APP-01). No hay MFA ni Zero Trust. PLT-02 y APP-01 son catálogos distintos: el gateway aparece abajo, en integración. Observabilidad (PLT-01), Bus (PLT-03) e IaC (PLT-04) no existen aún.
+
+#### Capa canales
+
+Aquí interactúan clientes y conductores. El Portal B2B de Carga CSV/Excel (APP-03) es canal manual legado; el Portal B2B de Trazabilidad (APP-18) muestra estados inconsistentes; el Portal Tracking Destinatarios (APP-19) atiende al destinatario final. La App de Conductores (APP-15), en AWS, es crítica: offline frágil y mil doscientas firmas perdidas en campaña.
+
+#### Capa integración
+
+Azure API Management (APP-01) es el gateway para clientes grandes; el Bucket S3 Legado (APP-04) recibe CSV por SFTP y debe deprecarse; el Servicio de Notificación (APP-21) avisa a destinatarios. Lo central: no hay Bus de Eventos (PLT-03). WMS (APP-06), TMS (APP-11), App de Conductores (APP-15) y Analítica (APP-22) se integran punto a punto — ahí nace gran parte de la inconsistencia de datos.
+
+#### Capa core
+
+Corazón operativo repartido en on premises, Azure, AWS y GCP. En AKS: Orquestador (APP-02) sin backpressure, Validador (APP-05) con falla de deduplicación y TMS (APP-11). On premises: WMS Principal (APP-06) — seis horas caído en Cyber Days — y WMS Satélite (APP-07) con sync horaria conflictiva; las App Handhelds de picking (APP-10) corren en dispositivos del almacén y se enlazan al WMS por la red Wi-Fi interna del CD. En AWS: App de Conductores (APP-15) y Evidencias S3 (APP-16). En GCP batch: Optimizador de Rutas (APP-12) sin tiempo real. Complementa el Portal Transportistas Tercerizados (APP-13), en Azure, donde los transportistas externos consultan manifiestos y rutas. Es la capa de mayor criticidad.
+
+#### Capa data
+
+Analítica (APP-22) y dashboards (APP-23) consolidan en batch, no sirven para operación en vivo. ML de rutas (APP-24) aprende con excepciones no normalizadas. IoT Core (APP-09) monitorea temperatura en cámaras frías pero no alerta al WMS (APP-06). No hay almacén de eventos unificado.
+
+#### Capa soporte
+
+Control de Inventario (APP-08) no refleja stock en tiempo real frente al WMS central (APP-06) y satélite (APP-07). Sistema de Impresión de Manifiestos (APP-14), a deprecar, sigue en papel. Pasarela de Pago Contra Entrega (APP-17) cumple su rol como SaaS externo.
+
+#### Capa CRM
+
+CRM de Atención al Cliente (APP-20) recibe unos dieciocho mil contactos al día. Su taxonomía de reclamos no coincide con la App de Conductores (APP-15) ni con el TMS (APP-11), lo que dificulta conciliar disputas y medir causas raíz.
+
+#### Capa ERP y finanzas
+
+ERP Financiero on premises (APP-25) factura con datos desactualizados, sin integración en tiempo real con la operación multinube. Sistema de Liquidación en Excel (APP-26), también a reemplazar: conciliación manual de hasta veintitrés días y USD 2.4M retenidos en un solo caso de disputa.
+
+#### Cierre
+
+Veintiséis apps en multinube sin estrategia unificada, identidad parcial (PLT-02) y tres brechas de plataforma. Quince componentes con riesgo; tres a deprecar. El TO BE — sección cuatro y documento nueve — define el camino; inversión y roadmap en el documento once. ¿Preguntas antes de pasar al TO BE?
 
 ---
 
@@ -211,7 +335,7 @@ Brechas AS IS (no son cajas en este mapa — definición TO BE en §4 y doc 09):
 | ID | Aplicación de plataforma | Tipo TOGAF | En AS IS | Estado AS IS | Criticidad | Observaciones |
 |---|---|---|---|---|---|---|
 | PLT-01 | Plataforma de Observabilidad Unificada | Habilitadora | No desplegada | ❌ Gap | Crítica | Monitoreo aislado por cada APP — **crear en TO BE** |
-| PLT-02 | Plataforma de Identidad y Accesos (IAM) | Habilitadora | Sí (parcial) | ⚠️ Parcial | Alta | Azure AD básico + OAuth en **APP-01** |
+| PLT-02 | Plataforma de Identidad y Accesos (IAM) | Habilitadora | Sí (parcial) | ⚠️ Parcial | Alta | Azure AD (PaaS) + política OAuth 2.0 en **APP-01** Azure API Management |
 | PLT-03 | Bus de Eventos Central | Integración | No desplegado | ❌ Gap | Crítica | Integraciones P2P — **crear en TO BE** |
 | PLT-04 | Plataforma IaC | Arq. Tecnológica | No desplegada | ❌ Gap | Alta | Ver `07_Mapa_Infraestructura.md` — **crear en TO BE** |
 
@@ -221,7 +345,7 @@ Brechas AS IS (no son cajas en este mapa — definición TO BE en §4 y doc 09):
 
 | ID | Aplicación | Tipo | Plataforma | Estado | Criticidad | Observaciones |
 |---|---|---|---|---|---|---|
-| APP-03 | Portal B2B (Carga CSV/Excel) | SaaS externo | Nube proveedor | Activo | Media | Carga manual CSV/Excel — deuda técnica a eliminar |
+| APP-03 | Portal B2B (Carga CSV/Excel) | SaaS externo | Nube proveedor | ⚠️ Activo | Media | Carga manual CSV/Excel — sin validación automática |
 | APP-18 | Portal B2B (Trazabilidad) | SaaS externo | Nube proveedor | ⚠️ Activo | Alta | Muestra estados inconsistentes por eventos fuera de orden |
 | APP-19 | Portal Tracking Destinatarios | Web/PWA | SaaS | Activo | Media | Seguimiento para destinatarios finales |
 | APP-15 | App de Conductores | Custom Mobile | AWS (ECS/EC2) | ⚠️ Activo | Crítica | Android/iOS · Offline frágil · 1,200 firmas perdidas |
@@ -239,7 +363,7 @@ Brechas AS IS (no son cajas en este mapa — definición TO BE en §4 y doc 09):
 | APP-01 | Azure API Management | PaaS | Azure | Activo | Alta | Gateway de APIs para clientes externos |
 | APP-04 | Bucket S3 Legado (archivos) | IaaS | AWS S3 | 🗑️ Activo | Baja | Recepción de CSV/Excel histórica — deprecar |
 | APP-21 | Servicio de Notificación (SMS/Email) | SaaS | Proveedor externo | Activo | Media | Notificaciones a destinatarios |
-| — | Bus de Eventos / Message Broker | **PLT-03** (gap) | — | ❌ Gap | Crítica | WMS↔TMS↔App de Conductores van punto a punto |
+| — | Bus de Eventos / Message Broker | **PLT-03** (gap) | — | ❌ Gap | Crítica | **APP-06**↔**APP-11**↔**APP-15** van P2P |
 
 **Brechas de Integración:**
 - Sin bus de eventos central → todas las integraciones son punto a punto y frágiles
@@ -256,7 +380,7 @@ Brechas AS IS (no son cajas en este mapa — definición TO BE en §4 y doc 09):
 | APP-05 | Validador de Pedidos | Custom (tecnología no especificada en el caso) | Azure AKS | ⚠️ Activo | Alta | Falla deduplicación cuando ID externo cambia |
 | APP-06 | WMS Principal (On Premises) | On Premises · SQL Server (✅ caso) | On Premises | ⚠️ Activo | Crítica | Se degrada en campaña (6h Cyber Days) · Bloqueo de tablas |
 | APP-07 | WMS Satélite (On Premises local) | On Premises local (✅ caso) | On Premises local | ⚠️ Activo | Alta | Sync horaria → 4,900 movimientos en conflicto |
-| APP-10 | App Handhelds (picking) | ⚠️ Suposición: dispositivo Android o similar | Wi-Fi interno (✅ caso) | Activo | Alta | Operación de picking en almacén |
+| APP-10 | App Handhelds (picking) | ⚠️ Suposición: dispositivo Android o similar | On Premises · dispositivo móvil | Activo | Alta | Picking en almacén · Conectividad: Wi-Fi interno del CD (✅ caso) — ver red almacenes en doc 07 |
 | APP-11 | TMS (Transportation Management) | Azure (✅ caso) · Tecnología interna no especificada | Azure | Activo | Crítica | Gestión rutas, manifiestos, transportistas |
 | APP-12 | Optimizador de Rutas | GCP batch (✅ caso) · Stack interno no especificado | GCP (batch) | ⚠️ Activo | Alta | Solo batch · Datos tráfico desactualizados · 380 rutas inviables |
 | APP-13 | Portal Transportistas Tercerizados | ⚠️ Suposición: aplicación web en Azure | Azure | Activo | Media | Acceso a manifiestos para terceros |
@@ -276,12 +400,12 @@ Brechas AS IS (no son cajas en este mapa — definición TO BE en §4 y doc 09):
 |---|---|---|---|---|---|---|
 | APP-09 | IoT Core (sensores temperatura) | PaaS AWS | AWS IoT Core | Activo | Alta | Temperatura de cámaras refrigeradas — OK |
 | APP-22 | Plataforma de Analítica | GCP batch semanal (✅ caso) · Herramienta específica no indicada | GCP (batch semanal) | ⚠️ Activo | Media | Consolidación semanal · Sin visibilidad operativa real |
-| APP-23 | Dashboards Operativos | ⚠️ Suposición: herramienta de BI en GCP, no especificada | GCP | Activo | Media | Reportes para operaciones y clientes |
+| APP-23 | Dashboards Operativos | ⚠️ Suposición: herramienta de BI en GCP, no especificada | GCP | ⚠️ Activo | Media | Datos de fuentes múltiples; sin streaming en tiempo real |
 | APP-24 | ML / Optimización Rutas | GCP (✅ caso) · Algoritmo específico no mencionado | GCP (batch) | ⚠️ Activo | Alta | Caso 6b R3: "algoritmo no aprende por datos inconsistentes" |
 
 **Brechas de Data:**
 - Sin Event Store centralizado: cada sistema guarda sus propios eventos
-- Analítica semanal → sin alertas operativas en tiempo real
+- Analítica semanal (**APP-22**) → sin alertas operativas; requiere **PLT-01**
 - APP-24 aprende con datos sucios (motivos de excepción no normalizados)
 
 ---
@@ -346,9 +470,14 @@ Brechas AS IS (no son cajas en este mapa — definición TO BE en §4 y doc 09):
 | Aplicaciones de plataforma en AS IS | 1 parcial (PLT-02) |
 | Brechas de plataforma documentadas (gaps) | 3 (PLT-01, PLT-03, PLT-04) — **a resolver en TO BE** |
 | Aplicaciones con problemas críticos (⚠️) | 12 |
-| Aplicaciones on-premises | 6 |
-| Aplicaciones SaaS externas | 7 |
-| Aplicaciones cloud (AWS / Azure / GCP) | 13 |
+| Por **origen** — Custom (TI RutaExpress) | 10 |
+| Por **origen** — SaaS externo (vendor) | 6 |
+| Por **origen** — COTS o Custom ⚠️ (caso no especifica) | 5 |
+| Por **origen** — PaaS/IaaS proveedor cloud | 4 |
+| Por **origen** — Manual (Excel) | 1 |
+| Por **plataforma** — on-premises | 6 |
+| Por **plataforma** — SaaS (hosting vendor) | 6 |
+| Por **plataforma** — cloud AWS / Azure / GCP | 13 |
 | Candidatas a deprecar (🗑️) | 3 |
 
 ---

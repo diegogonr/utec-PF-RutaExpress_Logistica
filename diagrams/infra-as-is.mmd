@@ -11,9 +11,13 @@ flowchart TB
                 p2["APP-07<br/>WMS Satélite local"]
                 p3["APP-25<br/>ERP Financiero"]
                 p4["APP-14<br/>Impresión Manifiestos"]
-                p5["Red Wi-Fi handhelds<br/>LAN WMS Satélite"]
+                p5["APP-10<br/>App Handhelds picking"]
+                p6["Red Wi-Fi interna<br/>LAN almacenes · 14 CD"]
                 p1 --- p2
                 p1 --- p3
+                p5 --- p6
+                p5 -.-> p1
+                p5 -.-> p2
             end
 
             subgraph AZURE["AZURE"]

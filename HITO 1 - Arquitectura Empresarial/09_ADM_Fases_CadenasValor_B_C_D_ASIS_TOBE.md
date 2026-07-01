@@ -1,6 +1,8 @@
 # ADM - Fases B, C y D: AS IS y TO BE con Cadena de Valor
 ## RutaExpress Fulfillment & Transporte
 
+> **Para el comité de arquitectura** — Documento **más operativo** del Hito 1: AS IS y TO BE por fase de cadena de valor (F1–F6), con arquitectura de negocio, datos, apps y tecnología. **Mensaje clave:** cada fila indica qué **APP** se conserva, modifica o reemplaza y cuándo entra **PLT-03**; usar junto con `06` (catálogo) y `11` (roadmap).
+
 ---
 
 # VALUE STREAM: Entrega de Pedido Logístico
@@ -27,6 +29,8 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 ---
 
 # AS IS
+
+> En *Arquitectura de Aplicaciones* de cada fase, el párrafo **Guion de exposición** resume el landscape actual para leer en voz alta (nombre oficial + identificador entre paréntesis).
 
 ---
 
@@ -64,15 +68,17 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 
 ### Arquitectura de Aplicaciones
 
+**Guion de exposición (AS IS):** En recepción entran órdenes por varios canales sin la misma validación. Azure API Management (APP-01) expone APIs; el Orquestador (APP-02) y el Validador (APP-05) procesan en Azure AKS; clientes medianos usan el Portal B2B de Carga (APP-03) o el bucket S3 legado (APP-04); todo reserva inventario en el WMS Principal (APP-06). No hay bus de eventos ni backpressure: cuando el WMS se degrada la cola crece, y la deduplicación ya falló con treinta y dos mil pedidos duplicados.
+
 #### Aplicaciones en esta fase
 | App | Rol | Plataforma | Problema |
 |---|---|---|---|
 | Azure API Management (APP-01) | Gateway de APIs para clientes externos | Azure (PaaS) | Sin políticas de backpressure ni rate limiting por cliente |
 | Orquestador de Pedidos (APP-02) | Recibe y procesa todas las órdenes | Azure AKS | Sin backpressure ante degradación WMS; cola ilimitada |
 | Validador de Pedidos (APP-05) | Valida SKU, dirección y duplicados | Azure AKS | Falla deduplicación cuando cambia ID externo del cliente |
-| Portal B2B (Carga CSV/Excel) — APP-03 | Carga CSV/Excel para clientes medianos | SaaS externo | Sin validación automática; canal legado |
+| APP-03 Portal B2B (Carga CSV/Excel) | Carga CSV/Excel para clientes medianos | SaaS externo | Sin validación automática; canal legado |
 | Bucket S3 Legado (archivos) (APP-04) | Recepción de archivos histórica | AWS S3 | Deuda técnica; sin validación ni monitoreo |
-| WMS Principal (On Premises) — APP-06 | Confirma reserva de inventario al recibir orden | On Premises / SQL Server | Se satura bajo alta carga; bloqueo de tablas |
+| APP-06 WMS Principal (On Premises) | Confirma reserva de inventario al recibir orden | On Premises / SQL Server | Se satura bajo alta carga; bloqueo de tablas |
 
 ### Arquitectura Tecnológica
 
@@ -80,8 +86,8 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 | Componente | Tecnología | Plataforma | Problema |
 |---|---|---|---|
 | Gateway de APIs | Azure API Management | Azure PaaS | Sin circuit breaker ni throttling por cliente |
-| Orquestador | AKS (Kubernetes) | Azure | Sin HPA, sin KEDA; no escala en campaña |
-| WMS Principal (On Premises) — APP-06 | SQL Server | On Premises | Sin HA, sin auto-scaling; degradación en Cyber Days |
+| APP-02 Orquestador de Pedidos | AKS (Kubernetes) | Azure | Sin HPA, sin KEDA; no escala en campaña |
+| APP-06 WMS Principal (On Premises) | SQL Server | On Premises | Sin HA, sin auto-scaling; degradación en Cyber Days |
 | Canal archivos | S3 bucket | AWS | Integración no monitoreada; sin SLA |
 | Red/Conectividad | WAN privada | On Premises ↔ Azure | Sin redundancia hacia el WMS |
 
@@ -112,33 +118,35 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 #### Entidades de Datos
 | Entidad | Descripción | Problema AS IS |
 |---|---|---|
-| Inventario | Stock por SKU, ubicación, lote, vencimiento | Múltiples fuentes de verdad (WMS Principal, WMS Satélite, ERP) |
+| Inventario | Stock por SKU, ubicación, lote, vencimiento | Múltiples fuentes de verdad (**APP-06**, **APP-07**, **APP-25** ERP) |
 | Movimiento de inventario | Entrada, salida, picking, ajuste, devolución | 2.8% genera ajuste; no siempre auditable |
-| Ubicación de almacén | Pasillo, nivel, posición, tipo | Desincronización entre WMS Principal y WMS Satélite |
+| Ubicación de almacén | Pasillo, nivel, posición, tipo | Desincronización entre **APP-06** y **APP-07** |
 | Ola de picking | Agrupación de líneas para un picker | Se genera con inventario potencialmente desactualizado |
 | SKU (atributos logísticos) | Temperatura requerida, custodia, lote, vencimiento | No centralizado; discrepancias entre sistemas |
 | Excepción de preparación | Daño, faltante, vencimiento, ubicación incorrecta | No siempre registrada con datos estructurados |
 
 ### Arquitectura de Aplicaciones
 
+**Guion de exposición (AS IS):** En preparación el WMS Principal (APP-06) y los satélites locales (APP-07) guían picking e inventario on premises; los pickers operan con App Handhelds (APP-10) en dispositivos del almacén enlazados por Wi-Fi interno; IoT Core (APP-09) monitorea cámaras frías sin alertar al WMS; el ERP Financiero (APP-25) conserva inventario valorizado desactualizado. La sincronización horaria entre almacenes generó cuatro mil novecientos movimientos en conflicto en el caso.
+
 #### Aplicaciones en esta fase
 | App | Rol | Plataforma | Problema |
 |---|---|---|---|
-| WMS Principal (On Premises) — APP-06 | Gestiona el inventario y guía el picking | On Premises / SQL Server | Bloqueo de tablas bajo alta carga |
-| WMS Satélite (On Premises local) — APP-07 | WMS local para almacenes pequeños | On Premises local | Sincronización horaria; conflictos al reconectar |
-| App Handhelds (APP-10) | Guía al picker en el almacén | Wi-Fi interno | Sin modo offline; depende del Wi-Fi interno |
+| APP-06 WMS Principal (On Premises) | Gestiona el inventario y guía el picking | On Premises / SQL Server | Bloqueo de tablas bajo alta carga |
+| APP-07 WMS Satélite (On Premises local) | WMS local para almacenes pequeños | On Premises local | Sincronización horaria; conflictos al reconectar |
+| App Handhelds (APP-10) | Guía al picker en el almacén | On Premises (dispositivo móvil) | Sin modo offline; depende de red Wi-Fi interna del almacén (infra — ver *Red almacenes*) |
 | IoT Core (sensores temperatura) (APP-09) | Monitorea temperatura de cámaras refrigeradas | AWS IoT Core | Funciona bien; alertas no integradas con WMS |
-| ERP Financiero (On Premises) (APP-25) | Conserva inventario valorizado | On Premises | No actualizado en tiempo real; solo fin de mes |
+| APP-25 ERP Financiero (On Premises) | Conserva inventario valorizado | On Premises | No actualizado en tiempo real; solo fin de mes |
 
 ### Arquitectura Tecnológica
 
 #### Infraestructura
 | Componente | Tecnología | Plataforma | Problema |
 |---|---|---|---|
-| WMS Principal (On Premises) — APP-06 | SQL Server | On Premises | Sin HA ni replica hot-standby |
-| WMS Satélite (On Premises local) — APP-07 | BD local (tipo no especificado) | On Premises local | Sync horaria; sin reconciliación automática |
-| Red almacenes | Wi-Fi interno | 14 centros de distribución | Sin failover; cortes registrados de 74 min |
-| IoT Core (sensores temperatura) (APP-09) | AWS IoT Core | AWS | Funciona; sin integración de alertas al WMS Principal (On Premises) |
+| APP-06 WMS Principal (On Premises) | SQL Server | On Premises | Sin HA ni replica hot-standby |
+| APP-07 WMS Satélite (On Premises local) | BD local (tipo no especificado) | On Premises local | Sync horaria; sin reconciliación automática |
+| Red almacenes (conectividad APP-10 ↔ WMS) | Wi-Fi interno | Infraestructura on premises · 14 CD | Sin failover; cortes registrados de 74 min |
+| APP-09 IoT Core (sensores temperatura) | AWS IoT Core | AWS | Funciona; sin integración de alertas al **APP-06** WMS |
 
 ---
 
@@ -176,6 +184,8 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 
 ### Arquitectura de Aplicaciones
 
+**Guion de exposición (AS IS):** En despacho el TMS (APP-11) consolida rutas y manifiestos en Azure; el Optimizador de Rutas (APP-12) corre en batch en GCP con tráfico desactualizado; transportistas terceros consultan el Portal Transportistas (APP-13); los manifiestos siguen en papel con el Sistema de Impresión (APP-14); la App de Conductores (APP-15) recibe rutas incompletas cuando el WMS respondió lento. El diecisiete por ciento de rutas se corrige a mano.
+
 #### Aplicaciones en esta fase
 | App | Rol | Plataforma | Problema |
 |---|---|---|---|
@@ -183,7 +193,7 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 | Optimizador de Rutas (APP-12) | Genera rutas optimizadas con datos de tráfico | GCP (batch) | Solo batch; datos de tráfico llegan tarde |
 | Portal Transportistas Tercerizados (APP-13) | Acceso de terceros a manifiestos | Azure | Sin alertas en tiempo real |
 | Sistema Impresión Manifiestos (APP-14) | Imprime manifiestos físicos en cada centro | On Premises | Deuda técnica; papel sin trazabilidad |
-| App de Conductores (APP-15) | Recibe ruta y manifiesto en campo | AWS / DynamoDB | Recibe manifiestos parciales cuando WMS es lento |
+| APP-15 App de Conductores | Recibe ruta y manifiesto en campo | AWS / DynamoDB | Recibe manifiestos parciales cuando WMS es lento |
 
 ### Arquitectura Tecnológica
 
@@ -191,7 +201,7 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 | Componente | Tecnología | Plataforma | Problema |
 |---|---|---|---|
 | TMS | Azure (tecnología interna no especificada) | Azure | Integración directa con WMS; sin eventos |
-| Optimizador | GCP batch (stack no especificado) | GCP | Sin streaming; datos de tráfico desactualizados |
+| APP-12 Optimizador de Rutas | GCP batch (stack no especificado) | GCP | Sin streaming; datos de tráfico desactualizados |
 | Conectividad Azure ↔ GCP | Internet público | Multinube | Sin SLA de latencia; latencia variable |
 
 ---
@@ -229,13 +239,15 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 
 ### Arquitectura de Aplicaciones
 
+**Guion de exposición (AS IS):** En entrega la App de Conductores (APP-15) navega, registra tracking en DynamoDB y captura evidencias en S3 (APP-16); los portales SaaS de Trazabilidad (APP-18) y Tracking Destinatarios (APP-19) muestran estados inconsistentes; la Pasarela de Pago Contra Entrega (APP-17) funciona sin observaciones críticas; el TMS (APP-11) actualiza con retraso. El offline frágil costó mil doscientas entregas sin firma en un incidente documentado.
+
 #### Aplicaciones en esta fase
 | App | Rol | Plataforma | Problema |
 |---|---|---|---|
-| App de Conductores (APP-15) | Navegación, registro de entrega y evidencias | AWS / DynamoDB | Offline frágil; evidencias perdibles; motivos texto libre |
+| APP-15 App de Conductores | Navegación, registro de entrega y evidencias | AWS / DynamoDB | Offline frágil; evidencias perdibles; motivos texto libre |
 | Almacenamiento Evidencias (S3) (APP-16) | Almacena fotos y firmas de entrega | AWS S3 | Sin hash de integridad; evidencias sin garantía de completitud |
 | DynamoDB (parte de APP-15) | Eventos de tracking y sincronización offline | AWS DynamoDB | Eventos pueden llegar fuera de orden al sincronizar |
-| Portal B2B (Trazabilidad) — APP-18 | Visibilidad de estados para clientes B2B | SaaS externo | Muestra estados con retraso y a veces inconsistentes |
+| APP-18 Portal B2B (Trazabilidad) | Visibilidad de estados para clientes B2B | SaaS externo | Muestra estados con retraso y a veces inconsistentes |
 | Portal Tracking Destinatarios (APP-19) | Seguimiento para destinatarios finales | SaaS externo | Datos de fuentes distintas a APP-18; inconsistencia percibida |
 | Pasarela de Pago Contra Entrega (APP-17) | Procesa pagos contra entrega en campo | SaaS externo | Sin problemas reportados en el caso |
 | TMS (APP-11) | Actualiza estados en Azure al recibir eventos | Azure | Recibe eventos con retraso |
@@ -245,7 +257,7 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 #### Infraestructura
 | Componente | Tecnología | Plataforma | Problema |
 |---|---|---|---|
-| App de Conductores (backend) | AWS (servicio específico no indicado) | AWS | Sin mecanismo de retry robusto ante reinstalación |
+| APP-15 App de Conductores (backend) | AWS (servicio específico no indicado) | AWS | Sin mecanismo de retry robusto ante reinstalación |
 | DynamoDB | AWS DynamoDB | AWS | No garantiza orden de eventos offline |
 | Almacenamiento Evidencias (S3) (APP-16) | AWS S3 | AWS | Sin hash de integridad por archivo |
 | Conectividad campo | Internet móvil 4G | Operadoras | Zonas con mala señal → offline no controlado |
@@ -286,14 +298,16 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 
 ### Arquitectura de Aplicaciones
 
+**Guion de exposición (AS IS):** En excepciones la App de Conductores (APP-15) registra fallas con motivos en texto libre; el TMS (APP-11) planifica reintentos; el CRM de Atención (APP-20) usa otra taxonomía; el Portal B2B de Trazabilidad (APP-18) notifica tarde; las devoluciones llegan manualmente al WMS Principal (APP-06); el ML de Optimización de Rutas (APP-24) en GCP no aprende porque los motivos no están normalizados.
+
 #### Aplicaciones en esta fase
 | App | Rol | Plataforma | Problema |
 |---|---|---|---|
-| App de Conductores (APP-15) | Registra excepción con motivo y evidencia | AWS | Permite texto libre; motivos no comparables |
+| APP-15 App de Conductores | Registra excepción con motivo y evidencia | AWS | Permite texto libre; motivos no comparables |
 | TMS (APP-11) | Visualiza excepciones y planifica reintentos | Azure | Recibe categorías inconsistentes de la app |
 | CRM de Atención al Cliente (APP-20) | Abre reclamos y gestiona contacto con cliente | SaaS externo | Taxonomía diferente a app y TMS |
-| Portal B2B (Trazabilidad) — APP-18 | Notifica excepción al cliente B2B | SaaS externo | Notificación con retraso |
-| WMS Principal (On Premises) — APP-06 | Recibe devolución cuando el pedido vuelve | On Premises | Sin integración automática desde la excepción |
+| APP-18 Portal B2B (Trazabilidad) | Notifica excepción al cliente B2B | SaaS externo | Notificación con retraso |
+| APP-06 WMS Principal (On Premises) | Recibe devolución cuando el pedido vuelve | On Premises | Sin integración automática desde la excepción |
 | ML / Optimización de Rutas (APP-24) | Aprende de histórico de rutas y excepciones | GCP | Motivos no normalizados impiden aprendizaje (Caso 6b R3) |
 
 ### Arquitectura Tecnológica
@@ -325,7 +339,7 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 | Cliente empresarial | Valida y aprueba la liquidación |
 | Atención | Gestiona disputas y observaciones |
 | Legal | Revisa penalidades contractuales |
-| Analítica | Consolida datos para informes |
+| APP-22 Plataforma de Analítica | Consolida datos para informes |
 | Almacén | Reporta devoluciones recibidas |
 
 ### Arquitectura de Datos
@@ -342,15 +356,17 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 
 ### Arquitectura de Aplicaciones
 
+**Guion de exposición (AS IS):** En liquidación el ERP Financiero (APP-25) factura con datos desactualizados; el Sistema de Liquidación en Excel (APP-26) calcula penalidades a mano; la Plataforma de Analítica (APP-22) y los Dashboards Operativos (APP-23) consolidan en batch semanal en GCP; las evidencias en S3 (APP-16) no integran con finanzas; el Portal B2B de Trazabilidad (APP-18) no coincide con el ERP. De ahí conciliaciones de hasta veintitrés días y el siete por ciento de facturas observadas.
+
 #### Aplicaciones en esta fase
 | App | Rol | Plataforma | Problema |
 |---|---|---|---|
-| ERP Financiero (On Premises) (APP-25) | Facturación y liquidación principal | On Premises | Factura desde reportes mensuales; sin tiempo real |
+| APP-25 ERP Financiero (On Premises) | Facturación y liquidación principal | On Premises | Factura desde reportes mensuales; sin tiempo real |
 | Sistema de Liquidación (APP-26) | Cálculo de penalidades con reglas especiales | Excel local | Manual, propenso a errores, conciliación 23 días |
 | Plataforma de Analítica (APP-22) | Consolida datos de todas las nubes | GCP (batch semanal) | Solo semanal; no sirve para conciliación operativa |
 | Dashboards Operativos (APP-23) | Reportes para clientes y operaciones | GCP | Datos de la semana anterior |
 | Almacenamiento Evidencias (S3) (APP-16) | Sustento de entrega para liquidación | AWS S3 | No integrado directamente con ERP Financiero (On Premises) |
-| Portal B2B (Trazabilidad) — APP-18 | Reportes de estado para cliente B2B | SaaS externo | Estados inconsistentes con ERP Financiero (On Premises) |
+| APP-18 Portal B2B (Trazabilidad) | Reportes de estado para cliente B2B | SaaS externo | Estados inconsistentes con ERP Financiero (On Premises) |
 
 ### Arquitectura Tecnológica
 
@@ -359,12 +375,14 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 |---|---|---|---|
 | ERP | On Premises (tecnología no especificada) | On Premises | Sin APIs hacia sistemas cloud |
 | Excel liquidación | Microsoft Excel local | PC usuario | Sin control de versiones ni auditoría |
-| Analítica GCP | GCP batch semanal | GCP | Sin streaming; incapaz de soportar conciliación diaria |
+| APP-22 Plataforma de Analítica (GCP) | GCP batch semanal | GCP | Sin streaming; incapaz de soportar conciliación diaria |
 | Conectividad ERP ↔ Cloud | Sin integración en tiempo real | On Premises | Datos fluyen por archivos o reportes manuales |
 
 ---
 
 # TO BE
+
+> En *Arquitectura de Aplicaciones* de cada fase, el párrafo **Guion de exposición** resume qué se crea, modifica o elimina respecto al AS IS.
 
 > **Convención (prompt Hito 1):** toda aplicación del AS IS de cada fase debe tener disposición explícita en el TO BE: **NUEVO**, **MODIFICAR**, **CONSERVAR** o **ELIMINAR**. Nomenclatura oficial: ver catálogo APP-01 a APP-26 en `06_Mapa_Portafolio_Aplicaciones.md`. Mapeo con Caso 6a/6b: portal SaaS → APP-03 (carga) + APP-18 (trazabilidad); WMS on premises del caso → APP-06; WMS local → APP-07.
 
@@ -399,11 +417,13 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 
 ### Arquitectura de Aplicaciones
 
+**Guion de exposición (TO BE):** En recepción validamos al ingreso: nuevo Servicio de Validación de Órdenes y Bus de Eventos (PLT-03) desacoplan el Orquestador (APP-02) del WMS (APP-06); fortalecemos Azure API Management (APP-01) con rate limiting y backpressure; eliminamos Validador (APP-05), bucket S3 (APP-04) y migramos el portal de carga (APP-03) a un canal unificado con validación automática.
+
 #### NUEVO
 | App | Descripción | Plataforma propuesta |
 |---|---|---|
 | Servicio de Validación de Órdenes | Valida dirección, SKU, SLA y deduplica por hash en tiempo real | Azure AKS |
-| Bus de Eventos (Event Hub / Kafka) | Desacopla orquestador de WMS Principal; aplica backpressure y prioridad | Azure Event Hubs |
+| PLT-03 Bus de Eventos | Desacopla **APP-02** Orquestador de **APP-06** WMS; aplica backpressure | Azure Event Hubs |
 | Servicio de Notificación (SMS/Email) (pre-entrega) | Confirma ventana horaria con destinatario antes de procesar | AWS SNS o SaaS |
 
 #### MODIFICAR
@@ -411,14 +431,14 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 |---|---|---|
 | Azure API Management (APP-01) | Agregar políticas de rate limiting, backpressure y OAuth 2.0 por cliente | Azure |
 | Orquestador de Pedidos (APP-02) | Agregar circuit breaker, backpressure y prioridad por SLA; publicar a Event Hub | Azure AKS |
-| WMS Principal (On Premises) — APP-06 | Se mantiene en F1; recibe reservas vía Event Hub con backpressure (sin migración hasta F2) | On Premises |
+| APP-06 WMS Principal (On Premises) | Se mantiene en F1; recibe reservas vía Event Hub con backpressure (sin migración hasta F2) | On Premises |
 
 #### ELIMINAR
 | App | Motivo |
 |---|---|
 | Validador de Pedidos (APP-05) | Reemplazado por Servicio de Validación de Órdenes |
 | Bucket S3 Legado (archivos) (APP-04) | Canal de archivos a deprecar; clientes migran a API o Portal B2B (Carga CSV/Excel) |
-| Portal B2B (Carga CSV/Excel) — APP-03 | Reemplazar por Portal B2B unificado con validación automática integrada |
+| APP-03 Portal B2B (Carga CSV/Excel) | Reemplazar por Portal B2B unificado con validación automática integrada |
 
 ### Arquitectura Tecnológica
 
@@ -426,9 +446,9 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 | Componente | Tecnología TO BE | Cambio respecto AS IS |
 |---|---|---|
 | Bus de mensajes | Azure Event Hubs o Apache Kafka | NUEVO — no existía |
-| Orquestador | AKS + KEDA (auto-scaling por eventos) | MODIFICAR — agregar HPA y KEDA |
+| APP-02 Orquestador de Pedidos | AKS + KEDA (auto-scaling por eventos) | MODIFICAR — agregar HPA y KEDA |
 | API Management | Azure API Management con WAF y políticas avanzadas | MODIFICAR — agregar reglas de seguridad |
-| WMS Principal (On Premises) — APP-06 | Integración vía Event Hub; sin migración de plataforma en F1 | CONSERVAR — protegido con backpressure |
+| APP-06 WMS Principal (On Premises) | Integración vía Event Hub; sin migración de plataforma en F1 | CONSERVAR — protegido con backpressure |
 
 ---
 
@@ -461,6 +481,8 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 
 ### Arquitectura de Aplicaciones
 
+**Guion de exposición (TO BE):** En preparación reemplazamos WMS Principal (APP-06) y Satélite (APP-07) por WMS Cloud en Azure con auto-scaling y reconciliación automática; las App Handhelds (APP-10) ganan modo offline y red con backup 4G; IoT Core (APP-09) alerta al WMS Cloud; el ERP Financiero (APP-25) recibe inventario valorizado en tiempo real vía eventos.
+
 #### NUEVO
 | App | Descripción | Plataforma propuesta |
 |---|---|---|
@@ -470,15 +492,15 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 #### MODIFICAR
 | App | Cambio | Plataforma |
 |---|---|---|
-| App Handhelds (APP-10) | Agregar modo offline con sincronización segura al reconectar | Wi-Fi + 4G backup |
+| App Handhelds (APP-10) | Modo offline con sincronización segura al reconectar; red almacenes con failover 4G | On Premises (dispositivo móvil) |
 | IoT Core (sensores temperatura) (APP-09) | Integrar alertas de temperatura con WMS Cloud para bloqueo automático de despacho | AWS IoT Core |
-| ERP Financiero (On Premises) (APP-25) | Integrar inventario valorizado en tiempo real vía API desde WMS Cloud y Event Hub | On Premises |
+| APP-25 ERP Financiero (On Premises) | Integrar inventario valorizado en tiempo real vía API desde WMS Cloud y Event Hub | On Premises |
 
 #### ELIMINAR
 | App | Motivo |
 |---|---|
-| WMS Principal (On Premises) — APP-06 | Reemplazado por WMS Cloud — migración progresiva por fases |
-| WMS Satélite (On Premises local) — APP-07 | Reemplazado por WMS Cloud con modo degradado local |
+| APP-06 WMS Principal (On Premises) | Reemplazado por WMS Cloud — migración progresiva por fases |
+| APP-07 WMS Satélite (On Premises local) | Reemplazado por WMS Cloud con modo degradado local |
 
 ### Arquitectura Tecnológica
 
@@ -506,7 +528,7 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 |---|---|
 | Planner de transporte | Interviene solo en excepciones; el optimizador re-optimiza automáticamente |
 | TMS | Cierra manifiesto solo cuando WMS Cloud confirma todos los paquetes |
-| Optimizador | Corre en tiempo real en GCP; re-optimiza cada 30 min o ante evento crítico |
+| APP-12 Optimizador de Rutas | Corre en tiempo real en GCP; re-optimiza cada 30 min o ante evento crítico |
 | Conductor | Recibe manifiesto digital completo y actualizado |
 
 ### Arquitectura de Datos
@@ -521,17 +543,19 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 
 ### Arquitectura de Aplicaciones
 
+**Guion de exposición (TO BE):** En despacho el Optimizador pasa a tiempo real en GCP; el manifiesto digital reemplaza la impresión en papel (APP-14); el TMS (APP-11), la App de Conductores (APP-15) y el Portal Transportistas (APP-13) reciben manifiestos cerrados solo cuando WMS Cloud confirma todos los paquetes; se elimina el Optimizador batch (APP-12) anterior.
+
 #### NUEVO
 | App | Descripción | Plataforma propuesta |
 |---|---|---|
-| Optimizador Rutas RT | Optimizador en tiempo real con datos de tráfico live | GCP (GKE + Cloud Pub/Sub) |
+| APP-12 Optimizador de Rutas RT | Optimizador en tiempo real con datos de tráfico live | GCP (GKE + Cloud Pub/Sub) |
 | Manifiesto Digital | Cierre digital de manifiesto con confirmación WMS Cloud | Azure AKS (parte del TMS) |
 
 #### MODIFICAR
 | App | Cambio | Plataforma |
 |---|---|---|
 | TMS (APP-11) | Integrar con Event Hub para recibir confirmaciones de WMS Cloud en tiempo real | Azure |
-| App de Conductores (APP-15) | Recibir manifiesto digital completo; actualizable durante la jornada | AWS |
+| APP-15 App de Conductores | Recibir manifiesto digital completo; actualizable durante la jornada | AWS |
 | Portal Transportistas Tercerizados (APP-13) | Acceso a manifiestos digitales en tiempo real; alertas ante cambios de ruta | Azure |
 
 #### ELIMINAR
@@ -545,7 +569,7 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 #### Infraestructura (nueva o modificada)
 | Componente | Tecnología TO BE | Cambio respecto AS IS |
 |---|---|---|
-| Optimizador | GKE + Cloud Pub/Sub (GCP) | MODIFICAR — de batch a tiempo real |
+| APP-12 Optimizador de Rutas | GKE + Cloud Pub/Sub (GCP) | MODIFICAR — de batch a tiempo real |
 | Conectividad Azure ↔ GCP | Azure ExpressRoute + Google Interconnect | NUEVO — reemplaza internet público |
 | TMS | Azure AKS (modernizado con Event Hub) | MODIFICAR — agregar integración por eventos |
 
@@ -567,7 +591,7 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 | Conductor | App con offline robusto; motivos de excepción normalizados y obligatorios |
 | Destinatario | Recibe confirmación y puede gestionar ventana antes de la entrega |
 | Supervisor de ruta | Dashboard en tiempo real con ubicación y estado de cada conductor |
-| Portal B2B (Trazabilidad) — APP-18 | Muestra estado real del pedido en tiempo real |
+| APP-18 Portal B2B (Trazabilidad) | Muestra estado real del pedido en tiempo real |
 
 ### Arquitectura de Datos
 
@@ -580,6 +604,8 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 
 ### Arquitectura de Aplicaciones
 
+**Guion de exposición (TO BE):** En entrega creamos un Event Store de tracking como fuente canónica; rediseñamos la App de Conductores (APP-15) con offline robusto y motivos normalizados; S3 (APP-16) exige integridad; portales (APP-18, APP-19) y notificaciones (APP-21) leen el mismo estado; el TMS (APP-11) sincroniza en tiempo real; la Pasarela de Pago (APP-17) se conserva.
+
 #### NUEVO
 | App | Descripción | Plataforma propuesta |
 |---|---|---|
@@ -588,9 +614,9 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 #### MODIFICAR
 | App | Cambio | Plataforma |
 |---|---|---|
-| App de Conductores (APP-15) | Rediseño de módulo offline: SQLite cifrado, retry robusto, evidencias atómicas, motivos normalizados obligatorios | AWS |
+| APP-15 App de Conductores | Rediseño de módulo offline: SQLite cifrado, retry robusto, evidencias atómicas, motivos normalizados obligatorios | AWS |
 | Almacenamiento Evidencias (S3) (APP-16) | Agregar hash de integridad y política de retención por regulación | AWS S3 |
-| Portal B2B (Trazabilidad) — APP-18 | Conectar al Event Store canónico para mostrar estado real | SaaS / API |
+| APP-18 Portal B2B (Trazabilidad) | Conectar al Event Store canónico para mostrar estado real | SaaS / API |
 | Portal Tracking Destinatarios (APP-19) | Conectar al Event Store; alinear estados con APP-18 y App de Conductores | SaaS / API |
 | Servicio de Notificación (SMS/Email) — APP-21 | Ampliar para confirmación de ventana horaria y alertas proactivas al destinatario | SaaS / AWS SNS |
 | TMS (APP-11) | Consumir y publicar estados desde Event Store; sincronización en tiempo real con app y portales | Azure |
@@ -646,6 +672,8 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 
 ### Arquitectura de Aplicaciones
 
+**Guion de exposición (TO BE):** En excepciones un nuevo Servicio de Excepciones unifica la taxonomía; la App de Conductores (APP-15), el CRM (APP-20), el TMS (APP-11) y el Portal B2B de Trazabilidad (APP-18) comparten la misma clasificación; WMS Cloud recibe devoluciones por eventos; el ML de Optimización de Rutas (APP-24) reentrena con datos limpios del Event Store.
+
 #### NUEVO
 | App | Descripción | Plataforma propuesta |
 |---|---|---|
@@ -654,10 +682,10 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 #### MODIFICAR
 | App | Cambio | Plataforma |
 |---|---|---|
-| App de Conductores (APP-15) | Taxonomía normalizada obligatoria; campos obligatorios por tipo de excepción | AWS |
+| APP-15 App de Conductores | Taxonomía normalizada obligatoria; campos obligatorios por tipo de excepción | AWS |
 | CRM de Atención al Cliente (APP-20) | Adoptar misma taxonomía canónica; integrar con Event Store | SaaS externo |
 | TMS (APP-11) | Recibir excepciones estandarizadas; automatizar decisión reintento / devolución | Azure |
-| Portal B2B (Trazabilidad) — APP-18 | Notificaciones de excepción en tiempo real vía Event Store; estados alineados con TMS y app | SaaS externo |
+| APP-18 Portal B2B (Trazabilidad) | Notificaciones de excepción en tiempo real vía Event Store; estados alineados con TMS y app | SaaS externo |
 | WMS Cloud | Recibir devoluciones automáticamente desde Servicio de Excepciones vía Event Hub (reemplaza APP-06/APP-07 desde F2) | Azure |
 | ML / Optimización de Rutas (APP-24) | Reentrenar con taxonomía canónica de excepciones; alimentado por Event Store | GCP |
 
@@ -706,20 +734,22 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 
 ### Arquitectura de Aplicaciones
 
+**Guion de exposición (TO BE):** En liquidación el Servicio de Liquidación reemplaza Excel (APP-26) y concilia automáticamente WMS Cloud, TMS, App y ERP; el ERP Financiero (APP-25), analítica streaming (APP-22), dashboards (APP-23), evidencias S3 (APP-16) y Portal B2B de Trazabilidad (APP-18) se alinean a la misma fuente; un portal de conciliación permite al cliente validar en tiempo real.
+
 #### NUEVO
 | App | Descripción | Plataforma propuesta |
 |---|---|---|
 | Servicio de Liquidación | Concilia automáticamente WMS + TMS + App + ERP; calcula penalidades | Azure AKS + Azure SQL |
 | Portal de Conciliación para Clientes | Permite al cliente ver el estado de su liquidación en tiempo real | Azure (Web) |
-| Analítica en Streaming | Consolida datos operativos en tiempo real para reportes y dashboards | GCP (BigQuery + Dataflow streaming) |
+| APP-22 Analítica en Streaming | Consolida datos operativos en tiempo real | GCP (BigQuery + Dataflow streaming) |
 
 #### MODIFICAR
 | App | Cambio | Plataforma |
 |---|---|---|
-| ERP Financiero (On Premises) (APP-25) | Agregar API de integración en tiempo real con el Servicio de Liquidación | On Premises (transitorio) |
+| APP-25 ERP Financiero (On Premises) | Agregar API de integración en tiempo real con el Servicio de Liquidación | On Premises (transitorio) |
 | Dashboards Operativos (APP-23) | Conectar a BigQuery streaming para reportes en tiempo real | GCP |
 | Almacenamiento Evidencias (S3) (APP-16) | Exponer evidencias vía API al Servicio de Liquidación; hash de integridad obligatorio | AWS S3 |
-| Portal B2B (Trazabilidad) — APP-18 | Reportes de liquidación alineados con Event Store, ERP y evidencias S3 | SaaS externo |
+| APP-18 Portal B2B (Trazabilidad) | Reportes de liquidación alineados con Event Store, ERP y evidencias S3 | SaaS externo |
 
 #### ELIMINAR
 | App | Motivo |
@@ -732,7 +762,7 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 #### Infraestructura (nueva o modificada)
 | Componente | Tecnología TO BE | Cambio respecto AS IS |
 |---|---|---|
-| Analítica | GCP BigQuery + Dataflow streaming | MODIFICAR — de batch semanal a streaming |
+| APP-22 Plataforma de Analítica | GCP BigQuery + Dataflow streaming | MODIFICAR — de batch semanal a streaming |
 | Servicio de liquidación | Azure AKS + Azure SQL | NUEVO |
 | Integración ERP | API REST desde ERP hacia Azure | NUEVO — reemplaza archivos y reportes manuales |
 | Conectividad AWS ↔ Azure | AWS Direct Connect + Azure ExpressRoute | NUEVO — reemplaza internet público |
@@ -752,7 +782,7 @@ Toda aplicación del AS IS debe aparecer en exactamente una disposición. Nombre
 | **F1** | APP-05 Validador de Pedidos | ELIMINAR | → Servicio de Validación de Órdenes |
 | **F1** | APP-06 WMS Principal (On Premises) | MODIFICAR | Se conserva en F1; integración vía Event Hub |
 | **F1** | *(nuevo)* Servicio de Validación de Órdenes | NUEVO | Reemplaza APP-05 |
-| **F1** | *(nuevo)* Bus de Eventos | NUEVO | Desacopla orquestador y WMS Principal |
+| **F1** | PLT-03 Bus de Eventos | NUEVO | Desacopla **APP-02** y **APP-06** |
 | **F2** | APP-06 WMS Principal (On Premises) | ELIMINAR | → WMS Cloud |
 | **F2** | APP-07 WMS Satélite (On Premises local) | ELIMINAR | → WMS Cloud (modo degradado local) |
 | **F2** | APP-09 IoT Core (sensores temperatura) | MODIFICAR | Alertas integradas con WMS Cloud |
@@ -803,13 +833,13 @@ Toda aplicación del AS IS debe aparecer en exactamente una disposición. Nombre
 | F1 | Sin deduplicación robusta por hash de contenido | Incidente 32K pedidos duplicados | Aplicaciones |
 | F1 | Sin backpressure en orquestador | Cola ilimitada ante degradación WMS | Tecnología |
 | F1 | Canal de archivos CSV/S3 activo | Deuda técnica sin validación automática | Negocio |
-| F2 | WMS Principal (On Premises) sin auto-scaling ni HA | 6h caído en Cyber Days; USD 1.1M penalidades | Tecnología |
-| F2 | Sincronización horaria entre WMS Satélite (On Premises local) y WMS Principal | 4,900 movimientos en conflicto | Datos |
+| F2 | **APP-06** WMS sin auto-scaling ni HA | 6h caído Cyber Days; USD 1.1M penalidades | Tecnología |
+| F2 | Sync horaria **APP-07** ↔ **APP-06** | 4,900 movimientos en conflicto | Datos |
 | F2 | Inventario no disponible en tiempo real | 2.8% ajustes diarios; cancelaciones en alta rotación | Datos |
-| F3 | Optimizador batch sin datos de tráfico en tiempo real | 380 rutas inviables; 24,000 entregas fuera de ventana | Aplicaciones |
-| F3 | Rutas generadas sin confirmación completa de WMS Principal (On Premises) | Manifiestos con paquetes faltantes | Datos |
+| F3 | **APP-12** Optimizador batch sin tráfico RT | 380 rutas inviables; 24,000 entregas fuera de ventana | Aplicaciones |
+| F3 | Rutas sin confirmación completa **APP-06** | Manifiestos con paquetes faltantes | Datos |
 | F3 | Manifiestos físicos en papel | Sin trazabilidad digital; deuda técnica | Negocio |
-| F4 | Offline frágil en App de Conductores | 1,200 firmas perdidas; USD 2.4M retenidos | Aplicaciones |
+| F4 | Offline frágil en **APP-15** | 1,200 firmas perdidas; USD 2.4M retenidos | Aplicaciones |
 | F4 | Eventos de tracking sin orden garantizado | 8% con >20 min de retraso; estados inconsistentes | Datos |
 | F4 | Sin hash de integridad en evidencias S3 | Evidencias cuestionadas en disputas | Tecnología |
 | F5 | Taxonomía de excepciones no normalizada | Datos sucios para ML; reclamos no correlacionados | Datos |
@@ -823,7 +853,7 @@ Toda aplicación del AS IS debe aparecer en exactamente una disposición. Nombre
 | Brecha | Descripción | Tipo |
 |---|---|---|
 | Sin bus de eventos central | Todas las integraciones son punto a punto y frágiles | Tecnología |
-| Sin modelo canónico de estados | Estados distintos en WMS, TMS, App y Portal B2B (Trazabilidad) | Datos |
+| Sin modelo canónico de estados | Estados distintos en **APP-06**, **APP-11**, **APP-15** y **APP-18** | Datos |
 | Sin observabilidad unificada cross-cloud | Monitoreo aislado; sin visibilidad end-to-end | Tecnología |
 | Sin IaC | Infraestructura aprovisionada manualmente | Tecnología |
 | Sin seguridad Zero Trust | OAuth básico; datos personales en riesgo | Seguridad |

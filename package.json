@@ -7,7 +7,9 @@
     "prediagrams": "node -e \"require('fs').mkdirSync('HITO 1 - Arquitectura Empresarial/diagramas',{recursive:true})\"",
     "diagrams:as-is": "mmdc -c diagrams/mermaid-config.json -w 4200 -s 2 -i diagrams/infra-as-is.mmd -o \"HITO 1 - Arquitectura Empresarial/diagramas/infra-as-is.png\"",
     "diagrams:to-be": "mmdc -c diagrams/mermaid-config.json -w 4200 -s 2 -i diagrams/infra-to-be.mmd -o \"HITO 1 - Arquitectura Empresarial/diagramas/infra-to-be.png\"",
-    "diagrams": "npm run diagrams:as-is && npm run diagrams:to-be"
+    "diagrams:modelo-er": "mmdc -c diagrams/mermaid-config.json -w 3600 -s 2 -i diagrams/modelo-datos-er.mmd -o \"HITO 1 - Arquitectura Empresarial/diagramas/modelo-datos-er.png\"",
+    "diagrams:modelo-estados": "mmdc -c diagrams/mermaid-config.json -w 2400 -s 2 -i diagrams/modelo-estados-pedido.mmd -o \"HITO 1 - Arquitectura Empresarial/diagramas/modelo-estados-pedido.png\"",
+    "diagrams": "npm run diagrams:as-is && npm run diagrams:to-be && npm run diagrams:modelo-er && npm run diagrams:modelo-estados"
   },
   "devDependencies": {
     "@mermaid-js/mermaid-cli": "^11.4.0"

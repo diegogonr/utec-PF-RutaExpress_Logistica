@@ -1,0 +1,30 @@
+erDiagram
+    CLIENTE_EMPRESARIAL ||--o{ ORDEN : "tiene"
+    CLIENTE_EMPRESARIAL ||--o{ LIQUIDACION : "tiene"
+    LIQUIDACION ||--o| FACTURA : "genera"
+    LIQUIDACION |o--o| RECLAMO : "puede tener"
+
+    DESTINATARIO ||--o{ ORDEN : "recibe"
+
+    ORDEN ||--o{ LINEA_PEDIDO : "tiene"
+    LINEA_PEDIDO }o--|| SKU : "referencia"
+    ORDEN ||--o{ EVENTO_TRACKING : "genera"
+    ORDEN ||--o{ INTENTO_ENTREGA : "tiene"
+    ORDEN |o--o| DEVOLUCION : "puede tener"
+    ORDEN }o--|| PARADA : "asignada a"
+
+    INTENTO_ENTREGA |o--o| EXCEPCION : "puede generar"
+    INTENTO_ENTREGA ||--o{ EVIDENCIA_ENTREGA : "tiene"
+
+    OLA_PICKING }o--|| CENTRO_DISTRIBUCION : "ejecutada en"
+    OLA_PICKING ||--o{ LINEA_PEDIDO : "incluye"
+
+    CENTRO_DISTRIBUCION ||--o{ UBICACION_ALMACEN : "contiene"
+    UBICACION_ALMACEN ||--o{ INVENTARIO : "almacena"
+    SKU ||--o{ INVENTARIO : "identifica"
+    INVENTARIO ||--o{ MOVIMIENTO_INVENTARIO : "cambia por"
+
+    CENTRO_DISTRIBUCION ||--o{ RUTA : "origen"
+    RUTA }o--|| VEHICULO : "asignada a"
+    RUTA }o--|| CONDUCTOR : "asignada a"
+    RUTA ||--o{ PARADA : "tiene"

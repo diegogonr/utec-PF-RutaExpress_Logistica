@@ -1,0 +1,33 @@
+stateDiagram-v2
+    direction TB
+
+    [*] --> Recibido
+    Recibido --> Validado
+    Validado --> Reservado
+    Reservado --> Pickeado
+    Pickeado --> Despachado
+    Despachado --> EnRuta
+
+    EnRuta --> Entregado : entrega exitosa
+    EnRuta --> Fallido : intento fallido
+
+    Fallido --> Reintento : replanificar
+    Fallido --> Devuelto : sin reintento
+
+    Reintento --> Entregado : reintento OK
+    Reintento --> Devuelto : reintento fallido
+
+    Entregado --> Liquidado
+    Devuelto --> Liquidado : cierre económico
+
+    Liquidado --> [*]
+
+    note right of Validado
+        Flujo principal: avance lineal
+        F1 → F2 → F3 → F4 → F6
+    end note
+
+    note right of Fallido
+        Ramas de excepción (F5)
+        Taxonomía canónica obligatoria TO BE
+    end note

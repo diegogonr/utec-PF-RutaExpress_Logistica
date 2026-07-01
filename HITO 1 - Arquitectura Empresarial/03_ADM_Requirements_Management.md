@@ -1,6 +1,8 @@
 # ADM - Requirements Management
 ## RutaExpress Fulfillment & Transporte
 
+> **Para el comité de arquitectura** — Catálogo de **requisitos funcionales (RF)** y **no funcionales (RNF)** con trazabilidad a fases ADM. **Mensaje clave:** cada requisito crítico debe poder vincularse a una APP o PLT (ej. RF-18 → **PLT-03**, RF-14 → **APP-15**, RNF-21 → alertas sobre **APP-06**, **APP-11**, **APP-15**); sirve para validar que el diseño TO BE no deje huecos.
+
 ---
 
 ## 1. Propósito
@@ -33,42 +35,42 @@ Capturar, clasificar y mantener trazabilidad de todos los requisitos que guían 
 |---|---|---|---|---|
 | RF-01 | El sistema debe validar automáticamente la dirección, SKU y duplicación de cada orden antes de aceptarla en el flujo | Incidente duplicados | Alta | B, C |
 | RF-02 | Se debe implementar deduplicación idempotente usando ID externo del cliente + hash de contenido | Incidente 32K pedidos | Alta | C |
-| RF-03 | Las órdenes deben procesarse en tiempo real desde APIs, archivos y Portal B2B (Carga CSV/Excel), con prioridad por SLA | Operaciones | Alta | C |
-| RF-04 | El estado del pedido debe propagarse en tiempo real a todos los sistemas consumidores (WMS, TMS, Portal B2B de Trazabilidad) | Trazabilidad | Alta | B, C |
+| RF-03 | Las órdenes deben procesarse en tiempo real desde APIs, archivos y **APP-03** Portal B2B (Carga CSV/Excel), con prioridad por SLA | Operaciones | Alta | C |
+| RF-04 | El estado del pedido debe propagarse en tiempo real a todos los sistemas consumidores (**APP-06** WMS, **APP-11** TMS, **APP-18** Portal B2B Trazabilidad) | Trazabilidad | Alta | B, C |
 | RF-05 | Se deben manejar picos de hasta 180,000 órdenes/día sin degradación | Cyber Days | Alta | D |
 
 #### Dominio: Almacén / WMS
 
 | ID | Requisito | Fuente | Prioridad | Fase ADM |
 |---|---|---|---|---|
-| RF-06 | El inventario debe sincronizarse en tiempo real (no por lotes horarios) entre el WMS y los sistemas cloud | Incidente 74 min sin conectividad | Alta | C, D |
-| RF-07 | El WMS debe soportar operación en modo degradado con reconciliación automática al reconectar | Incidente 4,900 movimientos en conflicto | Alta | D |
+| RF-06 | El inventario debe sincronizarse en tiempo real (no por lotes horarios) entre **APP-06**/**APP-07** WMS y los sistemas cloud | Incidente 74 min sin conectividad | Alta | C, D |
+| RF-07 | **APP-06**/**APP-07** WMS debe soportar operación en modo degradado con reconciliación automática al reconectar | Incidente 4,900 movimientos en conflicto | Alta | D |
 | RF-08 | Los movimientos de inventario deben generar eventos auditables con usuario, timestamp y motivo | Auditoría | Media | C |
-| RF-09 | El control de cadena de frío debe integrarse con el WMS para bloquear despacho fuera de temperatura | Farmacéuticas | Alta | C |
+| RF-09 | El control de cadena de frío debe integrarse con **APP-06** WMS para bloquear despacho fuera de temperatura | Farmacéuticas | Alta | C |
 
 #### Dominio: Transporte / TMS
 
 | ID | Requisito | Fuente | Prioridad | Fase ADM |
 |---|---|---|---|---|
-| RF-10 | Las rutas deben generarse automáticamente con datos de tráfico en tiempo real desde el optimizador en GCP | Rutas manuales 17% | Alta | C, D |
-| RF-11 | Los manifiestos de despacho deben incluir todos los paquetes confirmados por el WMS antes de cerrarse | Rutas con paquetes faltantes | Alta | C |
-| RF-12 | Los cambios manuales de rutas deben registrarse con motivo estructurado, aprobador y timestamp | Auditoría de rutas | Media | C |
-| RF-13 | El TMS debe gestionar restricciones de vehículos, zonas, capacidad y tipo de carga | Operaciones | Alta | C |
+| RF-10 | Las rutas deben generarse automáticamente con datos de tráfico en tiempo real desde **APP-12** Optimizador de Rutas (GCP) | Rutas manuales 17% | Alta | C, D |
+| RF-11 | Los manifiestos de despacho deben incluir todos los paquetes confirmados por **APP-06** WMS antes de cerrarse | Rutas con paquetes faltantes | Alta | C |
+| RF-12 | Los cambios manuales de rutas en **APP-11** TMS deben registrarse con motivo estructurado, aprobador y timestamp | Auditoría de rutas | Media | C |
+| RF-13 | **APP-11** TMS debe gestionar restricciones de vehículos, zonas, capacidad y tipo de carga | Operaciones | Alta | C |
 
-#### Dominio: Última Milla / App de Conductores
+#### Dominio: Última Milla / APP-15 App de Conductores
 
 | ID | Requisito | Fuente | Prioridad | Fase ADM |
 |---|---|---|---|---|
-| RF-14 | La App de Conductores debe funcionar completamente offline con sincronización segura al reconectar | Incidente 1,200 firmas perdidas | Alta | C, D |
-| RF-15 | Las evidencias (foto, firma, geolocalización, timestamp) deben cifrarse localmente y subirse de forma atómica | Seguridad + Auditoría | Alta | C, D |
+| RF-14 | **APP-15** App de Conductores debe funcionar completamente offline con sincronización segura al reconectar | Incidente 1,200 firmas perdidas | Alta | C, D |
+| RF-15 | Las evidencias en **APP-15**/**APP-16** (foto, firma, geolocalización, timestamp) deben cifrarse localmente y subirse de forma atómica | Seguridad + Auditoría | Alta | C, D |
 | RF-16 | Los motivos de excepción deben ser taxonomía normalizada y obligatoria (sin texto libre para el motivo principal) | Incidente excepciones no comparables | Alta | B, C |
-| RF-17 | El tracking de ubicación debe publicarse cada 2 minutos hacia el Portal B2B (Trazabilidad) — APP-18 — y centro de atención | Visibilidad | Alta | C |
+| RF-17 | El tracking de ubicación debe publicarse cada 2 minutos hacia **APP-18** Portal B2B (Trazabilidad) y **APP-20** CRM Atención al Cliente | Visibilidad | Alta | C |
 
 #### Dominio: Trazabilidad y Eventos
 
 | ID | Requisito | Fuente | Prioridad | Fase ADM |
 |---|---|---|---|---|
-| RF-18 | Todos los eventos del ciclo de vida del pedido deben publicarse en un bus de eventos centralizado | Arquitectura | Alta | C, D |
+| RF-18 | Todos los eventos del ciclo de vida del pedido deben publicarse en **PLT-03** Bus de Eventos centralizado | Arquitectura | Alta | C, D |
 | RF-19 | El modelo canónico de estados debe incluir: recibido, validado, reservado, pickeado, despachado, en ruta, entregado, fallido, devuelto, liquidado | Integridad de datos | Alta | B, C |
 | RF-20 | Los eventos fuera de orden deben ser detectados y reordenados antes de actualizar el estado visible | Incidente eventos offline | Alta | C |
 
@@ -76,7 +78,7 @@ Capturar, clasificar y mantener trazabilidad de todos los requisitos que guían 
 
 | ID | Requisito | Fuente | Prioridad | Fase ADM |
 |---|---|---|---|---|
-| RF-21 | La conciliación entre WMS, TMS, app móvil y ERP debe ser automatizada con detección de diferencias | Incidente 23 días conciliación | Alta | C |
+| RF-21 | La conciliación entre **APP-06** WMS, **APP-11** TMS, **APP-15** App de Conductores y **APP-25** ERP debe ser automatizada con detección de diferencias | Incidente 23 días conciliación | Alta | C |
 | RF-22 | Los reportes de trazabilidad para clientes deben generarse en tiempo real con la misma fuente de datos que la facturación | Disputa USD 2.4M | Alta | C |
 | RF-23 | Las penalidades por SLA deben calcularse automáticamente al cierre de cada ciclo de entrega | Finanzas | Media | C |
 
@@ -88,11 +90,11 @@ Capturar, clasificar y mantener trazabilidad de todos los requisitos que guían 
 
 | ID | Requisito | Target | Fuente |
 |---|---|---|---|
-| RNF-01 | Disponibilidad de sistemas críticos (recepción de órdenes, WMS Principal (On Premises), TMS (Transportation Management), App de Conductores, Portal Tracking Destinatarios) en campaña | 99.9% | Objetivo estratégico |
-| RNF-02 | RTO (Recovery Time Objective) para WMS y TMS | < 15 minutos | Riesgo disponibilidad |
+| RNF-01 | Disponibilidad de sistemas críticos (**APP-02** Orquestador, **APP-06** WMS, **APP-11** TMS, **APP-15** App de Conductores, **APP-19** Portal Tracking Destinatarios) en campaña | 99.9% | Objetivo estratégico |
+| RNF-02 | RTO (Recovery Time Objective) para **APP-06** WMS y **APP-11** TMS | < 15 minutos | Riesgo disponibilidad |
 | RNF-03 | RPO (Recovery Point Objective) para datos de pedidos y tracking | < 5 minutos | Riesgo disponibilidad |
 | RNF-04 | El sistema debe escalar automáticamente ante picos de hasta 3x el volumen normal | Auto-scaling | Cyber Days |
-| RNF-05 | Implementar circuit breakers entre WMS, TMS y orquestador para evitar fallos en cascada | Resiliencia | Riesgo disponibilidad |
+| RNF-05 | Implementar circuit breakers entre **APP-06** WMS, **APP-11** TMS y **APP-02** Orquestador para evitar fallos en cascada | Resiliencia | Riesgo disponibilidad |
 | RNF-06 | Las colas de mensajes deben implementar backpressure por cliente y prioridad por SLA | Resiliencia | Cyber Days |
 
 #### Rendimiento
@@ -120,15 +122,15 @@ Capturar, clasificar y mantener trazabilidad de todos los requisitos que guían 
 |---|---|---|---|
 | RNF-16 | Deduplicación idempotente en todos los puntos de entrada de mensajes | Exactamente-una-vez semántica | Incidente duplicados |
 | RNF-17 | Consistencia eventual garantizada con tiempo máximo de convergencia | < 60 segundos entre sistemas | Integridad |
-| RNF-18 | Detección y alerta automática de inconsistencias entre WMS, TMS y Portal B2B (Trazabilidad) | Monitoreo activo | Riesgo integridad |
+| RNF-18 | Detección y alerta automática de inconsistencias entre **APP-06** WMS, **APP-11** TMS y **APP-18** Portal B2B (Trazabilidad) | Monitoreo activo | Riesgo integridad |
 
-#### Observabilidad
+#### Observabilidad — PLT-01
 
 | ID | Requisito | Descripción | Fuente |
 |---|---|---|---|
-| RNF-19 | Trazas distribuidas end-to-end para cada pedido (desde recepción hasta entrega) | OpenTelemetry | Observabilidad |
-| RNF-20 | Dashboards operativos en tiempo real: cola de pedidos, rutas en curso, tracking, excepciones | Operaciones | Visibilidad |
-| RNF-21 | Alertas automáticas ante degradación de WMS Principal (On Premises), TMS (Transportation Management), App de Conductores o Portal Tracking Destinatarios | SRE | Riesgo disponibilidad |
+| RNF-19 | Trazas distribuidas end-to-end para cada pedido (desde recepción hasta entrega) | OpenTelemetry en **PLT-01** | Observabilidad |
+| RNF-20 | **APP-23** Dashboards operativos en tiempo real: cola de pedidos, rutas en curso, tracking, excepciones | Operaciones | Visibilidad |
+| RNF-21 | Alertas automáticas ante degradación de **APP-06** WMS, **APP-11** TMS, **APP-15** App de Conductores o **APP-19** Portal Tracking Destinatarios | SRE | Riesgo disponibilidad |
 
 ---
 

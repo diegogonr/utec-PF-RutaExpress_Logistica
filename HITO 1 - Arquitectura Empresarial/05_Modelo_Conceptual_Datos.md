@@ -1,6 +1,8 @@
 # Modelo Conceptual de Datos
 ## RutaExpress Fulfillment & Transporte
 
+> **Para el comité de arquitectura** — Define **entidades de negocio**, relaciones y **sistemas maestros (SSOT)** AS IS vs TO BE. **Mensaje clave:** hoy el inventario y los estados tienen múltiples fuentes (**APP-06**, **APP-07**, **APP-25**); el modelo canónico de estados debe ser adoptado por **APP-06**, **APP-11**, **APP-15**, **APP-03**, **APP-18** y **APP-25** vía **PLT-03**.
+
 ---
 
 ## 1. Propósito
@@ -46,7 +48,7 @@ Referencia de producto en el catálogo logístico.
 Almacén desde donde se preparan y despachan pedidos.
 - ID Centro, Nombre, Dirección, Capacidad total
 - Zonas de almacenamiento, Temperatura (seco/frío)
-- WMS asociado, Región de cobertura
+- WMS asociado (**APP-06** / **APP-07**), Región de cobertura
 
 ### UBICACIÓN DE ALMACÉN
 Posición física de un ítem dentro del centro de distribución.
@@ -108,7 +110,7 @@ Registro de cada cambio de estado en el ciclo de vida del pedido.
 ### EVIDENCIA DE ENTREGA
 Prueba digital de la entrega o intento.
 - ID Evidencia, ID Parada, Tipo (foto/firma/código QR)
-- URL almacenamiento (S3), Timestamp captura
+- URL almacenamiento (**APP-16** S3), Timestamp captura
 - Hash de integridad, GPS captura, Sincronizado
 
 ### EXCEPCIÓN
@@ -152,47 +154,60 @@ Disputa del cliente sobre una liquidación o entrega.
 
 ---
 
-## 3. Diagrama de Relaciones (Notación Textual)
+## 3. Diagrama de Relaciones
 
+Modelo conceptual entre entidades de negocio. Fuente editable: [`diagrams/modelo-datos-er.mmd`](../diagrams/modelo-datos-er.mmd). Exportar a draw.io o PNG con `npm run diagrams:modelo-er`.
+
+![Diagrama entidad-relación — modelo conceptual](diagramas/modelo-datos-er.png)
+
+<details>
+<summary>Ver / editar diagrama Mermaid (ER)</summary>
+
+```mermaid
+erDiagram
+    CLIENTE_EMPRESARIAL ||--o{ ORDEN : "tiene"
+    CLIENTE_EMPRESARIAL ||--o{ LIQUIDACION : "tiene"
+    LIQUIDACION ||--o| FACTURA : "genera"
+    LIQUIDACION |o--o| RECLAMO : "puede tener"
+
+    DESTINATARIO ||--o{ ORDEN : "recibe"
+
+    ORDEN ||--o{ LINEA_PEDIDO : "tiene"
+    LINEA_PEDIDO }o--|| SKU : "referencia"
+    ORDEN ||--o{ EVENTO_TRACKING : "genera"
+    ORDEN ||--o{ INTENTO_ENTREGA : "tiene"
+    ORDEN |o--o| DEVOLUCION : "puede tener"
+    ORDEN }o--|| PARADA : "asignada a"
+
+    INTENTO_ENTREGA |o--o| EXCEPCION : "puede generar"
+    INTENTO_ENTREGA ||--o{ EVIDENCIA_ENTREGA : "tiene"
+
+    OLA_PICKING }o--|| CENTRO_DISTRIBUCION : "ejecutada en"
+    OLA_PICKING ||--o{ LINEA_PEDIDO : "incluye"
+
+    CENTRO_DISTRIBUCION ||--o{ UBICACION_ALMACEN : "contiene"
+    UBICACION_ALMACEN ||--o{ INVENTARIO : "almacena"
+    SKU ||--o{ INVENTARIO : "identifica"
+    INVENTARIO ||--o{ MOVIMIENTO_INVENTARIO : "cambia por"
+
+    CENTRO_DISTRIBUCION ||--o{ RUTA : "origen"
+    RUTA }o--|| VEHICULO : "asignada a"
+    RUTA }o--|| CONDUCTOR : "asignada a"
+    RUTA ||--o{ PARADA : "tiene"
 ```
-CLIENTE EMPRESARIAL
-    ├── tiene muchos ──► ORDEN
-    └── tiene muchos ──► LIQUIDACIÓN
-                              └── genera ──► FACTURA
 
-ORDEN
-    ├── tiene muchas ──► LÍNEA DE PEDIDO
-    │                         └── referencia ──► SKU
-    ├── genera muchos ──► EVENTO DE TRACKING
-    ├── tiene muchos ──► INTENTO DE ENTREGA
-    │                         └── puede generar ──► EXCEPCIÓN
-    │                         └── tiene muchas ──► EVIDENCIA DE ENTREGA
-    ├── puede tener ──► DEVOLUCIÓN
-    └── asignada a ──► PARADA (dentro de RUTA)
+</details>
 
-DESTINATARIO
-    └── es destino de muchos ──► ORDEN
+**Agrupación lógica (lectura del diagrama):**
 
-RUTA
-    ├── asignada a ──► VEHÍCULO
-    ├── asignada a ──► CONDUCTOR
-    ├── parte de ──► CENTRO DE DISTRIBUCIÓN
-    └── tiene muchas ──► PARADA
+| Dominio | Entidades centrales | Relación clave |
+|---|---|---|
+| Comercial | Cliente Empresarial, Orden, Línea de Pedido, SKU | Cliente → muchas órdenes → líneas → SKU |
+| Almacén | Centro de Distribución, Ubicación, Inventario, Ola de Picking | Inventario por ubicación; ola agrupa líneas |
+| Transporte | Ruta, Parada, Vehículo, Conductor, Intento, Evidencia | Orden asignada a parada dentro de ruta |
+| Finanzas | Liquidación, Factura, Reclamo | Cliente → liquidación → factura; reclamo opcional |
 
-OLA DE PICKING
-    ├── ejecutada en ──► CENTRO DE DISTRIBUCIÓN
-    └── incluye muchas ──► LÍNEA DE PEDIDO
-
-INVENTARIO
-    ├── corresponde a ──► SKU
-    ├── ubicado en ──► UBICACIÓN DE ALMACÉN
-    │                         └── pertenece a ──► CENTRO DE DISTRIBUCIÓN
-    └── cambia por ──► MOVIMIENTO DE INVENTARIO
-
-LIQUIDACIÓN
-    ├── pertenece a ──► CLIENTE EMPRESARIAL
-    └── puede tener ──► RECLAMO
-```
+> **draw.io (PPT / comité):** recrear como diagrama ER visual usando esta estructura; no duplicar atributos — solo entidades y cardinalidades.
 
 ---
 
@@ -200,31 +215,80 @@ LIQUIDACIÓN
 
 | Entidad | Sistema Maestro (AS IS) | Sistema Maestro (TO BE) |
 |---|---|---|
-| Orden / Pedido | Orquestador AKS (Azure) | Servicio de Gestión de Pedidos (Azure) |
-| SKU / Producto | WMS Principal (On Premises) | Catálogo de Productos (API centralizada) |
-| Inventario | WMS Principal (On Premises) | WMS Cloud + Event Store |
-| Ruta | TMS (Azure) | TMS (Azure) |
-| Evento de Tracking | DynamoDB (AWS) | Event Store unificado (AWS Kinesis) |
-| Evidencia de Entrega | S3 (AWS) | S3 (AWS) - con hash de integridad |
-| Excepción | App de Conductores + TMS (Transportation Management) | Servicio de Excepciones (normalizado) |
-| Liquidación / Factura | ERP Financiero (On Premises) | ERP Financiero (On Premises) (integrado) |
-| Cliente Empresarial | Portal B2B (Trazabilidad) | Portal B2B unificado + CRM |
-| Destinatario | Distribuido (WMS+TMS+App) | Servicio de Destinatarios (centralizado) |
+| Orden / Pedido | **APP-02** Orquestador de Pedidos (Azure AKS) | Servicio de Gestión de Pedidos (Azure) |
+| SKU / Producto | **APP-06** WMS Principal (On Premises) | Catálogo de Productos (API centralizada) |
+| Inventario | **APP-06** WMS Principal | WMS Cloud + Event Store (**PLT-03**) |
+| Ruta | **APP-11** TMS (Azure) | **APP-11** TMS (Azure) |
+| Evento de Tracking | DynamoDB (**APP-15** backend) | Event Store unificado (**PLT-03** / Kinesis) |
+| Evidencia de Entrega | **APP-16** Almacenamiento Evidencias (S3) | **APP-16** S3 — con hash de integridad |
+| Excepción | **APP-15** App de Conductores + **APP-11** TMS | Servicio de Excepciones (normalizado) |
+| Liquidación / Factura | **APP-25** ERP Financiero (On Premises) | **APP-25** ERP (integrado) + Servicio Liquidación (reemplaza **APP-26**) |
+| Cliente Empresarial | **APP-18** Portal B2B (Trazabilidad) | Portal B2B unificado + **APP-20** CRM |
+| Destinatario | Distribuido (**APP-06**+**APP-11**+**APP-15**) | Servicio de Destinatarios (centralizado) |
 
 ---
 
 ## 5. Modelo Canónico de Estados de Pedido
 
-```
-[RECIBIDO] → [VALIDADO] → [RESERVADO] → [PICKEADO] → [DESPACHADO] 
-    → [EN RUTA] → [ENTREGADO]
-                → [FALLIDO] → [REINTENTO] → [ENTREGADO]
-                                          → [DEVUELTO]
-                           → [DEVUELTO]
-    → [LIQUIDADO]
+Estados únicos que debe compartir todo el ecosistema vía Event Store (PLT-03) en TO BE. Fuente editable: [`diagrams/modelo-estados-pedido.mmd`](../diagrams/modelo-estados-pedido.mmd). Exportar PNG: `npm run diagrams:modelo-estados`.
+
+![Modelo canónico de estados del pedido](diagramas/modelo-estados-pedido.png)
+
+<details>
+<summary>Ver / editar diagrama Mermaid (estados)</summary>
+
+```mermaid
+stateDiagram-v2
+    direction TB
+
+    [*] --> Recibido
+    Recibido --> Validado
+    Validado --> Reservado
+    Reservado --> Pickeado
+    Pickeado --> Despachado
+    Despachado --> EnRuta
+
+    EnRuta --> Entregado : entrega exitosa
+    EnRuta --> Fallido : intento fallido
+
+    Fallido --> Reintento : replanificar
+    Fallido --> Devuelto : sin reintento
+
+    Reintento --> Entregado : reintento OK
+    Reintento --> Devuelto : reintento fallido
+
+    Entregado --> Liquidado
+    Devuelto --> Liquidado : cierre económico
+
+    Liquidado --> [*]
 ```
 
-Este modelo canónico debe ser adoptado por WMS, TMS, App de Conductores, Portales B2B (Carga CSV/Excel y Trazabilidad) y ERP. Las transiciones de estado solo pueden avanzar (no retroceder) salvo en el flujo de devolución.
+</details>
+
+### Catálogo de estados
+
+| # | Estado | Fase cadena | Descripción breve |
+|---|---|---|---|
+| 1 | **Recibido** | F1 | Orden ingresada por API, portal o archivo |
+| 2 | **Validado** | F1 | Dirección, SKU y deduplicación OK |
+| 3 | **Reservado** | F1–F2 | Inventario reservado en WMS |
+| 4 | **Pickeado** | F2 | Preparación completada en almacén |
+| 5 | **Despachado** | F3 | Salida de CD; manifiesto cerrado |
+| 6 | **En ruta** | F4 | Conductor en camino |
+| 7 | **Entregado** | F4 | Entrega exitosa con evidencia |
+| 8 | **Fallido** | F5 | Intento sin entrega (excepción) |
+| 9 | **Reintento** | F5 | Nueva ventana planificada |
+| 10 | **Devuelto** | F5–F6 | Pedido retorna a almacén |
+| 11 | **Liquidado** | F6 | Cierre económico y facturación |
+
+### Reglas de transición
+
+- **Flujo principal (feliz):** Recibido → Validado → Reservado → Pickeado → Despachado → En ruta → Entregado → Liquidado.
+- **Excepciones (F5):** desde *En ruta* puede ir a *Fallido*; luego *Reintento* o *Devuelto*.
+- **No retroceso** en el flujo principal (ej. no pasar de *Pickeado* a *Recibido*), salvo correcciones operativas auditadas en devolución.
+- **Adoptores TO BE:** WMS Cloud (APP-06/07), TMS (APP-11), App de Conductores (APP-15), portales B2B (APP-03, APP-18) y ERP (APP-25) publican y consumen estos estados vía Bus de Eventos (PLT-03).
+
+> **draw.io (PPT):** usar este diagrama de estados como slide D6; colores sugeridos — verde flujo feliz, ámbar excepciones, gris *Liquidado*.
 
 ---
 

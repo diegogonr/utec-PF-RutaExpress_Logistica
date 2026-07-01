@@ -1,6 +1,8 @@
 # ADM - Fase F: Migration Planning
 ## RutaExpress Fulfillment & Transporte
 
+> **Para el comité de arquitectura** — **Plan de migración 36 meses**: costos (USD 1.7M), roadmap, dependencias y ROI (~4.2x). **Mensaje clave:** arrancar **INI-07** (**PLT-01**, **PLT-02**, **PLT-04**) e **INI-01** (**PLT-03**) en mes 1; quick wins **INI-03** (**APP-15**) e **INI-06** (**APP-05**) en meses 2–6.
+
 ---
 
 ## 1. Propósito
@@ -25,14 +27,14 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 
 ## 3. Fichas de Iniciativas con Estimación
 
-### INI-01: Plataforma de Integración por Eventos (Bus Central)
+### INI-01: PLT-03 Bus de Eventos Central
 **Prioridad**: 1 (Fundacional)
 **Duración**: 6 meses
 **Equipo**: 2 arquitectos + 4 ingenieros backend + 1 DevOps
 **Alcance**:
-- Desplegar Apache Kafka / Azure Event Hubs
-- Migrar integración WMS → TMS a eventos
-- Migrar integración TMS (Transportation Management) → App de Conductores a eventos
+- Desplegar **PLT-03** (Apache Kafka / Azure Event Hubs)
+- Migrar integración **APP-06** WMS → **APP-11** TMS a eventos
+- Migrar integración **APP-11** TMS → **APP-15** App de Conductores a eventos
 - Implementar modelo canónico de estados de pedido
 - Replay y auditoría de eventos
 
@@ -48,7 +50,7 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 
 ---
 
-### INI-02: Modernización del WMS (Cloud-Ready)
+### INI-02: WMS Cloud — reemplaza APP-06 / APP-07
 **Prioridad**: 2 (Crítica)
 **Duración**: 10 meses
 **Equipo**: 1 arquitecto senior + 5 ingenieros + 1 DBA + 1 DevOps + consultoría WMS
@@ -74,7 +76,7 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 
 ---
 
-### INI-03: App de Conductores Resiliente
+### INI-03: APP-15 App de Conductores Resiliente
 **Prioridad**: 3 (Quick Win)
 **Duración**: 4 meses
 **Equipo**: 1 arquitecto + 3 ingenieros mobile/backend + 1 QA
@@ -99,7 +101,7 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 
 ---
 
-### INI-04: Optimizador de Rutas en Tiempo Real
+### INI-04: APP-12 Optimizador de Rutas en Tiempo Real
 **Prioridad**: 4 (Estratégica)
 **Duración**: 7 meses
 **Equipo**: 1 arquitecto + 2 ingenieros ML + 2 ingenieros backend + 1 DevOps
@@ -107,7 +109,7 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 - Migración de GCE batch a GKE Autopilot
 - Integración con Google Cloud Pub/Sub para datos de tráfico en tiempo real
 - Re-optimización dinámica durante jornada (cada 30 min o ante evento crítico)
-- Integración con TMS vía Event Hub
+- Integración con **APP-11** TMS vía **PLT-03** Event Hub
 - Dashboard de rutas en tiempo real para planners
 
 | Componente de Costo | Estimación | Total |
@@ -122,15 +124,15 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 
 ---
 
-### INI-05: Automatización de Liquidación y Conciliación
+### INI-05: Liquidación automatizada — reemplaza APP-26
 **Prioridad**: 5 (Alto Impacto Financiero)
 **Duración**: 6 meses
 **Equipo**: 1 arquitecto + 3 ingenieros backend + 1 analista de negocio + 1 QA
 **Alcance**:
 - Microservicio de Liquidación (.NET 8 / Java en Azure AKS)
 - Integración con Event Store para estados de pedido
-- Reglas de negocio de penalidades y bonificaciones (reemplaza Sistema de Liquidación Excel)
-- API de conciliación para integración con ERP Financiero (On Premises) (tecnología específica del ERP a confirmar)
+- Reglas de negocio (reemplaza **APP-26** Sistema de Liquidación Excel)
+- API conciliación con **APP-25** ERP Financiero (On Premises)
 - Portal de conciliación para clientes (reemplaza proceso manual 23 días)
 - Alertas automáticas ante diferencias
 
@@ -146,7 +148,7 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 
 ---
 
-### INI-06: Validación de Órdenes y Pre-Entrega
+### INI-06: Validación Órdenes — APP-05 / APP-02
 **Prioridad**: 6 (Quick Win)
 **Duración**: 4 meses
 **Equipo**: 1 arquitecto + 2 ingenieros backend + 1 QA
@@ -169,7 +171,7 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 
 ---
 
-### INI-07: Observabilidad y Seguridad Unificada
+### INI-07: PLT-01 Observabilidad + PLT-02 Seguridad + PLT-04 IaC
 **Prioridad**: 7 (Habilitador Transversal)
 **Duración**: 5 meses (en paralelo con otras iniciativas)
 **Equipo**: 1 arquitecto seguridad + 2 ingenieros DevSecOps + 1 SRE
@@ -177,7 +179,7 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 - Datadog o Azure Monitor + OpenTelemetry (trazas distribuidas cross-cloud)
 - Terraform para toda la infraestructura cloud (IaC)
 - Azure AD B2C para identidad de clientes externos
-- WAF en Azure API Management
+- WAF en **APP-01** Azure API Management
 - SIEM centralizado (Azure Sentinel)
 - DLP para datos personales de destinatarios
 - Conexiones privadas entre nubes (ExpressRoute + Direct Connect)
@@ -197,13 +199,13 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 
 | Iniciativa | Duración | Costo Estimado | Prioridad |
 |---|---|---|---|
-| INI-01: Bus de Eventos Central | 6 meses | USD 225,000 | 1 (Fundacional) |
-| INI-02: Modernización WMS | 10 meses | USD 685,000 | 2 (Crítica) |
-| INI-03: App de Conductores Resiliente | 4 meses | USD 105,800 | 3 (Quick Win) |
-| INI-04: Optimizador de Rutas en Tiempo Real | 7 meses | USD 249,500 | 4 (Estratégica) |
-| INI-05: Liquidación Automatizada | 6 meses | USD 229,000 | 5 (Alto Impacto) |
-| INI-06: Validación Órdenes + Pre-Entrega | 4 meses | USD 66,000 | 6 (Quick Win) |
-| INI-07: Observabilidad y Seguridad | 5 meses | USD 142,500 | 7 (Habilitador) |
+| INI-01: **PLT-03** Bus de Eventos | 6 meses | USD 225,000 | 1 (Fundacional) |
+| INI-02: WMS Cloud (**APP-06**/**APP-07**) | 10 meses | USD 685,000 | 2 (Crítica) |
+| INI-03: **APP-15** App de Conductores | 4 meses | USD 105,800 | 3 (Quick Win) |
+| INI-04: **APP-12** Optimizador RT | 7 meses | USD 249,500 | 4 (Estratégica) |
+| INI-05: Liquidación (reemplaza **APP-26**) | 6 meses | USD 229,000 | 5 (Alto Impacto) |
+| INI-06: Validación **APP-05** | 4 meses | USD 66,000 | 6 (Quick Win) |
+| INI-07: **PLT-01** + **PLT-02** + **PLT-04** | 5 meses | USD 142,500 | 7 (Habilitador) |
 | **TOTAL TRANSFORMACIÓN** | **36 meses** | **USD 1,702,800** | |
 
 **Nota**: Costos operativos recurrentes de infraestructura cloud no incluidos en el estimado de proyecto (se incorporan al presupuesto operativo de TI).
@@ -239,12 +241,12 @@ MES:    25   26   27   28   29   30   31   32   33   34   35   36
 
 | Hito | Mes | Descripción | KPI Esperado |
 |---|---|---|---|
-| H1 | Mes 3 | Bus de eventos operativo (Piloto WMS-TMS) | Integración desacoplada WMS↔TMS |
-| H2 | Mes 5 | App de Conductores v2 en producción | 0 pérdidas de evidencias |
+| H1 | Mes 3 | **PLT-03** operativo (piloto **APP-06**↔**APP-11**) | Integración desacoplada WMS↔TMS |
+| H2 | Mes 5 | **APP-15** v2 en producción | 0 pérdidas de evidencias |
 | H3 | Mes 6 | Validación órdenes y pre-entrega activos | Defectos <3%, -20% fallas |
-| H4 | Mes 6 | Bus de eventos completo (todas las integraciones) | Estados consistentes |
+| H4 | Mes 6 | **PLT-03** completo (todas las integraciones) | Estados consistentes |
 | H5 | Mes 10 | Liquidación automatizada en producción | Conciliación <3 días |
-| H6 | Mes 12 | WMS Cloud (14 CDs migrados) + Optimizador de Rutas en Tiempo Real | Disponibilidad 98% campaña |
+| H6 | Mes 12 | WMS Cloud + **APP-12** Optimizador RT | Disponibilidad 98% campaña |
 | H7 | Mes 12 | **Transición 1 completa** | 91% cumplimiento promesa |
 | H8 | Mes 24 | **Transición 2 completa** | 93% cumplimiento, 99.5% disponib. |
 | H9 | Mes 36 | **TO BE completo** | 94%, 99.9%, 98% tracking |
@@ -254,12 +256,10 @@ MES:    25   26   27   28   29   30   31   32   33   34   35   36
 ## 6. Análisis de Dependencias
 
 ```
-INI-07 (Seguridad/Observabilidad) ──────────► Todas las iniciativas (fundamento)
-INI-01 (Bus de Eventos) ────────────────────────► INI-02, INI-04, INI-05 (habilita integración)
-INI-03 (App de Conductores) ────────────────────► INI-05 (datos limpios para liquidación)
-INI-06 (Validación Órdenes) ─────────────────► INI-05 (menos fallas = liquidación más simple)
-INI-02 (WMS Cloud) ──────────────────────────► INI-04 (rutas en RT solo con WMS en RT)
-INI-04 (Optimizador de Rutas en Tiempo Real) ─────────────────────► INI-05 (rutas trazadas correctamente)
+INI-07 (**PLT-01**, **PLT-02**, **PLT-04**) ──► Todas las iniciativas
+INI-01 (**PLT-03**) ──► INI-02, INI-04, INI-05
+INI-03 (**APP-15**) ──► INI-05
+INI-02 (WMS Cloud) ──► INI-04 (**APP-12** RT)
 ```
 
 ---
@@ -269,7 +269,7 @@ INI-04 (Optimizador de Rutas en Tiempo Real) ───────────�
 | Riesgo | Probabilidad | Impacto | Mitigación |
 |---|---|---|---|
 | Resistencia al cambio en almacenes (WMS nuevo) | Alta | Alto | Plan de change management, capacitación, piloto en 1 CD |
-| Migración WMS más larga de lo esperado | Media | Alto | Modo puente: API sobre WMS Principal (On Premises) durante transición a WMS Cloud |
+| Migración WMS más larga de lo esperado | Media | Alto | Modo puente: API sobre **APP-06** WMS Principal durante transición a WMS Cloud |
 | Clientes que no actualizan sus integraciones | Media | Medio | Backward-compatibility garantizada 18 meses |
 | Costo real superior al estimado (COTS WMS) | Media | Alto | Reserva de contingencia 20% del presupuesto |
 | Disponibilidad del equipo técnico | Baja | Medio | Contratación anticipada + alianza con consultoras |

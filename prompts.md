@@ -1,4 +1,5 @@
-HITO 1:
+## Hito 1 Documentos
+
 
 -Analiza los documentos caso 6a y caso 6b que refieren al mismo caso
 -Crea una carpeta para el desarrollo del hito 1 donde debe incluir documentos:
@@ -192,3 +193,93 @@ al alcance (Transiciones o TO BE).
 ● Priorizar iniciativas en base al valor que generan al negocio.
 ● Elaborar un roadmap o cronograma de implementación
 considerando dependencias entre iniciativas.
+
+---
+
+## PPT Hito 1 — Notebook LM (RutaExpress)
+
+**Cuándo usar:** presentación ejecutiva del Hito 1 ante comité de arquitectura o evaluación UTEC. El detalle técnico va en documentos y diagramas draw.io; la PPT es narrativa de alto nivel.
+
+### Fuentes a cargar en Notebook LM
+
+Subir como fuentes (prioridad):
+
+1. `Caso 6a - Ruta Express_Logistica.md` y `Caso 6b - Ruta Express_Logistica - Anexo.md`
+2. Carpeta `HITO 1 - Arquitectura Empresarial/` — los 11 documentos (`01` … `11`)
+3. Opcional: capturas PNG de `HITO 1 - Arquitectura Empresarial/diagramas/infra-as-is.png` e `infra-to-be.png`
+
+### Prompt para Notebook LM
+
+```
+Genera una presentación (15–18 diapositivas) para exponer el HITO 1 — Arquitectura Empresarial de RutaExpress Fulfillment & Transporte, usando SOLO la información de las fuentes cargadas.
+
+AUDIENCIA: comité de arquitectura y docentes UTEC. Tono ejecutivo, claro, en español. Duración objetivo: 20–25 minutos.
+
+REGLAS DE CONTENIDO:
+- Nivel ALTO: mensajes clave, problemas de negocio, decisiones arquitectónicas y roadmap. NO listar las 26 APP ni tablas completas en las diapositivas.
+- Usar nomenclatura oficial: nombre de aplicación + (APP-XX) o plataforma + (PLT-XX) la primera vez por diapositiva. Ejemplo: Azure API Management (APP-01), Bus de Eventos Central (PLT-03).
+- Distinguir: Plataforma (dónde corre) vs Origen (Custom / COTS / SaaS externo) vs conectividad (ej. Wi-Fi interno del almacén — no es plataforma).
+- Separar AS IS y TO BE de forma explícita. Resaltar brechas críticas: integración P2P sin PLT-03, WMS on premises (APP-06/APP-07), offline frágil App de Conductores (APP-15), liquidación en Excel (APP-26), identidad parcial PLT-02.
+- Incluir 1–2 datos del caso por slide cuando refuerce el argumento (Cyber Days 6h WMS caído, 32.000 pedidos duplicados, 1.200 firmas perdidas, conciliación 23 días / USD 2.4M).
+- NO inventar tecnologías, vendors ni cifras que no estén en las fuentes. Marcar suposiciones con ⚠️ si las mencionas.
+
+ESTRUCTURA SUGERIDA DE DIAPOSITIVAS:
+
+1. Portada — Hito 1 · RutaExpress · Arquitectura Empresarial TOGAF ADM
+2. Contexto del caso — operador logístico multinube, 14 CD, 68k entregas/día, fragmentación tecnológica
+3. Drivers y visión — doc 02: por qué transformar (objetivos estratégicos en 3–4 bullets)
+4. Gobierno y principios — doc 01: comité, TOGAF, API-First, Cloud-First, event-driven
+5. Cadena de valor — F1 Recepción → F2 Preparación → F3 Despacho → F4 Entrega → F5 Excepciones → F6 Liquidación (diagrama simple)
+6. AS IS — síntesis del dolor transversal (multinube sin estrategia, datos inconsistentes, campañas frágiles)
+7. [DIAGRAMA draw.io] Mapa portafolio AS IS por capas — placeholder; ver doc 06 §2
+8. [DIAGRAMA draw.io] Infraestructura AS IS multinube — placeholder; ver doc 07 / infra-as-is
+9. Portafolio en cifras — 26 APP, PLT-02 parcial, 3 brechas PLT, 3 candidatas a deprecar (🗑️ APP-04, APP-14, APP-26)
+10. AS IS por fases (tabla resumen 6 filas) — una línea de dolor + apps protagonistas por F1–F6 (doc 09 guiones AS IS)
+11. TO BE — visión objetivo: validación al ingreso, WMS Cloud, bus de eventos, tracking canónico, liquidación automática
+12. [DIAGRAMA draw.io] Mapa portafolio / apps TO BE por capa — placeholder; doc 06 §4
+13. [DIAGRAMA draw.io] Infraestructura TO BE — placeholder; doc 07 / infra-to-be (PLT-03, PLT-01, PLT-02 completo)
+14. TO BE por fases — highlights NUEVO / MODIFICAR / ELIMINAR (1 bullet por fase, doc 09 guiones TO BE)
+15. Gaps transversales — tabla compacta Negocio · Datos · Apps · Tecnología (doc 09 cierre)
+16. Iniciativas y arquitecturas de transición — doc 10 (agrupación de gaps en proyectos)
+17. Roadmap 36 meses — doc 11: fases, dependencias, inversión (solo hitos, no detalle de costos línea a línea)
+18. Cierre — decisiones que el comité debe tomar + próximos pasos Hito 2
+
+DIAPOSITIVAS CON DIAGRAMA (draw.io):
+En las slides marcadas [DIAGRAMA draw.io], el contenido debe ser:
+- Título de la vista arquitectónica
+- 3 bullets de qué debe mostrar el diagrama
+- Nota al pie: "Insertar diagrama desde draw.io — ver carpeta SharePoint / repo Proyecto"
+NO generar el diagrama en la PPT; dejar espacio visual y texto guía.
+
+Diagramas recomendados para draw.io (crear o exportar desde el repo):
+
+| # | Diagrama | Fuente documento | Uso en PPT |
+|---|----------|------------------|------------|
+| D1 | Cadena de valor F1–F6 | 09 (inicio) | Slide 5 |
+| D2 | Mapa portafolio AS IS por capas | 06 §2 | Slide 7 |
+| D3 | Infraestructura AS IS (On Prem + Azure + AWS + GCP + SaaS) | 07, diagrams/infra-as-is | Slide 8 |
+| D4 | Mapa portafolio TO BE por capas | 06 §4 | Slide 12 |
+| D5 | Infraestructura TO BE con PLT-03 bus central | 07, diagrams/infra-to-be | Slide 13 |
+| D6 | Modelo conceptual de datos (entidades core) | 05 | Opcional anexo |
+| D7 | Business Model Canvas | 04 | Opcional slide contexto negocio |
+| D8 | Arquitectura de transición (estados intermedios) | 10 | Slide 16 |
+| D9 | Roadmap / Gantt iniciativas 36 meses | 11 | Slide 17 |
+
+NOTAS DEL PRESENTADOR:
+- Al final de cada slide AS IS/TO BE por fase, añadir nota breve basada en los "Guion de exposición" del doc 09 (Arquitectura de Aplicaciones).
+- Slide 7: aclarar PLT-02 vs APP-01 (identidad parcial vs gateway — dos roles, misma app desplegada).
+- Slide 10 F2: App Handhelds (APP-10) on premises; Wi-Fi interno = conectividad, no plataforma.
+
+FORMATO DE SALIDA:
+- Título de diapositiva
+- 3–5 bullets máximo por slide
+- Notas del presentador (2–4 frases)
+- Indicar [INSERTAR DIAGRAMA D#] donde corresponda
+```
+
+### Checklist post-generación (PowerPoint / Google Slides)
+
+- [ ] Reemplazar placeholders con diagramas exportados desde draw.io (PNG/SVG, letra legible)
+- [ ] Revisar que IDs APP/PLT coincidan con `06_Mapa_Portafolio_Aplicaciones.md`
+- [ ] No duplicar tablas del doc 09 en la PPT — en vivo se abre el markdown o draw.io si preguntan detalle
+- [ ] Ensayo con guiones de doc 06 (mapa portafolio) y doc 09 (por fase)

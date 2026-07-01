@@ -1,6 +1,8 @@
 # Mapeo de Aplicaciones con Tecnología
 ## RutaExpress Fulfillment & Transporte
 
+> **Para el comité de arquitectura** — Relaciona cada **APP/PLT** con stack, base de datos e infraestructura; incluye deuda técnica y propuestas TO BE. **Mensaje clave:** las decisiones tecnológicas mantienen las nubes actuales y atacan deuda crítica (**APP-06** on prem, **APP-12** batch, **APP-26** Excel, ausencia de **PLT-03**/**PLT-01**).
+
 ---
 
 ## 1. Propósito
@@ -10,6 +12,7 @@ Mostrar la relación entre cada aplicación del portafolio y las tecnologías, p
 **Convenciones:**
 - ✅ Dato confirmado en el caso (Caso 6a o Caso 6b)
 - ⚠️ Suposición técnica razonable (no mencionada explícitamente en el caso)
+- **Plataforma** = dónde se ejecuta/despliega la app (Azure, AWS, On Premises, SaaS…). **Conectividad/red** (ej. Wi-Fi interno del almacén) va en observaciones o en `07_Mapa_Infraestructura.md`.
 
 ---
 
@@ -26,7 +29,7 @@ Mostrar la relación entre cada aplicación del portafolio y las tecnologías, p
 | APP-07 | WMS Satélite (On Premises local) | On Premises local | ⚠️ Suposición: versión reducida del mismo WMS | ⚠️ Suposición: BD local (tipo no especificado) | ✅ Caso 6a F2: "versión local con sincronización cada hora" |
 | APP-08 | Control de Inventario | On Premises | ⚠️ Suposición: sistema complementario al WMS | ⚠️ Suposición: BD relacional on-prem (tipo no especificado) | ⚠️ Inferido de Caso 6a F2: ERP conserva inventario valorizado |
 | APP-09 | IoT Core (sensores temperatura) | AWS IoT Core | AWS IoT Core / MQTT | ⚠️ Suposición: DynamoDB u otra BD AWS | ✅ Caso 6a F2 |
-| APP-10 | App Handhelds (picking) | Wi-Fi interno | ⚠️ Suposición: Android nativo o similar | SQLite local (⚠️ Suposición) | ✅ Caso 6a F2: handhelds con Wi-Fi |
+| APP-10 | App Handhelds (picking) | On Premises (dispositivo móvil en almacén) | ⚠️ Suposición: Android nativo o similar | SQLite local (⚠️ Suposición) | ✅ Caso 6a F2: handhelds; conectividad Wi-Fi interno del CD (no es plataforma) |
 | APP-11 | TMS (Transportation Management) | Azure | ⚠️ Suposición: posiblemente COTS o custom, no especificado | ⚠️ Suposición: BD relacional en Azure | ✅ Caso 6a: "TMS está en Azure" |
 | APP-12 | Optimizador de Rutas | GCP | ⚠️ Suposición: Python con librería de optimización (tipo no especificado) | ⚠️ Suposición: BigQuery u otra BD GCP | ✅ Caso 6a F3: "optimización de rutas en GCP con cargas batch" |
 | APP-13 | Portal Transportistas Tercerizados | Azure | ⚠️ Suposición: aplicación web, tecnología no especificada | ⚠️ Suposición: BD relacional en Azure | ✅ Caso 6a F3: "transportistas tercerizados acceden por portal" |
@@ -55,46 +58,40 @@ Mostrar la relación entre cada aplicación del portafolio y las tecnologías, p
 │  CAPA CANALES                                                                │
 │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐   │
 │  │ Portal B2B     │ │ Portal B2B     │ │ App de         │ │ Portal Transport.│   │
-│  │ (Carga CSV/    │ │ (Trazabilidad) │ │ Conductores    │ │ Tercerizados     │   │
-│  │  Excel)        │ │ (SaaS)         │ │ (AWS)          │ │ (Azure)          │   │
+│  │ APP-03         │ │ APP-18         │ │ Conductores    │ │ APP-13           │   │
 │  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘   │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  CAPA API / INTEGRACIÓN                                                      │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │ Azure API Management  │  REST APIs  │  SFTP/CSV (Bucket S3 Legado (archivos)) │   │
+│  │ APP-01 Azure   │  REST APIs  │  SFTP/CSV APP-04  │   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  CAPA CORE / LÓGICA                                                          │
 │  ┌────────────────┐ ┌────────────────┐ ┌─────────────────┐ ┌────────────┐  │
-│  │ Orquestador    │ │ TMS            │ │ Optimizador     │ │ App de     │  │
-│  │ Pedidos (AKS)  │ │ (Transportation│ │ de Rutas (GCP/  │ │ Conductores│  │
-│  │                │ │  Management)   │ │ batch)          │ │ (AWS/      │  │
-│  │                │ │                │ │                 │ │ DynamoDB)  │  │
+│  │ APP-02         │ │ APP-11 TMS     │ │ APP-12         │ │ APP-15         │  │
+│  │ Orquestador    │ │                │ │ Optimizador    │ │ App Conductores│  │
 │  └────────────────┘ └────────────────┘ └─────────────────┘ └────────────┘  │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  CAPA DATOS                                                                  │
 │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐   │
-│  │ SQL Server   │ │ BD Azure     │ │ DynamoDB     │ │ GCP (BigQuery    │   │
-│  │ (WMS Principal)│ │ (AKS/TMS)   │ │ (App de       │ │ / analítica)     │   │
-│  │ ✅ caso      │ │ ⚠️ supuesto  │ │  Conductores) │ │ ✅/⚠️ mixto     │   │
+│  │ SQL Server     │ │ BD Azure       │ │ DynamoDB       │ │ GCP APP-22     │   │
+│  │ APP-06 WMS     │ │ APP-02/11      │ │ APP-15         │ │ Analítica      │   │
 │  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘   │
 │  ┌──────────────┐ ┌──────────────┐                                          │
-│  │ WMS Principal  │ │ ERP Financiero │                                          │
-│  │ (On Premises)  │ │ (On Premises)  │                                          │
+│  │ APP-06 WMS     │ │ APP-25 ERP     │                                          │
 │  └──────────────┘ └──────────────┘                                          │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  CAPA INFRAESTRUCTURA                                                        │
 │  ┌───────────────────┐ ┌──────────────────┐ ┌──────────────────────────┐   │
 │  │  ON PREMISES      │ │     AZURE        │ │          AWS             │   │
-│  │  WMS Principal,   │ │  AKS, Azure API  │ │  App de Conductores,    │   │
-│  │  ERP Financiero,  │ │  Management,     │ │  Almacenamiento         │   │
-│  │  Sistema Impresión│ │  TMS             │ │  Evidencias (S3),       │   │
-│  │  Manifiestos      │ │                  │ │  DynamoDB, IoT Core     │   │
+│  │  APP-06 WMS,   │ │  AKS, APP-01   │ │  APP-15, APP-16│   │
+│  │  APP-25 ERP,   │ │  APP-02,       │ │  APP-09 IoT,   │   │
+│  │  APP-10, APP-14│ │  APP-11 TMS    │ │  DynamoDB      │   │
 │  │  ✅ caso          │ │  ✅ caso         │ │  ✅ caso                │   │
 │  └───────────────────┘ └──────────────────┘ └──────────────────────────┘   │
 │  ┌──────────────────────────────────────────┐                               │
 │  │                GCP                       │                               │
-│  │  Optimizador rutas (batch), Analítica    │                               │
+│  │  APP-12 Optimizador, APP-22 Analítica    │                               │
 │  │  ✅ caso                                 │                               │
 │  └──────────────────────────────────────────┘                               │
 └──────────────────────────────────────────────────────────────────────────────┘
@@ -131,8 +128,9 @@ Mostrar la relación entre cada aplicación del portafolio y las tecnologías, p
 | SQL Server on premises (versión y soporte) | APP-06 | Alto | ✅ Caso 6b R1: bloqueo de tablas bajo alta carga |
 | Integración por archivos CSV/S3 | APP-04 | Medio | ✅ Caso 6a F1: canal legado aún activo |
 | Sincronización horaria entre WMS | APP-07 | Alto | ✅ Caso 6a F2: 4,900 movimientos en conflicto |
+| Red Wi-Fi almacenes (conectividad APP-10) | APP-10 | Alto | ✅ Caso 6a F2: handhelds dependen de Wi-Fi interno; corte 74 min |
 | Optimizador en batch (no tiempo real) | APP-12 | Alto | ✅ Caso 6a F3: rutas generadas con datos atrasados |
-| Offline frágil en App de Conductores | APP-15 | Crítico | ✅ Caso 6a F4: 1,200 entregas sin firma |
+| Offline frágil en **APP-15** App de Conductores | APP-15 | Crítico | ✅ Caso 6a F4: 1,200 entregas sin firma |
 | Excel para liquidación | APP-26 | Crítico | ✅ Caso 6a F6: notas de crédito calculadas manualmente |
 | Sin backpressure en orquestador | APP-02 | Crítico | ✅ Caso 6b R1: cola sin control ante degradación WMS |
 | Falla deduplicación por ID externo | APP-05 | Crítico | ✅ Caso 6a F1: incidente 32,000 pedidos duplicados |
