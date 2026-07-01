@@ -32,7 +32,7 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 **Alcance**:
 - Desplegar Apache Kafka / Azure Event Hubs
 - Migrar integración WMS → TMS a eventos
-- Migrar integración TMS → App Conductores a eventos
+- Migrar integración TMS (Transportation Management) → App de Conductores a eventos
 - Implementar modelo canónico de estados de pedido
 - Replay y auditoría de eventos
 
@@ -53,7 +53,7 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 **Duración**: 10 meses
 **Equipo**: 1 arquitecto senior + 5 ingenieros + 1 DBA + 1 DevOps + consultoría WMS
 **Alcance**:
-- Evaluación y selección de WMS cloud (Blue Yonder, Manhattan, o modernización custom)
+- Evaluación y selección de WMS Cloud (Blue Yonder, Manhattan, o modernización custom)
 - Migración datos históricos (ETL)
 - Implementación HA multi-zona en Azure
 - Auto-scaling horizontal con KEDA
@@ -63,7 +63,7 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 
 | Componente de Costo | Estimación | Total |
 |---|---|---|
-| Licencia WMS cloud (si aplica COTS) | USD 15,000/mes | USD 150,000 (10m) |
+| Licencia WMS Cloud (si aplica COTS) | USD 15,000/mes | USD 150,000 (10m) |
 | Azure AKS + Azure SQL Managed Instance | USD 3,500/mes | USD 35,000 (10m) |
 | Equipo desarrollo + consultoría (8 personas) | USD 45,000/mes | USD 450,000 (10m) |
 | Migración de datos y testing | USD 30,000 (one-time) | USD 30,000 |
@@ -129,8 +129,8 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 **Alcance**:
 - Microservicio de Liquidación (.NET 8 / Java en Azure AKS)
 - Integración con Event Store para estados de pedido
-- Reglas de negocio de penalidades y bonificaciones (reemplaza Excel VBA)
-- API de conciliación para integración con ERP on premises (tecnología específica del ERP a confirmar)
+- Reglas de negocio de penalidades y bonificaciones (reemplaza Sistema de Liquidación Excel)
+- API de conciliación para integración con ERP Financiero (On Premises) (tecnología específica del ERP a confirmar)
 - Portal de conciliación para clientes (reemplaza proceso manual 23 días)
 - Alertas automáticas ante diferencias
 
@@ -199,8 +199,8 @@ Definir el plan de migración para llevar la arquitectura desde el estado AS IS 
 |---|---|---|---|
 | INI-01: Bus de Eventos Central | 6 meses | USD 225,000 | 1 (Fundacional) |
 | INI-02: Modernización WMS | 10 meses | USD 685,000 | 2 (Crítica) |
-| INI-03: App Conductores Resiliente | 4 meses | USD 105,800 | 3 (Quick Win) |
-| INI-04: Optimizador RT | 7 meses | USD 249,500 | 4 (Estratégica) |
+| INI-03: App de Conductores Resiliente | 4 meses | USD 105,800 | 3 (Quick Win) |
+| INI-04: Optimizador de Rutas en Tiempo Real | 7 meses | USD 249,500 | 4 (Estratégica) |
 | INI-05: Liquidación Automatizada | 6 meses | USD 229,000 | 5 (Alto Impacto) |
 | INI-06: Validación Órdenes + Pre-Entrega | 4 meses | USD 66,000 | 6 (Quick Win) |
 | INI-07: Observabilidad y Seguridad | 5 meses | USD 142,500 | 7 (Habilitador) |
@@ -240,11 +240,11 @@ MES:    25   26   27   28   29   30   31   32   33   34   35   36
 | Hito | Mes | Descripción | KPI Esperado |
 |---|---|---|---|
 | H1 | Mes 3 | Bus de eventos operativo (Piloto WMS-TMS) | Integración desacoplada WMS↔TMS |
-| H2 | Mes 5 | App conductores v2 en producción | 0 pérdidas de evidencias |
+| H2 | Mes 5 | App de Conductores v2 en producción | 0 pérdidas de evidencias |
 | H3 | Mes 6 | Validación órdenes y pre-entrega activos | Defectos <3%, -20% fallas |
 | H4 | Mes 6 | Bus de eventos completo (todas las integraciones) | Estados consistentes |
 | H5 | Mes 10 | Liquidación automatizada en producción | Conciliación <3 días |
-| H6 | Mes 12 | WMS cloud (14 CDs migrados) + Optimizador RT | Disponibilidad 98% campaña |
+| H6 | Mes 12 | WMS Cloud (14 CDs migrados) + Optimizador de Rutas en Tiempo Real | Disponibilidad 98% campaña |
 | H7 | Mes 12 | **Transición 1 completa** | 91% cumplimiento promesa |
 | H8 | Mes 24 | **Transición 2 completa** | 93% cumplimiento, 99.5% disponib. |
 | H9 | Mes 36 | **TO BE completo** | 94%, 99.9%, 98% tracking |
@@ -255,11 +255,11 @@ MES:    25   26   27   28   29   30   31   32   33   34   35   36
 
 ```
 INI-07 (Seguridad/Observabilidad) ──────────► Todas las iniciativas (fundamento)
-INI-01 (Bus Eventos) ────────────────────────► INI-02, INI-04, INI-05 (habilita integración)
-INI-03 (App Conductores) ────────────────────► INI-05 (datos limpios para liquidación)
+INI-01 (Bus de Eventos) ────────────────────────► INI-02, INI-04, INI-05 (habilita integración)
+INI-03 (App de Conductores) ────────────────────► INI-05 (datos limpios para liquidación)
 INI-06 (Validación Órdenes) ─────────────────► INI-05 (menos fallas = liquidación más simple)
 INI-02 (WMS Cloud) ──────────────────────────► INI-04 (rutas en RT solo con WMS en RT)
-INI-04 (Optimizador RT) ─────────────────────► INI-05 (rutas trazadas correctamente)
+INI-04 (Optimizador de Rutas en Tiempo Real) ─────────────────────► INI-05 (rutas trazadas correctamente)
 ```
 
 ---

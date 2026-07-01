@@ -55,11 +55,11 @@ Capturar, clasificar y mantener trazabilidad de todos los requisitos que guían 
 | RF-12 | Los cambios manuales de rutas deben registrarse con motivo estructurado, aprobador y timestamp | Auditoría de rutas | Media | C |
 | RF-13 | El TMS debe gestionar restricciones de vehículos, zonas, capacidad y tipo de carga | Operaciones | Alta | C |
 
-#### Dominio: Última Milla / App Conductores
+#### Dominio: Última Milla / App de Conductores
 
 | ID | Requisito | Fuente | Prioridad | Fase ADM |
 |---|---|---|---|---|
-| RF-14 | La app de conductores debe funcionar completamente offline con sincronización segura al reconectar | Incidente 1,200 firmas perdidas | Alta | C, D |
+| RF-14 | La App de Conductores debe funcionar completamente offline con sincronización segura al reconectar | Incidente 1,200 firmas perdidas | Alta | C, D |
 | RF-15 | Las evidencias (foto, firma, geolocalización, timestamp) deben cifrarse localmente y subirse de forma atómica | Seguridad + Auditoría | Alta | C, D |
 | RF-16 | Los motivos de excepción deben ser taxonomía normalizada y obligatoria (sin texto libre para el motivo principal) | Incidente excepciones no comparables | Alta | B, C |
 | RF-17 | El tracking de ubicación debe publicarse cada 2 minutos hacia el Portal B2B (Trazabilidad) — APP-18 — y centro de atención | Visibilidad | Alta | C |
@@ -88,7 +88,7 @@ Capturar, clasificar y mantener trazabilidad de todos los requisitos que guían 
 
 | ID | Requisito | Target | Fuente |
 |---|---|---|---|
-| RNF-01 | Disponibilidad de sistemas críticos (recepción de órdenes, WMS, TMS, app conductores, tracking) en campaña | 99.9% | Objetivo estratégico |
+| RNF-01 | Disponibilidad de sistemas críticos (recepción de órdenes, WMS Principal (On Premises), TMS (Transportation Management), App de Conductores, Portal Tracking Destinatarios) en campaña | 99.9% | Objetivo estratégico |
 | RNF-02 | RTO (Recovery Time Objective) para WMS y TMS | < 15 minutos | Riesgo disponibilidad |
 | RNF-03 | RPO (Recovery Point Objective) para datos de pedidos y tracking | < 5 minutos | Riesgo disponibilidad |
 | RNF-04 | El sistema debe escalar automáticamente ante picos de hasta 3x el volumen normal | Auto-scaling | Cyber Days |
@@ -128,7 +128,7 @@ Capturar, clasificar y mantener trazabilidad de todos los requisitos que guían 
 |---|---|---|---|
 | RNF-19 | Trazas distribuidas end-to-end para cada pedido (desde recepción hasta entrega) | OpenTelemetry | Observabilidad |
 | RNF-20 | Dashboards operativos en tiempo real: cola de pedidos, rutas en curso, tracking, excepciones | Operaciones | Visibilidad |
-| RNF-21 | Alertas automáticas ante degradación de WMS, TMS, app conductores o tracking | SRE | Riesgo disponibilidad |
+| RNF-21 | Alertas automáticas ante degradación de WMS Principal (On Premises), TMS (Transportation Management), App de Conductores o Portal Tracking Destinatarios | SRE | Riesgo disponibilidad |
 
 ---
 

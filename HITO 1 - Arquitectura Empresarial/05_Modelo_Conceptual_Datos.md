@@ -206,8 +206,8 @@ LIQUIDACIÓN
 | Ruta | TMS (Azure) | TMS (Azure) |
 | Evento de Tracking | DynamoDB (AWS) | Event Store unificado (AWS Kinesis) |
 | Evidencia de Entrega | S3 (AWS) | S3 (AWS) - con hash de integridad |
-| Excepción | App conductores + TMS | Servicio de Excepciones (normalizado) |
-| Liquidación / Factura | ERP on premises | ERP on premises (integrado) |
+| Excepción | App de Conductores + TMS (Transportation Management) | Servicio de Excepciones (normalizado) |
+| Liquidación / Factura | ERP Financiero (On Premises) | ERP Financiero (On Premises) (integrado) |
 | Cliente Empresarial | Portal B2B (Trazabilidad) | Portal B2B unificado + CRM |
 | Destinatario | Distribuido (WMS+TMS+App) | Servicio de Destinatarios (centralizado) |
 

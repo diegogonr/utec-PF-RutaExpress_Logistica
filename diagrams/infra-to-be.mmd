@@ -1,0 +1,66 @@
+flowchart TB
+    subgraph RXP["INFRAESTRUCTURA TO BE — RUTAEXPRESS"]
+        direction TB
+
+        subgraph BUSCAPA["CAPA DE INTEGRACIÓN · Event Streaming"]
+            direction TB
+            bus["PLT-03 Bus de Eventos Central<br/>Azure Event Hub / Apache Kafka"]
+        end
+
+        subgraph FILA1["Plataformas cloud"]
+            direction LR
+
+            subgraph AZURE["AZURE"]
+                direction TB
+                a1["APP-01<br/>Azure API Management + WAF"]
+                a2["APP-02<br/>Orquestador Pedidos AKS<br/>auto-scaling · circuit breakers"]
+                a3["APP-11<br/>TMS AKS modernizado"]
+                a4["WMS Cloud<br/>reemplaza APP-06 / APP-07<br/>hot-standby · modo degradado"]
+                a1 --> a2 --> a3
+                a2 --> a4
+            end
+
+            subgraph AWS["AWS"]
+                direction TB
+                w1["APP-15<br/>App de Conductores ECS Fargate<br/>multi-AZ"]
+                w2["DynamoDB Global Tables<br/>tracking APP-15"]
+                w3["APP-16<br/>Almacenamiento Evidencias S3<br/>Glacier · AES-256"]
+                w4["Kinesis Data Streams<br/>APP-15 tracking"]
+                w5["APP-09<br/>IoT Core · alertas automáticas"]
+                w1 --> w2
+                w1 --> w4
+            end
+        end
+
+        subgraph GCP["GCP · tiempo real"]
+            direction LR
+            g1["APP-12<br/>Optimizador Rutas GKE<br/>Cloud Pub/Sub"]
+            g2["APP-22<br/>BigQuery · Dataflow streaming"]
+            g3["APP-23<br/>Dashboards Operativos"]
+        end
+
+        subgraph TRANS["Capas transversales"]
+            direction LR
+            obs["PLT-01<br/>Observabilidad unificada<br/>OpenTelemetry · Datadog / Azure Monitor"]
+            sec["PLT-02<br/>Zero Trust IAM<br/>Azure AD · MFA · WAF · SIEM · DLP"]
+        end
+
+        subgraph PREM["ON PREMISES · solo transición"]
+            direction LR
+            p1["APP-25<br/>ERP Financiero · API Event Hub"]
+            p2["APP-06<br/>WMS Principal · puente migración"]
+        end
+
+        bus --> AZURE
+        bus --> AWS
+        bus --> GCP
+        bus --> PREM
+    end
+
+    style RXP fill:#fafafa,stroke:#333333,stroke-width:3px
+    style BUSCAPA fill:#fef3c7,stroke:#d97706,stroke-width:2px
+    style AZURE fill:#dbeafe,stroke:#2563eb,stroke-width:2px
+    style AWS fill:#ffedd5,stroke:#ea580c,stroke-width:2px
+    style GCP fill:#dcfce7,stroke:#16a34a,stroke-width:2px
+    style TRANS fill:#e0e7ff,stroke:#4f46e5,stroke-width:2px
+    style PREM fill:#e8f4fc,stroke:#0078d4,stroke-width:2px

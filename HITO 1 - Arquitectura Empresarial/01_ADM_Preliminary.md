@@ -25,7 +25,7 @@ Esta fase establece el marco de trabajo, el modelo de gobierno y los principios 
 - Todas las iniciativas de la empresa se presentan al Comité de Arquitectura antes de iniciar diseño.
 - Se asigna un Arquitecto Empresarial por cada iniciativa de impacto transversal.
 - Las iniciativas de menor alcance son validadas por el Arquitecto de Dominio correspondiente.
-- Todo cambio en sistemas críticos (WMS, TMS, app de conductores, plataformas de integración) requiere Architecture Decision Record (ADR) aprobado.
+- Todo cambio en sistemas críticos (WMS Principal (On Premises), TMS (Transportation Management), App de Conductores, Azure API Management) requiere Architecture Decision Record (ADR) aprobado.
 - Se usará TOGAF ADM como metodología de Arquitectura Empresarial.
 - Los entregables se documentarán en plantillas estándar y se almacenarán en el SharePoint de Arquitectura con control de versiones.
 

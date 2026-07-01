@@ -80,7 +80,7 @@ RutaExpress entrega a sus clientes la capacidad de tercerizar su operación log�
 Clientes B2B de alto volumen que no quieren o no pueden construir su propia operación logística. El segmento principal son los marketplaces y el e-commerce, que representan el mayor volumen pero también las exigencias más altas de trazabilidad, integración API y penalidades.
 
 ### 3. Canales
-Multicanal para integración: API para grandes, Portal B2B (Carga CSV/Excel) para medianos, archivos S3 para legacy. La app de conductores es el canal de ejecución en campo. El Portal B2B (Trazabilidad) y el Portal Tracking Destinatarios (APP-19) son los canales de visibilidad para clientes empresariales y destinatarios finales, respectivamente.
+Multicanal para integración: Azure API Management para grandes clientes, Portal B2B (Carga CSV/Excel) para medianos, Bucket S3 Legado (archivos) para legacy. La App de Conductores es el canal de ejecución en campo. El Portal B2B (Trazabilidad) y el Portal Tracking Destinatarios (APP-19) son los canales de visibilidad para clientes empresariales y destinatarios finales, respectivamente.
 
 ### 4. Relación con Clientes
 Relaciones contractuales de largo plazo con SLA y penalidades. La visibilidad en tiempo real y la comunicación proactiva son habilitadores de fidelización y diferenciación.

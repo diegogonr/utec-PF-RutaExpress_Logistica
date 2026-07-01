@@ -17,7 +17,7 @@ Definir la visión de arquitectura que guiará la transformación de RutaExpress
 |---|---|
 | Competencia del mercado | Los grandes marketplaces construyen redes logísticas propias. El mercado exige entrega el mismo día, trazabilidad en vivo y devoluciones simples. |
 | Penalidades económicas | En el último Cyber Days se pagaron USD 1.1M en penalidades por 19% de entregas tardías. Una cadena retail retuvo USD 2.4M por falta de evidencia de entrega. |
-| Fragmentación tecnológica | WMS Principal (On Premises), TMS en Azure, app conductores en AWS, analítica en GCP y portales SaaS operan sin integración real. No existe visibilidad end-to-end. |
+| Fragmentación tecnológica | WMS Principal (On Premises), TMS (Transportation Management) en Azure, App de Conductores en AWS, Plataforma de Analítica en GCP y portales SaaS operan sin integración real. No existe visibilidad end-to-end. |
 | Problemas de datos | 6% de órdenes con defectos, 2.8% de movimientos de inventario con ajuste, 8% de eventos de tracking con retraso >20 min, 7% de facturas observadas por clientes. |
 | Capacidad en campañas | El WMS se degrada durante picos. En Cyber Days se acumularon 240,000 pedidos en cola durante 6 horas. |
 | Costos crecientes | Combustible, mano de obra y reintentos de entrega elevan costos sin mejorar la tasa de éxito. El 34% de entregas fallidas se debe a problemas prevenibles. |
@@ -78,7 +78,7 @@ Definir la visión de arquitectura que guiará la transformación de RutaExpress
 - Integración de la cadena de valor completa: Recepción → Preparación → Despacho → Entrega → Excepciones → Liquidación
 - Plataforma de integración (API Management + Event Streaming)
 - Modernización del WMS (migración a cloud o conexión en tiempo real)
-- Integración TMS (Azure) - WMS - App Conductores (AWS) - Optimizador Rutas (GCP)
+- Integración TMS (Transportation Management) (Azure) - WMS Principal (On Premises) - App de Conductores (AWS) - Optimizador de Rutas (GCP batch)
 - Plataforma de tracking y eventos unificada
 - Gestión de evidencias (fotos, firmas, geolocalización) con resiliencia offline
 - Plataforma de analítica predictiva para optimización de rutas y detección de excepciones

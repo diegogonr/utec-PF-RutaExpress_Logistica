@@ -1,0 +1,15 @@
+{
+  "name": "rutaexpress-arquitectura",
+  "private": true,
+  "description": "Scripts para generar diagramas de arquitectura en alta resolución",
+  "scripts": {
+    "postinstall": "npx puppeteer browsers install chrome-headless-shell",
+    "prediagrams": "node -e \"require('fs').mkdirSync('HITO 1 - Arquitectura Empresarial/diagramas',{recursive:true})\"",
+    "diagrams:as-is": "mmdc -c diagrams/mermaid-config.json -w 4200 -s 2 -i diagrams/infra-as-is.mmd -o \"HITO 1 - Arquitectura Empresarial/diagramas/infra-as-is.png\"",
+    "diagrams:to-be": "mmdc -c diagrams/mermaid-config.json -w 4200 -s 2 -i diagrams/infra-to-be.mmd -o \"HITO 1 - Arquitectura Empresarial/diagramas/infra-to-be.png\"",
+    "diagrams": "npm run diagrams:as-is && npm run diagrams:to-be"
+  },
+  "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.4.0"
+  }
+}

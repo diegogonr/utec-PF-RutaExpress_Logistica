@@ -39,9 +39,9 @@ Identificar y consolidar las brechas (gaps) entre el estado AS IS y el TO BE en 
 | GA-01 | WMS Principal (On Premises) sin capacidad de auto-scaling ni HA | Crítico - degradación en Cyber Days, USD 1.1M penalidades | Almacén |
 | GA-02 | Orquestador sin backpressure por cliente ni prioridad SLA | Crítico - cola sin control ante degradación WMS | Recepción |
 | GA-03 | Optimizador de rutas en batch, no tiempo real | Alto - rutas inviables por datos de tráfico desactualizados | Transporte |
-| GA-04 | App conductores con offline frágil y evidencias que se pierden | Alto - disputas de liquidación, reclamos de custodia | Última Milla |
+| GA-04 | App de Conductores con offline frágil y evidencias que se pierden | Alto - disputas de liquidación, reclamos de custodia | Última Milla |
 | GA-05 | Sin bus de eventos central, integraciones punto a punto | Alto - fragilidad, inconsistencia, difícil mantener | Todos |
-| GA-06 | Liquidación con Excel VBA (APP-26) sin control | Crítico - errores manuales, penalidades mal calculadas | Liquidación |
+| GA-06 | Liquidación con Sistema de Liquidación (Excel) (APP-26) sin control | Crítico - errores manuales, penalidades mal calculadas | Liquidación |
 | GA-07 | Sin plataforma de observabilidad unificada cross-cloud | Alto - sin visibilidad end-to-end, detección tardía de fallos | Todos |
 
 ### 2.4 Gaps de Tecnología
@@ -59,7 +59,7 @@ Identificar y consolidar las brechas (gaps) entre el estado AS IS y el TO BE en 
 ## 3. Iniciativas / Proyectos
 
 ### Iniciativa 1: Plataforma de Integración por Eventos (Bus Central)
-**Descripción**: Implementar un bus de eventos central (Apache Kafka / Azure Event Hubs) que reemplace las integraciones punto a punto entre WMS, TMS, App Conductores y sistemas analíticos.
+**Descripción**: Implementar un bus de eventos central (Apache Kafka / Azure Event Hubs) que reemplace las integraciones punto a punto entre WMS Principal (On Premises), TMS (Transportation Management), App de Conductores y sistemas analíticos.
 **Gaps que cierra**: GA-05, GD-01, GD-03, GD-04, GT-02
 **Valor**: Elimina integraciones frágiles, habilita modelo canónico de estados, permite replay de eventos.
 **Complejidad**: Alta
@@ -87,7 +87,7 @@ Identificar y consolidar las brechas (gaps) entre el estado AS IS y el TO BE en 
 **Duración estimada**: 6-8 meses
 
 ### Iniciativa 5: Automatización de Liquidación y Conciliación
-**Descripción**: Reemplazar el proceso manual de liquidación (Excel VBA) con un microservicio de liquidación que concilia automáticamente WMS, TMS, App y ERP en tiempo real.
+**Descripción**: Reemplazar el proceso manual de liquidación (Sistema de Liquidación (Excel)) con un microservicio de liquidación que concilia automáticamente WMS Principal (On Premises), TMS (Transportation Management), App de Conductores y ERP Financiero (On Premises) en tiempo real.
 **Gaps que cierra**: GA-06, GN-04, GD-04
 **Valor**: Reduce conciliación de 23 días a <1 día, elimina USD 2.4M de disputas.
 **Complejidad**: Alta
@@ -130,7 +130,7 @@ TRANSICIÓN 1 (Año 1 - primeros 12 meses):
 ────────────────────────────────────────────────
 • Bus de eventos central (Kafka/Event Hubs) operativo
 • Orquestador con backpressure y circuit breakers
-• App conductores rediseñada (offline robusto + taxonomía)
+• App de Conductores rediseñada (offline robusto + taxonomía)
 • Servicio de validación de órdenes
 • IaC con Terraform para infraestructura cloud
 • Observabilidad básica unificada (logs + métricas)
@@ -170,11 +170,15 @@ TO BE (Año 3 - meses 24-36):
 ┌────────────┐     ┌────────────────────┐     ┌────────────────────┐     ┌──────────┐
 │   AS IS    │────►│  TRANSICIÓN 1      │────►│  TRANSICIÓN 2      │────►│  TO BE   │
 │            │     │                    │     │                    │     │          │
-│ WMS On-P.  │     │ Bus Eventos +      │     │ WMS Cloud +        │     │ Platform │
-│ Batch RT   │     │ App Driver v2 +    │     │ Optimizador RT +   │     │ Digital  │
-│ Integ P2P  │     │ Validación +       │     │ Liquidación Auto + │     │ Completa │
-│ Excel VBA  │     │ IaC + Observab.    │     │ Zero Trust +       │     │          │
-│            │     │                    │     │ Analítica Stream.  │     │          │
+│ WMS        │     │ Bus de Eventos +   │     │ WMS Cloud +        │     │ Platform │
+│ Principal  │     │ App de             │     │ Optimizador de     │     │ Digital  │
+│ (On        │     │ Conductores v2 +   │     │ Rutas en Tiempo    │     │ Completa │
+│ Premises)  │     │ Validación +       │     │ Real + Liquidación │     │          │
+│ Batch      │     │ IaC + Observab.    │     │ Auto + Zero Trust +│     │          │
+│ Integ P2P  │     │                    │     │ Analítica Stream.  │     │          │
+│ Sistema de │     │                    │     │                    │     │          │
+│ Liquidación│     │                    │     │                    │     │          │
+│ (Excel)    │     │                    │     │                    │     │          │
 └────────────┘     └────────────────────┘     └────────────────────┘     └──────────┘
    Hoy             Año 1 (mes 12)              Año 2 (mes 24)             Año 3 (mes 36)
 ```
@@ -185,7 +189,7 @@ TO BE (Año 3 - meses 24-36):
 
 ```
 ALTO VALOR / BAJO ESFUERZO (Quick Wins):
-  ► INI-03: App Conductores Resiliente (3-4 meses, impacto inmediato en evidencias)
+  ► INI-03: App de Conductores Resiliente (3-4 meses, impacto inmediato en evidencias)
   ► INI-06: Validación Órdenes + Pre-Entrega (3-5 meses, reduce fallas inmediatamente)
 
 ALTO VALOR / ALTO ESFUERZO (Apuestas Estratégicas):
