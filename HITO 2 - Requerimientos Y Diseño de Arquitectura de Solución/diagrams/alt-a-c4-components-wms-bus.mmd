@@ -1,0 +1,30 @@
+C4Component
+    title Alternativa A — Nivel 3: Componentes WMS Cloud + PLT-03 (INI-01 / INI-02)
+
+    Container_Boundary(wms, "WMS Cloud — Azure AKS") {
+        Component(reserva, "Servicio Reserva", ".NET", "Reserva/libera stock idempotente")
+        Component(picking, "Servicio Picking", ".NET", "Olas y confirmación picking")
+        Component(reconciliador, "Reconciliador CD", ".NET", "Modo degradado y sync")
+        Component(wms_publisher, "Publicador Eventos", ".NET", "Emite a PLT-03")
+    }
+
+    Container_Boundary(bus, "PLT-03 — Azure Event Hubs") {
+        Component(topic_inv, "Tópico inventory-events", "Event Hub", "Movimientos inventario")
+        Component(topic_ord, "Tópico order-status", "Event Hub", "Estados canónicos pedido")
+        Component(replay, "Servicio Replay", "Azure Function", "Auditoría por orderId")
+        Component(schema, "Schema Registry", "Event Hubs + Storage", "Validación canónica")
+    }
+
+    Container(tms, "TMS (APP-11)", "AKS", "Transporte")
+    Container(orq, "Orquestador (APP-02)", "AKS", "Pedidos")
+
+    Rel(orq, reserva, "Solicitud reserva", "gRPC/REST")
+    Rel(reserva, wms_publisher, "Domain events")
+    Rel(picking, wms_publisher, "PickingConfirmed")
+    Rel(reconciliador, wms_publisher, "ReconciliationCompleted")
+    Rel(wms_publisher, topic_inv, "Publish")
+    Rel(wms_publisher, topic_ord, "Publish")
+    Rel(schema, topic_ord, "Valida esquema")
+    Rel(topic_ord, tms, "Subscribe")
+    Rel(replay, topic_ord, "Replay read")
+    Rel(reconciliador, reserva, "Reconcile queue")

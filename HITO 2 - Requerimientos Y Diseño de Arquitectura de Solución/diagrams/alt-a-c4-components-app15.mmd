@@ -1,0 +1,29 @@
+C4Component
+    title Alternativa A — Nivel 3: Componentes App Conductores (INI-03)
+
+    Container_Boundary(mobile, "App de Conductores (APP-15) — Mobile") {
+        Component(ui, "UI Entrega", "Flutter/React Native", "Pantallas conductor")
+        Component(offline, "Módulo Offline", "SQLite AES-256", "Cola local eventos/evidencias")
+        Component(taxonomy, "Taxonomía Excepciones", "Mobile lib", "Motivos obligatorios")
+    }
+
+    Container_Boundary(aws_backend, "Backend AWS — ECS Fargate") {
+        Component(api, "API Entrega", ".NET/Node", "REST sync")
+        Component(sync, "Servicio Sync Atómico", "Worker", "Upload evidencias + idempotencia")
+        Component(kin_prod, "Productor Kinesis", "AWS SDK", "Eventos tracking")
+    }
+
+    Container(s3, "Almacenamiento Evidencias (APP-16)", "S3 + Object Lock")
+    Container(kinesis, "AWS Kinesis", "Data Streams")
+    Container(connector, "Conector AWS→Azure", "Function")
+    Container(bus, "PLT-03 Event Hubs", "Hub central")
+
+    Rel(ui, offline, "Guarda local")
+    Rel(ui, taxonomy, "Valida motivo")
+    Rel(ui, api, "Sync cuando online")
+    Rel(api, sync, "Process batch")
+    Rel(sync, s3, "PUT atómico")
+    Rel(sync, kin_prod, "Emit")
+    Rel(kin_prod, kinesis, "PutRecord")
+    Rel(kinesis, connector, "Stream")
+    Rel(connector, bus, "Forward")

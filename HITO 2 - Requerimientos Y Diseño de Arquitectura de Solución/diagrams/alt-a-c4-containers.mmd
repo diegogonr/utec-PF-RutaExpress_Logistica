@@ -1,0 +1,38 @@
+C4Container
+    title Alternativa A — Nivel 2: Contenedores (Hub Central Azure)
+
+    Person(conductor, "Conductor")
+    Person(cliente, "Cliente B2B")
+
+    System_Boundary(rxp, "RutaExpress — Alternativa A") {
+
+        Container(api_gw, "Azure API Management (APP-01)", "Azure API Management", "Gateway OAuth, rate limit, WAF")
+        Container(orquestador, "Orquestador de Pedidos (APP-02)", ".NET / AKS", "Recepción y backpressure")
+        Container(wms, "WMS Cloud", ".NET / AKS + Azure SQL MI", "Inventario único tiempo real")
+        Container(tms, "TMS (APP-11)", ".NET / AKS", "Rutas y manifiestos")
+        Container(bus, "Bus de Eventos Central (PLT-03)", "Azure Event Hubs", "Hub canónico de eventos")
+        Container(app15, "Backend App Conductores (APP-15)", "AWS ECS Fargate", "API entrega y sync")
+        Container(kinesis, "Streaming AWS", "AWS Kinesis Data Streams", "Ingesta eventos campo")
+        Container(s3, "Evidencias (APP-16)", "Amazon S3", "Fotos y firmas")
+        Container(connector, "Conector AWS→Azure", "Azure Function / AKS job", "Bridge Kinesis → Event Hubs")
+        Container(obs, "Observabilidad (PLT-01)", "Azure Monitor + App Insights + CloudWatch", "Métricas cross-cloud")
+        Container(iam, "IAM (PLT-02)", "Microsoft Entra ID + Key Vault", "Identidad central")
+    }
+
+    Container_Ext(portal, "Portal B2B Trazabilidad (APP-18)", "SaaS", "Estados al cliente")
+    ContainerDb(sql_wms, "Azure SQL MI", "SQL", "Inventario WMS Cloud")
+
+    Rel(cliente, api_gw, "HTTPS")
+    Rel(api_gw, orquestador, "REST")
+    Rel(orquestador, bus, "Publish/Subscribe")
+    Rel(wms, bus, "Publish/Subscribe")
+    Rel(tms, bus, "Publish/Subscribe")
+    Rel(conductor, app15, "HTTPS/4G")
+    Rel(app15, kinesis, "Put records")
+    Rel(app15, s3, "PUT evidencias")
+    Rel(kinesis, connector, "Stream")
+    Rel(connector, bus, "Forward events")
+    Rel(bus, portal, "Webhook/API")
+    Rel(wms, sql_wms, "TCP/TLS")
+    Rel(obs, bus, "Metrics/Logs")
+    Rel(iam, api_gw, "OAuth/MFA")

@@ -1,0 +1,44 @@
+C4Container
+    title Alternativa B — Nivel 2: Contenedores (Malla Federada)
+
+    Person(conductor, "Conductor")
+    Person(cliente, "Cliente B2B")
+
+    System_Boundary(rxp, "RutaExpress — Alternativa B") {
+
+        Container(api_gw, "Azure API Management (APP-01)", "Azure", "Gateway unificado")
+        Container(orq, "Orquestador (APP-02)", "AKS Azure", "Pedidos")
+        Container(wms, "WMS Cloud", "AKS + Azure SQL MI", "Inventario")
+        Container(tms, "TMS (APP-11)", "AKS Azure", "Transporte")
+
+        Container(bus_az, "Bus Azure (PLT-03-AZ)", "Azure Event Hubs", "Eventos dominio Azure")
+        Container(bus_aws, "Bus AWS (PLT-03-AWS)", "Amazon EventBridge", "Eventos campo AWS")
+        Container(bus_gcp, "Bus GCP (PLT-03-GCP)", "Google Pub/Sub", "Analítica / ML")
+
+        Container(router, "Enrutador de Eventos Multinube", "AKS + Azure Functions", "Traducción y fan-out cross-cloud")
+        Container(schema, "Registro Canónico", "Azure Blob Storage + Function", "Esquemas versionados")
+
+        Container(app15, "Backend App Conductores (APP-15)", "ECS Fargate", "API entrega")
+        Container(s3, "Evidencias (APP-16)", "S3", "Fotos y firmas")
+        Container(ml, "Optimización Rutas (APP-24)", "GCP Cloud Run", "ML rutas")
+
+        Container(obs, "Observabilidad (PLT-01)", "Monitor + CloudWatch + Cloud Logging", "Nativo multinube")
+        Container(iam, "IAM federado (PLT-02)", "Entra ID + IAM AWS + GCP IAM", "Identidad multinube")
+    }
+
+    Container_Ext(portal, "Portal B2B (APP-18)", "SaaS")
+
+    Rel(cliente, api_gw, "HTTPS")
+    Rel(orq, bus_az, "Publish")
+    Rel(wms, bus_az, "Publish/Subscribe")
+    Rel(tms, bus_az, "Subscribe")
+    Rel(conductor, app15, "HTTPS")
+    Rel(app15, bus_aws, "PutEvents")
+    Rel(app15, s3, "PUT")
+    Rel(bus_az, router, "Stream")
+    Rel(bus_aws, router, "Stream")
+    Rel(router, bus_gcp, "Forward")
+    Rel(router, portal, "Webhook")
+    Rel(bus_gcp, ml, "Subscribe")
+    Rel(schema, router, "Valida")
+    Rel(obs, router, "Traces")
