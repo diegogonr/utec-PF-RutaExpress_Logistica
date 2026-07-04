@@ -72,25 +72,58 @@ Misma relación con actores externos que Alternativa A; el sistema expuesto al c
 | Observabilidad (PLT-01) | Multinube | **Azure** Monitor + **AWS** CloudWatch + **GCP** Cloud Logging |
 | IAM (PLT-02) | Multinube | Entra ID + IAM AWS + GCP IAM |
 
-### 4.3 Nivel 3 — Enrutador de Eventos
+### 4.3 Nivel 3 — Enrutador de eventos (INI-01)
 
-![C4 Componentes Enrutador](diagramas/alt-b-c4-components-router.png)
+![C4 Componentes Enrutador — INI-01](diagramas/alt-b-c4-components-router.png)
+
+**Iniciativa:** INI-01 — PLT-03 Bus de Eventos Central (malla federada). Detalla adaptadores, traducción canónica, deduplicación y DLQ entre buses Azure / AWS / GCP.
 
 | Componente | Responsabilidad |
 |---|---|
 | Adaptador Event Hubs | **Azure Function** consume PLT-03-AZ |
-| Adaptador EventBridge | **Azure Function** triggered vía Event Grid / polling EventBridge |
+| Adaptador EventBridge | **Azure Function** consume PLT-03-AWS |
 | Traductor Canónico | Worker .NET en AKS — mapeo esquema v1 |
-| Deduplicador | **Azure Cache for Redis** (Basic/Standard) — idempotencia `eventId` |
+| Deduplicador | **Azure Cache for Redis** (Standard) — idempotencia `eventId` |
 | Publicador Pub/Sub | **Azure Function** → GCP Pub/Sub (API nativa) |
 | Dispatcher SaaS | Worker webhooks → APP-18 |
 | Dead Letter Queue | **SQS** + **Azure Storage Queue** |
 
 ### 4.4 Nivel 3 — WMS Cloud (INI-02)
 
-![C4 Componentes WMS Alt B](diagramas/alt-b-c4-components-wms.png)
+![C4 Componentes WMS — INI-02](diagramas/alt-b-c4-components-wms.png)
 
-WMS Cloud publica **solo** a PLT-03-AZ; TMS consume vía enrutador para eventos cross-domain.
+**Iniciativa:** INI-02 — WMS Cloud. Servicios de reserva, picking, reconciliador CD y publicador local a PLT-03-AZ; TMS consume vía enrutador.
+
+| Componente | Responsabilidad |
+|---|---|
+| Servicio Reserva | Stock idempotente por `reservationId` |
+| Servicio Picking | Olas y confirmación `PickingConfirmed` |
+| Reconciliador CD | Modo degradado y sync al reconectar |
+| Publicador Azure | Emite solo a PLT-03-AZ |
+
+### 4.5 Nivel 3 — App Conductores (INI-03)
+
+![C4 Componentes APP-15 — INI-03](diagramas/alt-b-c4-components-app15.png)
+
+**Iniciativa:** INI-03 — APP-15 App de Conductores Resiliente. Flujo campo: offline → sync atómico → Kinesis → regla EventBridge → PLT-03-AWS → enrutador Azure.
+
+| Componente | Responsabilidad |
+|---|---|
+| UI Entrega | Pantallas conductor (Flutter/RN) |
+| Módulo Offline | SQLite AES-256 — cola local |
+| Taxonomía Excepciones | Motivos obligatorios (sin texto libre) |
+| API Entrega / Sync Atómico | ECS Fargate — idempotencia evidencias |
+| Productor Kinesis | Eventos tracking (RF-INI03-03) |
+| Regla EventBridge | Puente nativo AWS Kinesis → EventBridge |
+| Adaptador Enrutador | Azure Function — integra malla INI-01 |
+
+### Trazabilidad nivel 3 ↔ iniciativas
+
+| Iniciativa | Diagrama nivel 3 | Archivo PNG |
+|---|---|---|
+| **INI-01** PLT-03 | Enrutador + buses federados | `alt-b-c4-components-router.png` |
+| **INI-02** WMS Cloud | Servicios WMS + publicador | `alt-b-c4-components-wms.png` |
+| **INI-03** APP-15 | Mobile + backend + Kinesis→EventBridge | `alt-b-c4-components-app15.png` |
 
 ---
 

@@ -305,6 +305,36 @@ def alt_b_components_wms() -> None:
         local_pub >> bus_az >> router >> tms
 
 
+def alt_b_components_app15() -> None:
+    with _diagram("alt-b-c4-components-app15", "LR"):
+        with Cluster("App Conductores — Mobile (INI-03)"):
+            ui = Mobile("UI Entrega\nFlutter/RN")
+            offline = PostgreSQL("SQLite AES-256\ncola offline")
+            taxonomy = AppServices("Taxonomía\nexcepciones")
+
+        with Cluster("Backend AWS — ECS Fargate"):
+            api = Fargate("API Entrega\nREST sync")
+            sync = Fargate("Sync Atómico\nidempotencia")
+            kin_prod = KinesisDataStreams("Productor\nKinesis SDK")
+
+        s3 = S3("APP-16 S3\nevidencias")
+        kinesis = KinesisDataStreams("Kinesis\nData Streams")
+        rule = Eventbridge("Regla nativa\nKinesis → EventBridge")
+        bus_aws = Eventbridge("PLT-03-AWS\nEventBridge")
+        router = FunctionApps("Adaptador\nEnrutador Azure")
+
+        ui >> Edge(label="guarda") >> offline
+        ui >> Edge(label="valida") >> taxonomy
+        ui >> Edge(label="sync online") >> api
+        api >> Edge(label="batch") >> sync
+        sync >> Edge(label="PUT atómico") >> s3
+        sync >> Edge(label="emit") >> kin_prod
+        kin_prod >> Edge(label="PutRecord") >> kinesis
+        kinesis >> Edge(label="stream") >> rule
+        rule >> Edge(label="PutEvents") >> bus_aws
+        bus_aws >> Edge(label="forward", color="#ff9900") >> router
+
+
 DIAGRAMS = {
     "alt-a-context": alt_a_context,
     "alt-a-containers": alt_a_containers,
@@ -314,6 +344,7 @@ DIAGRAMS = {
     "alt-b-containers": alt_b_containers,
     "alt-b-components-router": alt_b_components_router,
     "alt-b-components-wms": alt_b_components_wms,
+    "alt-b-components-app15": alt_b_components_app15,
 }
 
 
