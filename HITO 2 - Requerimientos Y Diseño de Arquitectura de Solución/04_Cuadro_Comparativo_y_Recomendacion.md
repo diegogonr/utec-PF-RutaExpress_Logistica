@@ -6,6 +6,8 @@
 > - [`03_Alternativa_B_Malla_Federada_Multinube.md`](03_Alternativa_B_Malla_Federada_Multinube.md)  
 > - [`01_Requerimientos_y_Criterios_Aceptacion.md`](01_Requerimientos_y_Criterios_Aceptacion.md)
 
+> **Iniciativas evaluadas:** INI-01, INI-02, INI-03 — selección y criterios en [`01_Requerimientos_y_Criterios_Aceptacion.md` §1.1](01_Requerimientos_y_Criterios_Aceptacion.md#11-por-qué-se-eligieron-ini-01-ini-02-e-ini-03).
+
 > **Principio rector (Hito 1 doc 10):** solo servicios nativos **Azure / AWS / GCP**, alcance **medio**, sin SaaS de observabilidad o integración de terceros (Datadog, Apicurio, Kafka autogestionado, etc.).
 
 ---

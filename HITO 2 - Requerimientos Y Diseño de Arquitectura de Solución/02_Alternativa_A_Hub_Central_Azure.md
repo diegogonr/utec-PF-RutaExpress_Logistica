@@ -1,7 +1,7 @@
 # Alternativa A — Hub Central Azure (Event-Driven)
 ## RutaExpress Fulfillment & Transporte — Hito 2
 
-> **Iniciativas cubiertas:** INI-01 (PLT-03), INI-02 (WMS Cloud), INI-03 (APP-15).  
+> **Iniciativas cubiertas:** INI-01 (PLT-03), INI-02 (WMS Cloud), INI-03 (APP-15) — selección justificada en [`01_Requerimientos_y_Criterios_Aceptacion.md` §1.1](01_Requerimientos_y_Criterios_Aceptacion.md#11-por-qué-se-eligieron-ini-01-ini-02-e-ini-03).  
 > **Alineación Hito 1:** coherente con [`11_ADM_Migration_Planning.md`](../HITO%201%20-%20Arquitectura%20Empresarial/11_ADM_Migration_Planning.md) y TO BE de [`09_ADM_Fases_CadenasValor_B_C_D_ASIS_TOBE.md`](../HITO%201%20-%20Arquitectura%20Empresarial/09_ADM_Fases_CadenasValor_B_C_D_ASIS_TOBE.md).  
 > **Requerimientos:** [`01_Requerimientos_y_Criterios_Aceptacion.md`](01_Requerimientos_y_Criterios_Aceptacion.md)
 

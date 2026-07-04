@@ -14,6 +14,51 @@ Detallar historias de usuario, requerimientos funcionales (RF), requerimientos n
 
 ---
 
+## 1.1 Por qué se eligieron INI-01, INI-02 e INI-03
+
+El enunciado del Hito 2 exige tomar **al menos tres iniciativas** del [`11_ADM_Migration_Planning.md`](../HITO%201%20-%20Arquitectura%20Empresarial/11_ADM_Migration_Planning.md) (ADM Fase F). No se seleccionaron al azar ni por conveniencia documental: son las **tres primeras del roadmap de transformación** (prioridades 1, 2 y 3) y cubren, en conjunto, la cadena de valor crítica **integración → almacén → última milla**, que concentra los mayores gaps y pérdidas del caso RutaExpress.
+
+### Criterios de priorización aplicados (Hito 1, doc 11)
+
+| Criterio | Peso | Cómo influye en la selección |
+|---|---:|---|
+| Impacto en reducción de penalidades / ingresos | 30% | INI-02 evita ~USD 1.1M en Cyber Days; INI-03 evita ~USD 180K retenidos por evidencias |
+| Reducción de riesgo operativo | 25% | INI-02 elimina caídas de 6 h; INI-03 elimina pérdida de firmas/GPS |
+| Habilitador de otras iniciativas | 20% | INI-01 desbloquea WMS Cloud, liquidación (INI-05) y analítica streaming |
+| Velocidad de entrega de valor | 15% | INI-03 es quick win (4 meses, meses 2–5 del roadmap) |
+| Complejidad / riesgo de implementación | 10% | Las tres tienen arquitectura definida en Hito 1 con servicios nativos Azure/AWS |
+
+### Por qué cada iniciativa
+
+| Iniciativa | Prioridad roadmap | Rol en la cadena TO BE | Gaps principales que cierra (doc 10) | Motivo de inclusión en Hito 2 |
+|---|---|---|---|---|
+| **INI-01** — PLT-03 Bus de Eventos Central | **1 — Fundacional** | Capa de **integración** asíncrona multinube | **GA-05** (integraciones P2P frágiles), **GD-01** (estados contradictorios), **GD-03** (tracking sin orden), **GD-04** (analítica batch) | Sin bus central no hay TO BE coherente: WMS Cloud, TMS (APP-11), APP-15 y Portal B2B (APP-18) requieren estados canónicos y desacoplamiento. Es la decisión arquitectónica que define el diseño de solución del Hito 2. |
+| **INI-02** — WMS Cloud | **2 — Crítica** | Núcleo de **fulfillment** (14 CDs, inventario único) | **GA-01** (caídas en campaña), **GD-02** (inventario desincronizado), **GT-01** / **GT-05** (resiliencia y DR) | Mayor impacto económico del portafolio (penalidades Cyber Days). Reemplaza WMS Principal (APP-06) y WMS Satélite (APP-07); absorbe función de Control de Inventario (APP-08). Depende de INI-01 para publicar eventos. |
+| **INI-03** — APP-15 App de Conductores Resiliente | **3 — Quick Win** | **Última milla** (campo, evidencias, tracking) | **GA-04** (pérdida de evidencias), **GD-03** (datos offline inconsistentes), **GN-02** (disputas de custodia) | Entrega valor en meses 2–5 en paralelo con INI-01; cierra el incidente documentado de 1.200 firmas perdidas. Alimenta taxonomía de excepciones para APP-24 (ML). Publica eventos consumidos por PLT-03. |
+
+### Por qué no otras iniciativas del mismo plan
+
+| Iniciativa no seleccionada | Motivo de exclusión en Hito 2 |
+|---|---|
+| **INI-04** (Optimizador de Rutas APP-12→APP-24) | Prioridad 4; depende de datos limpios de INI-03 y bus de INI-01. Se aborda en fase posterior (mes 6+). |
+| **INI-05** (Liquidación automática) | Prioridad 5; requiere eventos de entrega estables (INI-01 + INI-03). |
+| **INI-06** (Validación de órdenes / APP-05) | Quick win complementario; no define la arquitectura de solución multinube como las tres elegidas. |
+| **INI-07** (PLT-01, PLT-02, PLT-04) | Habilitador transversal; se **asume desplegado en paralelo** desde mes 1 (doc 11) y se referencia en RNF/ADRs, pero el Hito 2 profundiza las iniciativas de **negocio** que materializan el TO BE operativo. |
+
+### Coherencia entre las tres elegidas
+
+```
+INI-01 (PLT-03)          INI-02 (WMS Cloud)         INI-03 (APP-15)
+Integración / estados    Inventario / campaña       Campo / evidencias
+       │                        │                         │
+       └────────── publican / consumen eventos ──────────┘
+                    modelo canónico de pedido
+```
+
+Las tres iniciativas son **dependientes y complementarias**: INI-01 es prerrequisito de integración; INI-02 resuelve el cuello de botella de almacén; INI-03 cierra la trazabilidad en entrega. Juntas permiten elaborar requerimientos, criterios Gherkin y **dos alternativas de arquitectura TO BE** (docs 02–04) con trazabilidad completa al Hito 1.
+
+---
+
 ## 2. INI-01 — PLT-03 Bus de Eventos Central
 
 **Referencia Hito 1:** Azure Event Hubs como hub principal; modelo canónico de estados; desacopla WMS Principal (On Premises) (APP-06), TMS (Transportation Management) (APP-11) y App de Conductores (APP-15).

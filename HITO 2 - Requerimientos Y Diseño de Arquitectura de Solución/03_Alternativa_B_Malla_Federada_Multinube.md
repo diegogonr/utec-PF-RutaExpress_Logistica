@@ -1,7 +1,7 @@
 # Alternativa B — Malla Federada Multinube (Event Mesh)
 ## RutaExpress Fulfillment & Transporte — Hito 2
 
-> **Iniciativas cubiertas:** INI-01 (PLT-03), INI-02 (WMS Cloud), INI-03 (APP-15).  
+> **Iniciativas cubiertas:** INI-01 (PLT-03), INI-02 (WMS Cloud), INI-03 (APP-15) — ver justificación en [`01_Requerimientos_y_Criterios_Aceptacion.md` §1.1](01_Requerimientos_y_Criterios_Aceptacion.md#11-por-qué-se-eligieron-ini-01-ini-02-e-ini-03).  
 > **Contraste:** misma cobertura funcional que Alternativa A, distinta topología de integración.  
 > **Requerimientos:** [`01_Requerimientos_y_Criterios_Aceptacion.md`](01_Requerimientos_y_Criterios_Aceptacion.md)  
 > **Nota:** alternativa de contraste académico; **no se implementará** (ver doc 04).
