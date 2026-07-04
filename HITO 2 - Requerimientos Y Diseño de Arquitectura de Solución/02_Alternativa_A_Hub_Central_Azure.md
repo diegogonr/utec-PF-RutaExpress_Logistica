@@ -44,6 +44,57 @@ La **Alternativa A** consolida la integración asíncrona en un **hub canónico 
 
 ---
 
+## 3.1 Aplicaciones, plataformas y servicios eliminados o fuera de alcance
+
+> Referencia TO BE: [`09_ADM_Fases_CadenasValor_B_C_D_ASIS_TOBE.md`](../HITO%201%20-%20Arquitectura%20Empresarial/09_ADM_Fases_CadenasValor_B_C_D_ASIS_TOBE.md) · [`06_Mapa_Portafolio_Aplicaciones.md`](../HITO%201%20-%20Arquitectura%20Empresarial/06_Mapa_Portafolio_Aplicaciones.md) §4.
+
+### Aplicaciones AS IS que dejan de existir (impacto directo INI-01 / INI-02 / INI-03)
+
+| Elemento AS IS | Disposición TO BE en Alternativa A | Motivo |
+|---|---|---|
+| **WMS Principal (On Premises) (APP-06)** | **Reemplazado** por WMS Cloud (INI-02) | Inventario único, auto-scaling campaña 3×, integración vía PLT-03 |
+| **WMS Satélite (On Premises local) (APP-07)** | **Reemplazado** por WMS Cloud — modo degradado local | Elimina sync horaria y 4.900 conflictos documentados |
+| **Control de Inventario (APP-08)** | **Eliminado** — sin app TO BE homóloga | Función absorbida por inventario único de WMS Cloud |
+| Integraciones **P2P** APP-06 ↔ APP-11 ↔ APP-15 | **Eliminadas** | Sustituidas por publicación/consumo en **PLT-03** (INI-01) |
+| App de Conductores (APP-15) — módulo offline frágil | **Reemplazado** por rediseño INI-03 | SQLite cifrado, sync atómico, taxonomía obligatoria |
+
+### Aplicaciones TO BE no incluidas en el alcance de diseño (Hito 2)
+
+Estas eliminaciones/reemplazos están en el roadmap Hito 1 pero **no** forman parte de los diagramas C4 de INI-01..03:
+
+| Elemento | Disposición TO BE (Hito 1) | Cuándo |
+|---|---|---|
+| Bucket S3 Legado (APP-04) | Deprecar | F1 — INI-06 / canal unificado |
+| Validador de Pedidos (APP-05) | Eliminar → Servicio de Validación | F1 — INI-06 |
+| Sistema Impresión Manifiestos (APP-14) | Eliminar → manifiesto digital | F3 — TMS |
+| Optimizador de Rutas (GCP batch) (APP-12) | Reemplazar por APP-24 tiempo real | F3 — INI-04 |
+| Sistema de Liquidación Excel (APP-26) | Reemplazar por microservicio | F5 — INI-05 |
+
+### Plataformas y nubes
+
+| Elemento | En Alternativa A | Motivo |
+|---|---|---|
+| **Cloud GCP (EEUU)** en flujos INI-01..03 | **Fuera de alcance** (no eliminada del TO BE global) | APP-24 / Pub/Sub entra en **mes 18+** como consumidor de PLT-03; no requerida para bus, WMS ni APP-15 |
+| **On Premises (Lima)** — WMS APP-06/07/08 | **Retirada progresiva** del path crítico | ERP (APP-25) y Handhelds (APP-10) permanecen On Premises / Wi-Fi en transición |
+| Bus **Amazon EventBridge** como hub de dominio | **No incluido** | AWS limitado a **Kinesis + ECS + S3 + CloudWatch** (campo); integración al hub **Azure** |
+| Bus **Google Pub/Sub** (PLT-03-GCP) | **No incluido** en fase INI-01..03 | Evita malla tri-bus; ver Alternativa B (descartada) |
+
+### Servicios y tecnologías descartados en el diseño
+
+| Propuesta descartada | Sustituto en Alternativa A |
+|---|---|
+| **Azure Event Hubs Premium** | **Event Hubs Standard** (2 TU) — nivel intermedio, menor costo |
+| **Datadog / New Relic / Grafana Cloud** | **PLT-01 nativo:** Monitor + App Insights + CloudWatch |
+| **Apicurio / Confluent Schema Registry** | **Azure Blob Storage** + **Azure Function** (validación esquema) |
+| **Kafka / Kafka Connect autogestionado** | **Azure Event Hubs** + conector **Azure Function** |
+| **OpenTelemetry comercial** (SaaS) | Correlación básica vía export CloudWatch → Log Analytics |
+| **Manhattan / JDA WMS COTS** | **WMS Cloud custom** en AKS |
+| **Migrar APP-15 a Azure** | Mantener **AWS ECS Fargate** + bridge a PLT-03 |
+| **Integración P2P directa** WMS→TMS→APP-15 | **Hub-and-spoke** PLT-03 |
+| **Alternativa B** (malla federada tri-bus) | **No implementar** — ver doc 04 |
+
+---
+
 ## 4. Diagramas C4 (niveles 1–3)
 
 > **Generación (Diagram as Code):** script Python [`diagrams/generate_diagrams.py`](diagrams/generate_diagrams.py) con librería **[diagrams](https://diagrams.mingrammer.com/)** (mingrammer) e íconos oficiales AWS / Azure / GCP.  

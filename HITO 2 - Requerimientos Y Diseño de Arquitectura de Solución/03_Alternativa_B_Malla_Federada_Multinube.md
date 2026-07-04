@@ -45,6 +45,46 @@ La **Alternativa B** implementa un **bus por nube de origen** — **Azure Event 
 
 ---
 
+## 3.1 Aplicaciones, plataformas y servicios eliminados o descartados
+
+> Mismas eliminaciones de aplicaciones AS IS que Alternativa A (APP-06, APP-07, APP-08, P2P) — ver [`02_Alternativa_A_Hub_Central_Azure.md` §3.1](02_Alternativa_A_Hub_Central_Azure.md#31-aplicaciones-plataformas-y-servicios-eliminados-o-fuera-de-alcance).
+
+### Lo que esta alternativa elimina respecto a Alternativa A (adoptada)
+
+| Elemento en Alternativa A | En Alternativa B | Motivo del cambio en B |
+|---|---|---|
+| **Hub único** Azure Event Hubs (PLT-03) | **Tres buses**: PLT-03-AZ + PLT-03-AWS + PLT-03-GCP | Simetría cloud-native por proveedor |
+| **Conector directo** Kinesis → Event Hubs | **Kinesis → EventBridge → Enrutador Azure** | Publicación en bus AWS nativo |
+| Integración **sin enrutador central** | **Enrutador Multinube** (AKS + Functions) | Fan-out y traducción cross-cloud |
+
+### Servicios descartados en el diseño revisado de Alternativa B
+
+| Propuesta descartada | Sustituto en Alternativa B |
+|---|---|
+| **Datadog / OpenTelemetry SaaS** | PLT-01 nativo: Monitor + CloudWatch + Cloud Logging |
+| **Apicurio / Confluent Schema Registry** | Azure Blob Storage + Azure Function |
+| **Kafka Connect autogestionado** | **Azure Functions** como adaptadores |
+| **Event Hubs Premium** | **Event Hubs Standard** |
+| **Publicar APP-15 solo a EventBridge** (sin Kinesis) | Se mantiene **Kinesis** (alineado INI-03 Hito 1) + regla EventBridge |
+
+### Plataformas: diferencias vs Alternativa A
+
+| Plataforma / servicio | Alternativa A | Alternativa B |
+|---|---|---|
+| **GCP Pub/Sub** en INI-01..03 | Fuera de alcance (mes 18+) | **Incluido** — bus PLT-03-GCP hacia APP-24 |
+| **AWS EventBridge** como bus de dominio | No incluido | **Incluido** — PLT-03-AWS |
+| **Azure Cache for Redis** | No requerido | **Incluido** — deduplicación en enrutador |
+| **Enrutador Multinube** | No existe | **Incluido** — componente crítico adicional |
+
+### Disposición final de la Alternativa B
+
+| Elemento | Estado |
+|---|---|
+| **Alternativa B completa** | **Descartada para implementación** (doc 04) — solo contraste académico Hito 2 |
+| **Alternativa A** | **Única topología adoptada** para INI-01, INI-02 e INI-03 |
+
+---
+
 ## 4. Diagramas C4 (niveles 1–3)
 
 > **Generación:** [`diagrams/generate_diagrams.py`](diagrams/generate_diagrams.py) — librería **diagrams** (mingrammer). Regenerar: `npm run diagrams:hito2`

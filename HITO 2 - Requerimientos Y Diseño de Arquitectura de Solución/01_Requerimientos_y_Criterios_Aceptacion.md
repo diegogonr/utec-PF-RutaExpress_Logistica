@@ -57,6 +57,16 @@ Integración / estados    Inventario / campaña       Campo / evidencias
 
 Las tres iniciativas son **dependientes y complementarias**: INI-01 es prerrequisito de integración; INI-02 resuelve el cuello de botella de almacén; INI-03 cierra la trazabilidad en entrega. Juntas permiten elaborar requerimientos, criterios Gherkin y **dos alternativas de arquitectura TO BE** (docs 02–04) con trazabilidad completa al Hito 1.
 
+### Elementos eliminados o fuera de alcance en el diseño Hito 2
+
+| Tipo | Elemento | Disposición |
+|---|---|---|
+| **App AS IS** | WMS Principal (APP-06), WMS Satélite (APP-07) | Reemplazados por WMS Cloud (INI-02) |
+| **App AS IS** | Control de Inventario (APP-08) | **Eliminado** — sin equivalente TO BE |
+| **Integración** | P2P APP-06 ↔ APP-11 ↔ APP-15 | **Eliminada** → PLT-03 (INI-01) |
+| **Plataforma** | GCP en INI-01..03 (Alternativa A adoptada) | Fuera de alcance hasta mes 18+ (APP-24) |
+| **Servicio** | Event Hubs Premium, Datadog, Apicurio, Kafka | Descartados — ver docs 02 §3.1 |
+
 ---
 
 ## 2. INI-01 — PLT-03 Bus de Eventos Central

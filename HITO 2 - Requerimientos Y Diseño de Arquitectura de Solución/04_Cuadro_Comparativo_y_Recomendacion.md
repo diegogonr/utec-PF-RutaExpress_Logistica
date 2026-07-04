@@ -41,6 +41,24 @@ Escala: **1 (bajo)** — **5 (alto)** salvo **Costo** y **Complejidad** donde **
 
 ---
 
+## 2.1 Eliminaciones y servicios descartados (resumen)
+
+| Categoría | Alternativa A (adoptada) | Alternativa B (no implementada) |
+|---|---|---|
+| **Apps AS IS eliminadas/reemplazadas** (INI-01..03) | APP-06, APP-07 → WMS Cloud; **APP-08 eliminado**; P2P eliminado; APP-15 rediseñado | Igual que A |
+| **GCP en fase INI-01..03** | **Fuera de alcance** (APP-24 mes 18+) | **Incluido** (Pub/Sub + APP-24 en diagrama) |
+| **Hub integración** | Un solo **Event Hubs Azure** | **Tres buses** + enrutador |
+| **Conector AWS→Azure** | Kinesis → Function → Event Hubs | Kinesis → EventBridge → Enrutador |
+| **SaaS terceros observabilidad** | Eliminados (Datadog, etc.) | Eliminados (Datadog, etc.) |
+| **Schema registry terceros** | Eliminados (Apicurio, Confluent) | Eliminados — Blob + Function |
+| **Kafka autogestionado** | Eliminado | Eliminado — Azure Functions |
+| **Event Hubs Premium** | Sustituido por **Standard** | Sustituido por **Standard** |
+| **Topología B completa** | **No se implementa** | Documentada solo como contraste |
+
+Detalle por alternativa: [`02` §3.1](02_Alternativa_A_Hub_Central_Azure.md#31-aplicaciones-plataformas-y-servicios-eliminados-o-fuera-de-alcance) · [`03` §3.1](03_Alternativa_B_Malla_Federada_Multinube.md#31-aplicaciones-plataformas-y-servicios-eliminados-o-descartados).
+
+---
+
 ## 3. Matriz ponderada (score normalizado)
 
 | Criterio | Peso | Alt A (1–5) | Alt B (1–5) | Puntos A | Puntos B |
