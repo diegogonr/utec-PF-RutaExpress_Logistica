@@ -1,7 +1,7 @@
 # ADM - Preliminary
 ## RutaExpress Fulfillment & Transporte
 
-> **Para el comité de arquitectura** — Este documento fija el **marco de gobierno** (Comité quincenal, Board mensual), los **principios** que toda iniciativa debe cumplir (PN/PD/PA/PT) y la **madurez actual** (gobierno e observabilidad en nivel 1). **Mensaje clave:** antes de aprobar diseños, validar que respeten principios como API-First (PA-01), PLT-03 event-driven y migración progresiva de **APP-06** hacia WMS Cloud.
+> **Para el comité de arquitectura** — Este documento fija el **marco de gobierno** (Comité quincenal, Board mensual), los **principios** que toda iniciativa debe cumplir (PN/PD/PA/PT) y las **herramientas** de trabajo (Jira, draw.io, Terraform). **Mensaje clave:** antes de aprobar diseños, validar que respeten principios como API-First (PA-01), PLT-03 event-driven y migración progresiva de **APP-06** hacia WMS Cloud.
 
 ---
 
@@ -27,19 +27,22 @@ Esta fase establece el marco de trabajo, el modelo de gobierno y los principios 
 - Todas las iniciativas de la empresa se presentan al Comité de Arquitectura antes de iniciar diseño.
 - Se asigna un Arquitecto Empresarial por cada iniciativa de impacto transversal.
 - Las iniciativas de menor alcance son validadas por el Arquitecto de Dominio correspondiente.
-- Todo cambio en sistemas críticos (**APP-06** WMS Principal, **APP-11** TMS, **APP-15** App de Conductores, **APP-01** Azure API Management) requiere Architecture Decision Record (ADR) aprobado.
+- Todo cambio en sistemas críticos (WMS Principal (On Premises) (APP-06), TMS (Transportation Management) (APP-11), App de Conductores (APP-15), Azure API Management (APP-01)) requiere Architecture Decision Record (ADR) aprobado.
 - Se usará TOGAF ADM como metodología de Arquitectura Empresarial.
-- Los entregables se documentarán en plantillas estándar y se almacenarán en el SharePoint de Arquitectura con control de versiones.
+- Los entregables se documentan en plantillas estándar y se registran en **Jira** (iniciativas, ADRs y trazabilidad de entregables).
+
+> **Convención de nomenclatura (Hito 1):** catálogo maestro → [`06_Mapa_Portafolio_Aplicaciones.md`](06_Mapa_Portafolio_Aplicaciones.md). **Obligatorio en todo el Hito 1:** siempre **nombre oficial + (APP-XX)** o **(PLT-XX)** juntos; prohibido usar solo el ID o solo el nombre.
 
 ### 2.3 Herramientas y Repositorio
 
 | Herramienta | Uso |
 |---|---|
-| Confluence / SharePoint | Repositorio de documentos de arquitectura |
-| draw.io / Lucidchart | Diagramas de arquitectura (C4, flujos, topología) |
-| Azure DevOps / Jira | Gestión de iniciativas y tareas de arquitectura |
-| Terraform / Bicep | Infraestructura como Código (IaC) |
-| ArchiMate | Modelos formales de arquitectura empresarial |
+| **Jira** | Gestión de iniciativas, tareas de arquitectura, ADRs y trazabilidad de entregables |
+| **draw.io** | Diagramas de arquitectura (C4, flujos, topología) |
+| **Terraform** | Infraestructura como Código (IaC) |
+| **ArchiMate** | Notación para modelos formales de arquitectura empresarial |
+
+> **Criterio:** una sola herramienta por uso (la más simple de adoptar). Sin alternativas abiertas en documentación del Hito 1.
 
 ---
 
@@ -80,50 +83,10 @@ Esta fase establece el marco de trabajo, el modelo de gobierno y los principios 
 | # | Principio | Descripción |
 |---|---|---|
 | PT-01 | Cloud-First (Nube pública) | Las nuevas capacidades se construirán en nube pública (AWS, Azure, GCP). WMS Principal (On Premises) — APP-06 — migrará progresivamente a WMS Cloud. |
-| PT-02 | Infraestructura como Código (IaC) | Toda la infraestructura debe definirse con Terraform o herramientas nativas cloud. No se aprovisiona infraestructura manualmente en producción. |
+| PT-02 | Infraestructura como Código (IaC) | Toda la infraestructura se define con **Terraform** (repos Git de TI). No se aprovisiona infraestructura manualmente en producción. |
 | PT-03 | Seguridad desde el diseño (Security by Design) | La seguridad se incorpora en el diseño, no como capa posterior. Incluye autenticación, autorización, cifrado en tránsito y reposo, y auditoría de accesos. |
 | PT-04 | Observabilidad nativa | Los sistemas deben emitir métricas, logs y trazas distribuidas desde el inicio. Se centralizará en **PLT-01** Plataforma de Observabilidad Unificada. |
-| PT-05 | Multinube por resiliencia y capacidad | AWS, Azure y GCP se usarán según fortaleza: Azure para **APP-02** Orquestador y **APP-11** TMS, AWS para **APP-15** App de Conductores e **APP-09** IoT Core, GCP para **APP-12** Optimizador y **APP-22** Analítica. |
-
----
-
-## 4. Alcance de la Arquitectura Empresarial
-
-### 4.1 Dominios cubiertos
-
-- Arquitectura de Negocio (Business Architecture)
-- Arquitectura de Datos (Data Architecture)
-- Arquitectura de Aplicaciones (Application Architecture)
-- Arquitectura Tecnológica (Technology Architecture)
-
-### 4.2 Unidades organizativas involucradas
-
-- Operaciones Logísticas (Almacén, Transporte, Última Milla)
-- Tecnología e Innovación
-- Finanzas y Facturación
-- Atención al Cliente
-- Seguridad y Cumplimiento
-- Analítica y Datos
-
-### 4.3 Horizonte temporal
-
-- AS IS: Situación actual documentada al año 1
-- Transición 1: 12 meses
-- Transición 2: 24 meses
-- TO BE: 36 meses
-
----
-
-## 5. Madurez de Arquitectura Actual
-
-| Dimensión | Nivel Actual | Descripción |
-|---|---|---|
-| Gobierno | 1 - Inicial | Sin comité formal, decisiones reactivas por proyecto |
-| Integración | 2 - Repetible | APIs en algunos puntos, pero aún hay integraciones punto a punto y archivos |
-| Datos | 1 - Inicial | Sin modelo canónico, múltiples fuentes de verdad por sistema |
-| Infraestructura | 2 - Repetible | Multinube real pero sin estrategia unificada |
-| Seguridad | 2 - Repetible | Controles básicos, sin Security by Design |
-| Observabilidad | 1 - Inicial | Monitoreo parcial por APP; sin **PLT-01** unificada ni visibilidad end-to-end |
+| PT-05 | Multinube por resiliencia y capacidad | AWS, Azure y GCP según fortaleza: Azure para Orquestador de Pedidos (APP-02) y TMS (Transportation Management) (APP-11); AWS para App de Conductores (APP-15) e IoT Core (sensores temperatura) (APP-09); GCP para Optimizador de Rutas (GCP batch) (APP-12) y Plataforma de Analítica (GCP batch) (APP-22). |
 
 ---
 

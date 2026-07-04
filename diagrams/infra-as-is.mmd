@@ -7,11 +7,11 @@ flowchart TB
 
             subgraph PREM["ON PREMISES · CD Central y 14 almacenes"]
                 direction TB
-                p1["APP-06<br/>WMS Principal<br/>SQL Server"]
-                p2["APP-07<br/>WMS Satélite local"]
-                p3["APP-25<br/>ERP Financiero"]
-                p4["APP-14<br/>Impresión Manifiestos"]
-                p5["APP-10<br/>App Handhelds picking"]
+                p1["APP-06<br/>WMS Principal (On Premises)"]
+                p2["APP-07<br/>WMS Satélite (On Premises local)"]
+                p3["APP-25<br/>ERP Financiero (On Premises)"]
+                p4["APP-14<br/>Sistema Impresión Manifiestos"]
+                p5["APP-10<br/>App Handhelds (picking)"]
                 p6["Red Wi-Fi interna<br/>LAN almacenes · 14 CD"]
                 p1 --- p2
                 p1 --- p3
@@ -23,9 +23,9 @@ flowchart TB
             subgraph AZURE["AZURE"]
                 direction TB
                 a1["APP-01<br/>Azure API Management"]
-                a2["APP-02<br/>Orquestador Pedidos AKS"]
-                a3["APP-05<br/>Validador Pedidos"]
-                a4["APP-11<br/>TMS"]
+                a2["APP-02<br/>Orquestador de Pedidos"]
+                a3["APP-05<br/>Validador de Pedidos"]
+                a4["APP-11<br/>TMS (Transportation Management)"]
                 a1 --> a2 --> a4
                 a2 --- a3
             end
@@ -34,9 +34,9 @@ flowchart TB
                 direction TB
                 w1["APP-15<br/>App de Conductores"]
                 w2["DynamoDB tracking<br/>APP-15"]
-                w3["APP-16<br/>Evidencias S3"]
-                w4["APP-09<br/>IoT Core"]
-                w5["APP-04<br/>Bucket S3 Legado"]
+                w3["APP-16<br/>Almacenamiento Evidencias (S3)"]
+                w4["APP-09<br/>IoT Core (sensores temperatura)"]
+                w5["APP-04<br/>Bucket S3 Legado (archivos)"]
                 w1 --> w2
             end
 
@@ -49,19 +49,19 @@ flowchart TB
 
             subgraph GCP["GCP · procesos batch"]
                 direction TB
-                g1["APP-12<br/>Optimizador Rutas"]
-                g2["APP-22<br/>Analítica semanal"]
-                g3["APP-24<br/>ML Rutas"]
+                g1["APP-12<br/>Optimizador de Rutas (GCP batch)"]
+                g2["APP-22<br/>Plataforma de Analítica (GCP batch)"]
+                g3["APP-24<br/>ML / Optimización de Rutas (GCP)"]
             end
 
             subgraph SAAS["SAAS EXTERNOS"]
                 direction TB
-                s1["APP-03 Portal B2B Carga CSV"]
-                s2["APP-18 Portal B2B Trazabilidad"]
-                s3["APP-19 Portal Tracking Destinatarios"]
-                s4["APP-20 CRM Atención Cliente"]
-                s5["APP-17 Pasarela Pago Contra Entrega"]
-                s6["APP-21 Servicio Notificación SMS/Email"]
+                s1["APP-03<br/>Portal B2B (Carga CSV/Excel)"]
+                s2["APP-18<br/>Portal B2B (Trazabilidad)"]
+                s3["APP-19<br/>Portal Tracking Destinatarios"]
+                s4["APP-20<br/>CRM de Atención al Cliente"]
+                s5["APP-17<br/>Pasarela de Pago Contra Entrega"]
+                s6["APP-21<br/>Servicio de Notificación (SMS/Email)"]
             end
         end
 

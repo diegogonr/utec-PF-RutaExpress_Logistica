@@ -4,7 +4,7 @@ flowchart TB
 
         subgraph BUSCAPA["CAPA DE INTEGRACIÓN · Event Streaming"]
             direction TB
-            bus["PLT-03 Bus de Eventos Central<br/>Azure Event Hub / Apache Kafka"]
+            bus["PLT-03<br/>Bus de Eventos Central"]
         end
 
         subgraph FILA1["Plataformas cloud"]
@@ -13,9 +13,9 @@ flowchart TB
             subgraph AZURE["AZURE"]
                 direction TB
                 a1["APP-01<br/>Azure API Management + WAF"]
-                a2["APP-02<br/>Orquestador Pedidos AKS<br/>auto-scaling · circuit breakers"]
-                a3["APP-11<br/>TMS AKS modernizado"]
-                a4["WMS Cloud<br/>reemplaza APP-06 / APP-07<br/>hot-standby · modo degradado"]
+                a2["APP-02<br/>Orquestador de Pedidos"]
+                a3["APP-11<br/>TMS (Transportation Management)"]
+                a4["WMS Cloud<br/>reemplaza APP-06 / APP-07"]
                 a1 --> a2 --> a3
                 a2 --> a4
             end
@@ -24,9 +24,9 @@ flowchart TB
                 direction TB
                 w1["APP-15<br/>App de Conductores ECS Fargate<br/>multi-AZ"]
                 w2["DynamoDB Global Tables<br/>tracking APP-15"]
-                w3["APP-16<br/>Almacenamiento Evidencias S3<br/>Glacier · AES-256"]
-                w4["Kinesis Data Streams<br/>APP-15 tracking"]
-                w5["APP-09<br/>IoT Core · alertas automáticas"]
+                w3["APP-16<br/>Almacenamiento Evidencias (S3)"]
+                w4["Kinesis Data Streams<br/>tracking APP-15"]
+                w5["APP-09<br/>IoT Core (sensores temperatura)"]
                 w1 --> w2
                 w1 --> w4
             end
@@ -34,21 +34,21 @@ flowchart TB
 
         subgraph GCP["GCP · tiempo real"]
             direction LR
-            g1["APP-12<br/>Optimizador Rutas GKE<br/>Cloud Pub/Sub"]
-            g2["APP-22<br/>BigQuery · Dataflow streaming"]
+            g1["APP-12<br/>Optimizador de Rutas en Tiempo Real"]
+            g2["APP-22<br/>Plataforma de Analítica (GCP batch)"]
             g3["APP-23<br/>Dashboards Operativos"]
         end
 
         subgraph TRANS["Capas transversales"]
             direction LR
-            obs["PLT-01<br/>Observabilidad unificada<br/>OpenTelemetry · Datadog / Azure Monitor"]
-            sec["PLT-02<br/>Zero Trust IAM<br/>Azure AD · MFA · WAF · SIEM · DLP"]
+            obs["PLT-01<br/>Plataforma de Observabilidad Unificada"]
+            sec["PLT-02<br/>Plataforma de Identidad y Accesos (IAM)"]
         end
 
         subgraph PREM["ON PREMISES · solo transición"]
             direction LR
-            p1["APP-25<br/>ERP Financiero · API Event Hub"]
-            p2["APP-06<br/>WMS Principal · puente migración"]
+            p1["APP-25<br/>ERP Financiero (On Premises)"]
+            p2["APP-06<br/>WMS Principal (On Premises) · puente"]
         end
 
         bus --> AZURE

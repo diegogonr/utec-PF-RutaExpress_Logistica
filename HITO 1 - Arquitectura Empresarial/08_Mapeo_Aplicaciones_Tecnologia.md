@@ -1,139 +1,89 @@
 # Mapeo de Aplicaciones con Tecnología
 ## RutaExpress Fulfillment & Transporte
 
-> **Para el comité de arquitectura** — Relaciona cada **APP/PLT** con stack, base de datos e infraestructura; incluye deuda técnica y propuestas TO BE. **Mensaje clave:** las decisiones tecnológicas mantienen las nubes actuales y atacan deuda crítica (**APP-06** on prem, **APP-12** batch, **APP-26** Excel, ausencia de **PLT-03**/**PLT-01**).
+> **Para el comité de arquitectura** — Stack y bases de datos **AS IS** por aplicación y mapa visual por entorno de hosting. **Catálogo maestro** (origen, plataforma, capas): [`06_Mapa_Portafolio_Aplicaciones.md`](06_Mapa_Portafolio_Aplicaciones.md). **Convención obligatoria en todo el Hito 1:** siempre **nombre oficial + (APP-XX)** o **(PLT-XX)** juntos; nunca uno sin el otro.
 
 ---
 
 ## 1. Propósito
 
-Mostrar la relación entre cada aplicación del portafolio y las tecnologías, plataformas y servicios que la soportan. La columna **Fuente** indica si el dato viene directamente del caso o es una suposición técnica razonable marcada como tal.
+Complementar el catálogo del doc `06` con **atributos tecnológicos AS IS**: stack de implementación, base de datos y trazabilidad al caso (✅ confirmado vs ⚠️ suposición).
 
 **Convenciones:**
-- ✅ Dato confirmado en el caso (Caso 6a o Caso 6b)
-- ⚠️ Suposición técnica razonable (no mencionada explícitamente en el caso)
-- **Plataforma** = dónde se ejecuta/despliega la app (Azure, AWS, On Premises, SaaS…). **Conectividad/red** (ej. Wi-Fi interno del almacén) va en observaciones o en `07_Mapa_Infraestructura.md`.
+- ✅ Dato confirmado en Caso 6a o Caso 6b
+- ⚠️ Suposición técnica razonable
+- **Plataforma de infraestructura** = dónde se despliega (nomenclatura unificada con doc `07` §2.2): **On Premises (Lima)**, **Cloud MS Azure (EEUU)**, **Cloud AWS (EEUU)**, **Cloud GCP (EEUU)**, **Cloud SaaS - Software as a Service (EEUU)**. **Conectividad** (Wi-Fi interno del almacén) → doc `07` §3.
+- **Nomenclatura:** *Azure API Management (APP-01)* · *Plataforma de Observabilidad Unificada (PLT-01)* — siempre los dos.
 
 ---
 
-## 2. Mapeo AS IS
+## 2. Mapeo tecnológico AS IS
 
-| ID | Aplicación | Plataforma / Infraestructura | Tecnología / Stack | Base de Datos | Fuente |
-|---|---|---|---|---|---|
-| APP-01 | Azure API Management | Azure (PaaS) | Azure API Management | N/A | ✅ Caso 6a F1 |
-| APP-02 | Orquestador de Pedidos | Azure AKS | ⚠️ Suposición: posiblemente Java o .NET, no especificado en el caso | ⚠️ Suposición: BD relacional en Azure | ✅ AKS mencionado en Caso 6b |
-| APP-03 | Portal B2B (Carga CSV/Excel) | SaaS (proveedor no especificado) | N/A (SaaS externo) | SaaS | ✅ Caso 6a F1 |
-| APP-04 | Bucket S3 Legado (archivos) | AWS S3 | N/A | N/A | ✅ Caso 6a F1 |
-| APP-05 | Validador de Pedidos | Azure AKS | ⚠️ Suposición: mismo stack que orquestador | ⚠️ Suposición: BD relacional en Azure | ⚠️ Inferido del problema de deduplicación (Caso 6a F1) |
-| APP-06 | WMS Principal (On Premises) | On Premises | ⚠️ Suposición: tecnología COTS o custom, no especificada | SQL Server (✅ Caso 6b R1) | ✅ On premises + SQL Server en Caso 6b |
-| APP-07 | WMS Satélite (On Premises local) | On Premises local | ⚠️ Suposición: versión reducida del mismo WMS | ⚠️ Suposición: BD local (tipo no especificado) | ✅ Caso 6a F2: "versión local con sincronización cada hora" |
-| APP-08 | Control de Inventario | On Premises | ⚠️ Suposición: sistema complementario al WMS | ⚠️ Suposición: BD relacional on-prem (tipo no especificado) | ⚠️ Inferido de Caso 6a F2: ERP conserva inventario valorizado |
-| APP-09 | IoT Core (sensores temperatura) | AWS IoT Core | AWS IoT Core / MQTT | ⚠️ Suposición: DynamoDB u otra BD AWS | ✅ Caso 6a F2 |
-| APP-10 | App Handhelds (picking) | On Premises (dispositivo móvil en almacén) | ⚠️ Suposición: Android nativo o similar | SQLite local (⚠️ Suposición) | ✅ Caso 6a F2: handhelds; conectividad Wi-Fi interno del CD (no es plataforma) |
-| APP-11 | TMS (Transportation Management) | Azure | ⚠️ Suposición: posiblemente COTS o custom, no especificado | ⚠️ Suposición: BD relacional en Azure | ✅ Caso 6a: "TMS está en Azure" |
-| APP-12 | Optimizador de Rutas | GCP | ⚠️ Suposición: Python con librería de optimización (tipo no especificado) | ⚠️ Suposición: BigQuery u otra BD GCP | ✅ Caso 6a F3: "optimización de rutas en GCP con cargas batch" |
-| APP-13 | Portal Transportistas Tercerizados | Azure | ⚠️ Suposición: aplicación web, tecnología no especificada | ⚠️ Suposición: BD relacional en Azure | ✅ Caso 6a F3: "transportistas tercerizados acceden por portal" |
-| APP-14 | Sistema Impresión Manifiestos | On Premises (centros) | ⚠️ Suposición: aplicación local legacy | ⚠️ Suposición: BD local | ✅ Caso 6a F3: "manifiestos se imprimen localmente en cada centro" |
-| APP-15 | App de Conductores | AWS | ⚠️ Suposición: React Native u otro framework mobile, no especificado | DynamoDB (✅ Caso 6a F4) | ✅ AWS + DynamoDB en Caso 6a F4 |
-| APP-16 | Almacenamiento Evidencias (S3) | AWS S3 | N/A (storage) | AWS S3 | ✅ Caso 6a F4 |
-| APP-17 | Pasarela de Pago Contra Entrega | SaaS (proveedor externo) | N/A (SaaS externo) | SaaS | ✅ Caso 6a F4 |
-| APP-18 | Portal B2B (Trazabilidad) | SaaS (proveedor no especificado) | ⚠️ Suposición: aplicación web, tecnología no especificada | SaaS | ✅ Caso 6a F4: "portal SaaS de clientes" (función trazabilidad) |
-| APP-19 | Portal Tracking Destinatarios | SaaS (proveedor no especificado) | ⚠️ Suposición: web/PWA, tecnología no especificada | SaaS | ⚠️ Inferido de Caso 6a F4: destinatarios consultan tracking |
-| APP-20 | CRM de Atención al Cliente | SaaS (proveedor no especificado) | N/A (SaaS externo) | SaaS | ✅ Caso 6a F5: "Atención usa un CRM SaaS" |
-| APP-21 | Servicio de Notificación (SMS/Email) | SaaS (proveedor externo) | N/A (SaaS externo) | SaaS | ⚠️ Inferido: comunicación proactiva a destinatarios |
-| APP-22 | Plataforma de Analítica | GCP | ⚠️ Suposición: Python/Spark o herramienta GCP, no especificada | BigQuery (✅ GCP mencionado; herramienta específica es suposición) | ✅ Caso 6a F6: "Analítica en GCP consolida información semanalmente" |
-| APP-23 | Dashboards Operativos | GCP | ⚠️ Suposición: herramienta de visualización GCP, no especificada | BigQuery (⚠️ Suposición) | ⚠️ Inferido de Caso 6a F6: reportes para clientes y operaciones |
-| APP-24 | Optimización / ML de Rutas | GCP | ⚠️ Suposición: algoritmo ML o estadístico, tecnología no especificada | ⚠️ Suposición: usa datos históricos en GCP | ✅ Caso 6b R3: "el algoritmo de rutas en GCP no aprende correctamente" |
-| APP-25 | ERP Financiero (On Premises) | On Premises | ⚠️ Suposición: ERP COTS (tipo no especificado) | ⚠️ Suposición: BD propia del ERP | ✅ Caso 6a F6: "facturación en el ERP on premises" |
-| APP-26 | Sistema de Liquidación (Excel) | Local (PC usuario) | Excel / hojas de cálculo | Excel | ✅ Caso 6a F6: "notas de crédito se calculan con hojas Excel" |
-
----
-
-## 3. Mapa Visual por Capa Tecnológica (AS IS)
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│              CAPAS TECNOLÓGICAS AS IS - RUTAEXPRESS                          │
-├──────────────────────────────────────────────────────────────────────────────┤
-│  CAPA CANALES                                                                │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐   │
-│  │ Portal B2B     │ │ Portal B2B     │ │ App de         │ │ Portal Transport.│   │
-│  │ APP-03         │ │ APP-18         │ │ Conductores    │ │ APP-13           │   │
-│  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘   │
-├──────────────────────────────────────────────────────────────────────────────┤
-│  CAPA API / INTEGRACIÓN                                                      │
-│  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │ APP-01 Azure   │  REST APIs  │  SFTP/CSV APP-04  │   │
-│  └──────────────────────────────────────────────────────────────────────┘   │
-├──────────────────────────────────────────────────────────────────────────────┤
-│  CAPA CORE / LÓGICA                                                          │
-│  ┌────────────────┐ ┌────────────────┐ ┌─────────────────┐ ┌────────────┐  │
-│  │ APP-02         │ │ APP-11 TMS     │ │ APP-12         │ │ APP-15         │  │
-│  │ Orquestador    │ │                │ │ Optimizador    │ │ App Conductores│  │
-│  └────────────────┘ └────────────────┘ └─────────────────┘ └────────────┘  │
-├──────────────────────────────────────────────────────────────────────────────┤
-│  CAPA DATOS                                                                  │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐   │
-│  │ SQL Server     │ │ BD Azure       │ │ DynamoDB       │ │ GCP APP-22     │   │
-│  │ APP-06 WMS     │ │ APP-02/11      │ │ APP-15         │ │ Analítica      │   │
-│  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘   │
-│  ┌──────────────┐ ┌──────────────┐                                          │
-│  │ APP-06 WMS     │ │ APP-25 ERP     │                                          │
-│  └──────────────┘ └──────────────┘                                          │
-├──────────────────────────────────────────────────────────────────────────────┤
-│  CAPA INFRAESTRUCTURA                                                        │
-│  ┌───────────────────┐ ┌──────────────────┐ ┌──────────────────────────┐   │
-│  │  ON PREMISES      │ │     AZURE        │ │          AWS             │   │
-│  │  APP-06 WMS,   │ │  AKS, APP-01   │ │  APP-15, APP-16│   │
-│  │  APP-25 ERP,   │ │  APP-02,       │ │  APP-09 IoT,   │   │
-│  │  APP-10, APP-14│ │  APP-11 TMS    │ │  DynamoDB      │   │
-│  │  ✅ caso          │ │  ✅ caso         │ │  ✅ caso                │   │
-│  └───────────────────┘ └──────────────────┘ └──────────────────────────┘   │
-│  ┌──────────────────────────────────────────┐                               │
-│  │                GCP                       │                               │
-│  │  APP-12 Optimizador, APP-22 Analítica    │                               │
-│  │  ✅ caso                                 │                               │
-│  └──────────────────────────────────────────┘                               │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 4. Mapeo TO BE — Tecnologías Objetivo
-
-> Las tecnologías TO BE son propuestas del arquitecto basadas en los criterios del caso: plataformas ya usadas (AWS/Azure/GCP), objetivos de resiliencia, tiempo real y seguridad. Se indican como propuestas de diseño, no como hechos del caso.
-
-| Dominio | AS IS (del caso) | Propuesta TO BE | Criterio de selección |
+| Aplicación | Tecnología / Stack | Base de Datos | Fuente |
 |---|---|---|---|
-| Gateway de APIs — APP-01 | Azure API Management | Azure API Management + políticas de rate limiting, backpressure y OAuth 2.0 | Ya existe en el caso; ampliar capacidades |
-| Orquestación Pedidos — APP-02 | AKS (Azure) sin backpressure | AKS + PLT-03 Event Hubs + Circuit Breaker | Mismo proveedor cloud (Azure) + patrones de resiliencia |
-| WMS — APP-06 / APP-07 | On premises SQL Server | WMS Cloud (reemplaza APP-06 y APP-07) con auto-scaling | Eliminar punto único de falla; Azure ya usado para TMS |
-| Optimizador de Rutas — APP-12 | GCP batch | GCP en tiempo real (GKE + Cloud Pub/Sub) | Misma nube GCP; pasar de batch a streaming |
-| App de Conductores — APP-15 | AWS / DynamoDB | AWS ECS + DynamoDB + Kinesis + offline robusto | Mantener AWS donde ya está; agregar Kinesis para streaming |
-| Almacenamiento Evidencias — APP-16 | AWS S3 | AWS S3 con cifrado AES-256 y hash de integridad | Misma plataforma; mejorar seguridad |
-| Analítica — APP-22 | GCP batch semanal | GCP streaming (BigQuery + Dataflow) | Misma plataforma GCP; pasar a tiempo real |
-| ML / Predicción Rutas — APP-24 | GCP batch | GCP con modelo ML (tecnología específica a definir en diseño de solución) | GCP ya tiene los datos históricos de rutas |
-| Bus de Eventos — PLT-03 | Inexistente | Apache Kafka o Azure Event Hubs (decisión pendiente — ver ADR en HITO 2) | Azure Event Hubs se integra con AKS y TMS existentes |
-| Liquidación — APP-26 | Sistema de Liquidación (Excel) | Microservicio en Azure (mismo proveedor que ERP integrado) | Reemplazar Excel; alineado con Azure como plataforma principal |
-| Observabilidad — PLT-01 | Ninguna unificada | Plataforma cross-cloud (Datadog o Azure Monitor + OpenTelemetry) | OpenTelemetry es estándar abierto; compatible con las 3 nubes |
-| Seguridad IAM — PLT-02 | OAuth básico en APP-01 | Azure AD + WAF en APP-01 + cifrado en tránsito/reposo | Azure AD ya disponible; alineado con Microsoft Azure existente |
-| IaC — PLT-04 | Ninguna | Terraform (compatible con AWS, Azure y GCP) | Única herramienta para las 3 nubes del caso |
+| Azure API Management (APP-01) | Azure API Management (PaaS) | N/A | ✅ Caso 6a F1 |
+| Orquestador de Pedidos (APP-02) | ⚠️ Suposición: .NET en Azure AKS | Azure SQL Database | ✅ AKS — Caso 6b |
+| Portal B2B (Carga CSV/Excel) (APP-03) | SaaS externo (vendor no especificado) | SaaS (vendor) | ✅ Caso 6a F1 |
+| Bucket S3 Legado (archivos) (APP-04) | Amazon S3 | N/A | ✅ Caso 6a F1 |
+| Validador de Pedidos (APP-05) | ⚠️ Suposición: .NET en Azure AKS (mismo stack que Orquestador de Pedidos (APP-02)) | Azure SQL Database | ⚠️ Inferido — deduplicación Caso 6a F1 |
+| WMS Principal (On Premises) (APP-06) | ⚠️ Suposición: COTS o Custom | SQL Server | ✅ Caso 6b R1 |
+| WMS Satélite (On Premises local) (APP-07) | ⚠️ Suposición: versión reducida de WMS Principal (On Premises) (APP-06) | ⚠️ Suposición: BD local | ✅ Caso 6a F2 |
+| Control de Inventario (APP-08) | ⚠️ Suposición: complemento de WMS Principal (On Premises) (APP-06) | ⚠️ Suposición: BD on premises | ⚠️ Inferido — Caso 6a F2 |
+| IoT Core (sensores temperatura) (APP-09) | AWS IoT Core / MQTT | ⚠️ Suposición: DynamoDB u otra BD AWS | ✅ Caso 6a F2 |
+| App Handhelds (picking) (APP-10) | ⚠️ Suposición: Android nativo o similar | SQLite local (⚠️ Suposición) | ✅ Caso 6a F2 · conectividad → doc `07` |
+| TMS (Transportation Management) (APP-11) | ⚠️ Suposición: COTS o Custom en Azure | Azure SQL Database | ✅ Caso 6a |
+| Optimizador de Rutas (GCP batch) (APP-12) | ⚠️ Suposición: Python / optimización en GCP batch | ⚠️ Suposición: BigQuery u otra BD GCP | ✅ Caso 6a F3 |
+| Portal Transportistas Tercerizados (APP-13) | ⚠️ Suposición: aplicación web en Azure | ⚠️ Suposición: BD relacional en Azure | ✅ Caso 6a F3 |
+| Sistema Impresión Manifiestos (APP-14) | ⚠️ Suposición: aplicación local legacy | ⚠️ Suposición: BD local | ✅ Caso 6a F3 |
+| App de Conductores (APP-15) | AWS ECS Fargate + DynamoDB | DynamoDB | ✅ Caso 6a F4 |
+| Almacenamiento Evidencias (S3) (APP-16) | Amazon S3 | Amazon S3 | ✅ Caso 6a F4 |
+| Pasarela de Pago Contra Entrega (APP-17) | SaaS externo | SaaS (vendor) | ✅ Caso 6a F4 |
+| Portal B2B (Trazabilidad) (APP-18) | ⚠️ Suposición: aplicación web SaaS | SaaS (vendor) | ✅ Caso 6a F4 |
+| Portal Tracking Destinatarios (APP-19) | ⚠️ Suposición: web/PWA SaaS | SaaS (vendor) | ⚠️ Inferido — Caso 6a F4 |
+| CRM de Atención al Cliente (APP-20) | SaaS externo | SaaS (vendor) | ✅ Caso 6a F5 |
+| Servicio de Notificación (SMS/Email) (APP-21) | SaaS externo | SaaS (vendor) | ⚠️ Inferido |
+| Plataforma de Analítica (GCP batch) (APP-22) | ⚠️ Suposición: Python/Spark o herramienta GCP | BigQuery (⚠️ herramienta específica) | ✅ Caso 6a F6 |
+| Dashboards Operativos (APP-23) | ⚠️ Suposición: herramienta BI en GCP | BigQuery (⚠️ Suposición) | ⚠️ Inferido — Caso 6a F6 |
+| ML / Optimización de Rutas (GCP) (APP-24) | ⚠️ Suposición: algoritmo ML en GCP | ⚠️ Suposición: datos históricos en GCP | ✅ Caso 6b R3 |
+| ERP Financiero (On Premises) (APP-25) | ⚠️ Suposición: ERP COTS | ⚠️ Suposición: BD propia del ERP | ✅ Caso 6a F6 |
+| Sistema de Liquidación (Excel) (APP-26) | Microsoft Excel / hojas de cálculo | Archivos Excel locales | ✅ Caso 6a F6 |
 
 ---
 
-## 5. Matriz de Deuda Técnica y Obsolescencia (AS IS)
+## 3. Mapa visual por plataforma de infraestructura (AS IS)
 
-| Elemento | Aplicaciones | Riesgo | Fuente del problema |
-|---|---|---|---|
-| SQL Server on premises (versión y soporte) | APP-06 | Alto | ✅ Caso 6b R1: bloqueo de tablas bajo alta carga |
-| Integración por archivos CSV/S3 | APP-04 | Medio | ✅ Caso 6a F1: canal legado aún activo |
-| Sincronización horaria entre WMS | APP-07 | Alto | ✅ Caso 6a F2: 4,900 movimientos en conflicto |
-| Red Wi-Fi almacenes (conectividad APP-10) | APP-10 | Alto | ✅ Caso 6a F2: handhelds dependen de Wi-Fi interno; corte 74 min |
-| Optimizador en batch (no tiempo real) | APP-12 | Alto | ✅ Caso 6a F3: rutas generadas con datos atrasados |
-| Offline frágil en **APP-15** App de Conductores | APP-15 | Crítico | ✅ Caso 6a F4: 1,200 entregas sin firma |
-| Excel para liquidación | APP-26 | Crítico | ✅ Caso 6a F6: notas de crédito calculadas manualmente |
-| Sin backpressure en orquestador | APP-02 | Crítico | ✅ Caso 6b R1: cola sin control ante degradación WMS |
-| Falla deduplicación por ID externo | APP-05 | Crítico | ✅ Caso 6a F1: incidente 32,000 pedidos duplicados |
+Vista tipo **Arquitectura Tecnológica**: cada aplicación agrupada en su **plataforma de infraestructura** (doc `07` §2.2) con **nombre oficial (APP-XX) + stack/BD**. Comunicación global P2P vía Internet/WAN, **sin Bus de Eventos Central (PLT-03)**. Detalle de red → doc `07` §3.
+
+> Regenerar PNG: `npm run diagrams:tech-map` (o `npm run diagrams`).
+
+![Mapeo tecnológico AS IS por plataforma de infraestructura](diagramas/tech-map-as-is.png)
+
+*Figura 3.1 — AS IS por plataforma. Fuente: [`diagrams/tech-map-as-is.mmd`](../diagrams/tech-map-as-is.mmd).*
+
+### 3.1 Aplicaciones por plataforma de infraestructura (AS IS)
+
+| Plataforma de infraestructura | Aplicaciones (nombre + ID) |
+|---|---|
+| **On Premises (Lima)** | WMS Principal (On Premises) (APP-06), WMS Satélite (On Premises local) (APP-07), Control de Inventario (APP-08), App Handhelds (picking) (APP-10), Sistema Impresión Manifiestos (APP-14), ERP Financiero (On Premises) (APP-25), Sistema de Liquidación (Excel) (APP-26) |
+| **Cloud MS Azure (EEUU)** | Azure API Management (APP-01), Orquestador de Pedidos (APP-02), Validador de Pedidos (APP-05), TMS (Transportation Management) (APP-11), Portal Transportistas Tercerizados (APP-13) |
+| **Cloud AWS (EEUU)** | Bucket S3 Legado (archivos) (APP-04), IoT Core (sensores temperatura) (APP-09), App de Conductores (APP-15), Almacenamiento Evidencias (S3) (APP-16) |
+| **Cloud GCP (EEUU)** | Optimizador de Rutas (GCP batch) (APP-12), Plataforma de Analítica (GCP batch) (APP-22), Dashboards Operativos (APP-23), ML / Optimización de Rutas (GCP) (APP-24) |
+| **Cloud SaaS - Software as a Service (EEUU)** | Portal B2B (Carga CSV/Excel) (APP-03), Portal B2B (Trazabilidad) (APP-18), Portal Tracking Destinatarios (APP-19), CRM de Atención al Cliente (APP-20), Pasarela de Pago Contra Entrega (APP-17), Servicio de Notificación (SMS/Email) (APP-21) |
+
+### 3.2 Comunicación global entre plataformas (AS IS)
+
+| Origen | Destino | Medio | Patrón | Problema |
+|---|---|---|---|---|
+| On Premises (Lima) — WMS Principal (On Premises) (APP-06) / WMS Satélite (On Premises local) (APP-07) | Cloud MS Azure (EEUU) — Orquestador de Pedidos (APP-02), TMS (Transportation Management) (APP-11) | WAN privada / Internet | API P2P | Sin bus central; acoplamiento |
+| Cloud MS Azure (EEUU) — Azure API Management (APP-01), Orquestador de Pedidos (APP-02) | Cloud AWS (EEUU) — App de Conductores (APP-15), Bucket S3 Legado (archivos) (APP-04) | Internet público | REST / archivos S3 | Sin cifrado tránsito garantizado |
+| Cloud MS Azure (EEUU) — TMS (Transportation Management) (APP-11) | Cloud GCP (EEUU) — Optimizador de Rutas (GCP batch) (APP-12) | Internet público | Batch / export | Latencia; datos desactualizados |
+| Cloud AWS (EEUU) — App de Conductores (APP-15) | Cloud SaaS - Software as a Service (EEUU) — Portal B2B (Trazabilidad) (APP-18), Servicio de Notificación (SMS/Email) (APP-21) | Internet | Webhooks / APIs vendor | Estados inconsistentes |
+| On Premises (Lima) — WMS Principal (On Premises) (APP-06) | Cloud SaaS - Software as a Service (EEUU) — Portal B2B (Carga CSV/Excel) (APP-03) + Cloud AWS (EEUU) — Bucket S3 Legado (archivos) (APP-04) | Internet + S3 | CSV / SFTP legado | Canal manual sin validación |
+| Cloud AWS (EEUU) — App de Conductores (APP-15) | Cloud AWS (EEUU) — backend APP-15 | 4G móvil | HTTPS | Offline frágil |
+| On Premises (Lima) — App Handhelds (picking) (APP-10) | On Premises (Lima) — WMS Principal (On Premises) (APP-06) / WMS Satélite (On Premises local) (APP-07) | Wi-Fi interno LAN | Sync local | Sin redundancia (doc `07`) |
+| Todas las APP | — | — | ❌ Sin Bus de Eventos Central (PLT-03) | Integraciones frágiles |
+
+> **draw.io:** una caja por **plataforma de infraestructura**; en cada caja **nombre oficial (APP-XX) + stack** (como el diagrama).
 
 ---
 

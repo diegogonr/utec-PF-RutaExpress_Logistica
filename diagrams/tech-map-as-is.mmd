@@ -1,0 +1,83 @@
+flowchart TB
+    subgraph RXP["MAPEO TECNOLÓGICO AS IS — RUTAEXPRESS"]
+        direction TB
+
+        subgraph FILA1["Plataformas de infraestructura"]
+            direction LR
+
+            subgraph PREM["ON PREMISES (LIMA)"]
+                direction TB
+                p6["WMS Principal (On Premises)<br/>(APP-06)<br/>SQL Server · COTS/Custom ⚠️"]
+                p7["WMS Satélite (On Premises local)<br/>(APP-07)<br/>BD local · sync horaria ⚠️"]
+                p8["Control de Inventario<br/>(APP-08)<br/>BD on premises ⚠️"]
+                p10["App Handhelds (picking)<br/>(APP-10)<br/>Android ⚠️ · SQLite local"]
+                p14["Sistema Impresión Manifiestos<br/>(APP-14)<br/>App legacy local ⚠️"]
+                p25["ERP Financiero (On Premises)<br/>(APP-25)<br/>ERP COTS ⚠️ · BD propia"]
+                p26["Sistema de Liquidación (Excel)<br/>(APP-26)<br/>Microsoft Excel"]
+                pwifi["Wi-Fi interno LAN<br/>App Handhelds (APP-10) ↔ WMS (APP-06/07)"]
+                p10 --- pwifi
+                pwifi -.-> p6
+                pwifi -.-> p7
+            end
+
+            subgraph AZURE["CLOUD MS AZURE (EEUU)"]
+                direction TB
+                a1["Azure API Management<br/>(APP-01)<br/>PaaS Microsoft"]
+                a2["Orquestador de Pedidos<br/>(APP-02)<br/>AKS · .NET ⚠️"]
+                a5["Validador de Pedidos<br/>(APP-05)<br/>AKS · BD relacional ⚠️"]
+                a11["TMS (Transportation Management)<br/>(APP-11)<br/>COTS/Custom Azure ⚠️"]
+                a13["Portal Transportistas Tercerizados<br/>(APP-13)<br/>Web Azure ⚠️"]
+                a1 --> a2 --> a11
+                a2 --- a5
+            end
+
+            subgraph AWS["CLOUD AWS (EEUU)"]
+                direction TB
+                w4["Bucket S3 Legado (archivos)<br/>(APP-04)<br/>Amazon S3 · CSV/SFTP"]
+                w9["IoT Core (sensores temperatura)<br/>(APP-09)<br/>MQTT · DynamoDB ⚠️"]
+                w15["App de Conductores<br/>(APP-15)<br/>Mobile ⚠️ · DynamoDB"]
+                w16["Almacenamiento Evidencias (S3)<br/>(APP-16)<br/>Amazon S3"]
+                w15 --> w16
+            end
+        end
+
+        subgraph FILA2[" "]
+            direction LR
+
+            subgraph GCP["CLOUD GCP (EEUU)"]
+                direction TB
+                g12["Optimizador de Rutas (GCP batch)<br/>(APP-12)<br/>Python batch ⚠️ · BigQuery ⚠️"]
+                g22["Plataforma de Analítica (GCP batch)<br/>(APP-22)<br/>Spark/Python ⚠️ · BigQuery"]
+                g23["Dashboards Operativos<br/>(APP-23)<br/>BI GCP ⚠️ · BigQuery ⚠️"]
+                g24["ML / Optimización de Rutas (GCP)<br/>(APP-24)<br/>ML GCP ⚠️"]
+            end
+
+            subgraph SAAS["CLOUD SAAS — SOFTWARE AS A SERVICE (EEUU)"]
+                direction TB
+                s3["Portal B2B (Carga CSV/Excel)<br/>(APP-03)<br/>SaaS vendor"]
+                s18["Portal B2B (Trazabilidad)<br/>(APP-18)<br/>SaaS vendor ⚠️"]
+                s19["Portal Tracking Destinatarios<br/>(APP-19)<br/>SaaS vendor ⚠️"]
+                s20["CRM de Atención al Cliente<br/>(APP-20)<br/>SaaS vendor"]
+                s17["Pasarela de Pago Contra Entrega<br/>(APP-17)<br/>SaaS vendor"]
+                s21["Servicio de Notificación (SMS/Email)<br/>(APP-21)<br/>SaaS vendor ⚠️"]
+            end
+        end
+
+        NET(("Internet / WAN<br/>P2P · ❌ sin Bus de Eventos Central (PLT-03)"))
+
+        PREM <-->|WAN privada · LAN| AZURE
+        AZURE <-->|Internet público| AWS
+        AWS <-->|Internet público| GCP
+        AZURE <-->|Internet| NET
+        AWS <-->|Internet| NET
+        NET <-->|HTTPS / API vendor| SAAS
+        PREM -.->|Internet| SAAS
+    end
+
+    style RXP fill:#fafafa,stroke:#333333,stroke-width:3px
+    style PREM fill:#e8f4fc,stroke:#0078d4,stroke-width:2px
+    style AZURE fill:#dbeafe,stroke:#2563eb,stroke-width:2px
+    style AWS fill:#ffedd5,stroke:#ea580c,stroke-width:2px
+    style GCP fill:#dcfce7,stroke:#16a34a,stroke-width:2px
+    style SAAS fill:#f3e8ff,stroke:#9333ea,stroke-width:2px
+    style NET fill:#fff7ed,stroke:#c2410c,stroke-width:2px,stroke-dasharray:5

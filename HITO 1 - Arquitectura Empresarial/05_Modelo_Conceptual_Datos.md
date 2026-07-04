@@ -1,13 +1,13 @@
 # Modelo Conceptual de Datos
 ## RutaExpress Fulfillment & Transporte
 
-> **Para el comité de arquitectura** — Define **entidades de negocio**, relaciones y **sistemas maestros (SSOT)** AS IS vs TO BE. **Mensaje clave:** hoy el inventario y los estados tienen múltiples fuentes (**APP-06**, **APP-07**, **APP-25**); el modelo canónico de estados debe ser adoptado por **APP-06**, **APP-11**, **APP-15**, **APP-03**, **APP-18** y **APP-25** vía **PLT-03**.
+> **Para el comité de arquitectura** — Define **entidades de negocio** y relaciones del modelo conceptual. **Mensaje clave:** el diagrama ER agrupa comercial, almacén, transporte y finanzas alrededor de **Orden / Pedido** como entidad central del ciclo logístico.
 
 ---
 
 ## 1. Propósito
 
-Identificar las entidades principales de datos del negocio logístico de RutaExpress y las relaciones entre ellas. Este modelo es la base para definir la arquitectura de datos, el modelo canónico y la estrategia de Single Source of Truth.
+Identificar las entidades principales de datos del negocio logístico de RutaExpress y las relaciones entre ellas. Este modelo es la base para la arquitectura de datos en las fases C y D del ADM.
 
 ---
 
@@ -156,7 +156,7 @@ Disputa del cliente sobre una liquidación o entrega.
 
 ## 3. Diagrama de Relaciones
 
-Modelo conceptual entre entidades de negocio. Fuente editable: [`diagrams/modelo-datos-er.mmd`](../diagrams/modelo-datos-er.mmd). Exportar a draw.io o PNG con `npm run diagrams:modelo-er`.
+Modelo conceptual entre entidades de negocio. Fuente editable: [`diagrams/modelo-datos-er.mmd`](../diagrams/modelo-datos-er.mmd). Exportar a PNG con `npm run diagrams:modelo-er`; diagramas de comité en **draw.io**.
 
 ![Diagrama entidad-relación — modelo conceptual](diagramas/modelo-datos-er.png)
 
@@ -198,101 +198,35 @@ erDiagram
 
 </details>
 
-**Agrupación lógica (lectura del diagrama):**
+**Cómo leer el diagrama ER**
 
-| Dominio | Entidades centrales | Relación clave |
+El diagrama se organiza en **cuatro bloques** conectados por **Orden / Pedido** en el centro. Siga este recorrido al presentarlo al comité:
+
+
+| Bloque | Entidades del diagrama | Qué representa en la operación |
 |---|---|---|
-| Comercial | Cliente Empresarial, Orden, Línea de Pedido, SKU | Cliente → muchas órdenes → líneas → SKU |
-| Almacén | Centro de Distribución, Ubicación, Inventario, Ola de Picking | Inventario por ubicación; ola agrupa líneas |
-| Transporte | Ruta, Parada, Vehículo, Conductor, Intento, Evidencia | Orden asignada a parada dentro de ruta |
-| Finanzas | Liquidación, Factura, Reclamo | Cliente → liquidación → factura; reclamo opcional |
+| **Comercial** | Cliente Empresarial, Destinatario, Orden, Línea de Pedido, SKU | Quién encarga, quién recibe y qué productos van en cada pedido |
+| **Almacén** | Centro de Distribución, Ubicación de Almacén, Inventario, Movimiento de Inventario, Ola de Picking | Dónde se guarda el stock, cómo se mueve y cómo se agrupa el picking |
+| **Transporte** | Ruta, Parada, Vehículo, Conductor, Intento de Entrega, Evidencia de Entrega, Excepción, Evento de Tracking | Plan de reparto en campo, prueba de entrega y registro de incidencias |
+| **Finanzas** | Liquidación, Factura, Reclamo, Devolución | Cierre económico del servicio, cobro al cliente y disputas |
 
-> **draw.io (PPT / comité):** recrear como diagrama ER visual usando esta estructura; no duplicar atributos — solo entidades y cardinalidades.
+**Cardinalidades clave (símbolos del ER):**
 
----
+| Relación | Significado operativo |
+|---|---|
+| Cliente Empresarial **1 → N** Orden | Un cliente B2B genera muchos pedidos |
+| Orden **1 → N** Línea de Pedido **N → 1** SKU | Cada pedido tiene varias líneas; cada línea apunta a un producto del catálogo |
+| Orden **1 → N** Evento de Tracking | Cada cambio de estado del pedido deja un evento trazable |
+| Centro **1 → N** Ruta **1 → N** Parada **N → 1** Orden | Una ruta sale de un CD, visita varias paradas; cada parada atiende un pedido |
+| Intento **1 → N** Evidencia | Un intento de entrega puede tener foto, firma y otros comprobantes |
+| Cliente **1 → N** Liquidación **1 → 1** Factura | Por período se liquida y se emite una factura |
+| Orden **0 → 1** Devolución | Solo algunos pedidos regresan al almacén |
 
-## 4. Dominios de Datos y Sistema Maestro (Single Source of Truth)
-
-| Entidad | Sistema Maestro (AS IS) | Sistema Maestro (TO BE) |
-|---|---|---|
-| Orden / Pedido | **APP-02** Orquestador de Pedidos (Azure AKS) | Servicio de Gestión de Pedidos (Azure) |
-| SKU / Producto | **APP-06** WMS Principal (On Premises) | Catálogo de Productos (API centralizada) |
-| Inventario | **APP-06** WMS Principal | WMS Cloud + Event Store (**PLT-03**) |
-| Ruta | **APP-11** TMS (Azure) | **APP-11** TMS (Azure) |
-| Evento de Tracking | DynamoDB (**APP-15** backend) | Event Store unificado (**PLT-03** / Kinesis) |
-| Evidencia de Entrega | **APP-16** Almacenamiento Evidencias (S3) | **APP-16** S3 — con hash de integridad |
-| Excepción | **APP-15** App de Conductores + **APP-11** TMS | Servicio de Excepciones (normalizado) |
-| Liquidación / Factura | **APP-25** ERP Financiero (On Premises) | **APP-25** ERP (integrado) + Servicio Liquidación (reemplaza **APP-26**) |
-| Cliente Empresarial | **APP-18** Portal B2B (Trazabilidad) | Portal B2B unificado + **APP-20** CRM |
-| Destinatario | Distribuido (**APP-06**+**APP-11**+**APP-15**) | Servicio de Destinatarios (centralizado) |
+> **draw.io (comité):** recrear el ER con estos cuatro bloques y colores por dominio; no duplicar atributos del §2 — solo entidades y cardinalidades.
 
 ---
 
-## 5. Modelo Canónico de Estados de Pedido
-
-Estados únicos que debe compartir todo el ecosistema vía Event Store (PLT-03) en TO BE. Fuente editable: [`diagrams/modelo-estados-pedido.mmd`](../diagrams/modelo-estados-pedido.mmd). Exportar PNG: `npm run diagrams:modelo-estados`.
-
-![Modelo canónico de estados del pedido](diagramas/modelo-estados-pedido.png)
-
-<details>
-<summary>Ver / editar diagrama Mermaid (estados)</summary>
-
-```mermaid
-stateDiagram-v2
-    direction TB
-
-    [*] --> Recibido
-    Recibido --> Validado
-    Validado --> Reservado
-    Reservado --> Pickeado
-    Pickeado --> Despachado
-    Despachado --> EnRuta
-
-    EnRuta --> Entregado : entrega exitosa
-    EnRuta --> Fallido : intento fallido
-
-    Fallido --> Reintento : replanificar
-    Fallido --> Devuelto : sin reintento
-
-    Reintento --> Entregado : reintento OK
-    Reintento --> Devuelto : reintento fallido
-
-    Entregado --> Liquidado
-    Devuelto --> Liquidado : cierre económico
-
-    Liquidado --> [*]
-```
-
-</details>
-
-### Catálogo de estados
-
-| # | Estado | Fase cadena | Descripción breve |
-|---|---|---|---|
-| 1 | **Recibido** | F1 | Orden ingresada por API, portal o archivo |
-| 2 | **Validado** | F1 | Dirección, SKU y deduplicación OK |
-| 3 | **Reservado** | F1–F2 | Inventario reservado en WMS |
-| 4 | **Pickeado** | F2 | Preparación completada en almacén |
-| 5 | **Despachado** | F3 | Salida de CD; manifiesto cerrado |
-| 6 | **En ruta** | F4 | Conductor en camino |
-| 7 | **Entregado** | F4 | Entrega exitosa con evidencia |
-| 8 | **Fallido** | F5 | Intento sin entrega (excepción) |
-| 9 | **Reintento** | F5 | Nueva ventana planificada |
-| 10 | **Devuelto** | F5–F6 | Pedido retorna a almacén |
-| 11 | **Liquidado** | F6 | Cierre económico y facturación |
-
-### Reglas de transición
-
-- **Flujo principal (feliz):** Recibido → Validado → Reservado → Pickeado → Despachado → En ruta → Entregado → Liquidado.
-- **Excepciones (F5):** desde *En ruta* puede ir a *Fallido*; luego *Reintento* o *Devuelto*.
-- **No retroceso** en el flujo principal (ej. no pasar de *Pickeado* a *Recibido*), salvo correcciones operativas auditadas en devolución.
-- **Adoptores TO BE:** WMS Cloud (APP-06/07), TMS (APP-11), App de Conductores (APP-15), portales B2B (APP-03, APP-18) y ERP (APP-25) publican y consumen estos estados vía Bus de Eventos (PLT-03).
-
-> **draw.io (PPT):** usar este diagrama de estados como slide D6; colores sugeridos — verde flujo feliz, ámbar excepciones, gris *Liquidado*.
-
----
-
-## 6. Volúmenes de Datos Referencia
+## 4. Volúmenes de Datos Referencia
 
 | Entidad | Volumen Diario (Normal) | Volumen Diario (Campaña) |
 |---|---|---|

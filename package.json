@@ -9,7 +9,8 @@
     "diagrams:to-be": "mmdc -c diagrams/mermaid-config.json -w 4200 -s 2 -i diagrams/infra-to-be.mmd -o \"HITO 1 - Arquitectura Empresarial/diagramas/infra-to-be.png\"",
     "diagrams:modelo-er": "mmdc -c diagrams/mermaid-config.json -w 3600 -s 2 -i diagrams/modelo-datos-er.mmd -o \"HITO 1 - Arquitectura Empresarial/diagramas/modelo-datos-er.png\"",
     "diagrams:modelo-estados": "mmdc -c diagrams/mermaid-config.json -w 2400 -s 2 -i diagrams/modelo-estados-pedido.mmd -o \"HITO 1 - Arquitectura Empresarial/diagramas/modelo-estados-pedido.png\"",
-    "diagrams": "npm run diagrams:as-is && npm run diagrams:to-be && npm run diagrams:modelo-er && npm run diagrams:modelo-estados"
+    "diagrams:tech-map": "mmdc -c diagrams/mermaid-config.json -w 4800 -s 2 -i diagrams/tech-map-as-is.mmd -o \"HITO 1 - Arquitectura Empresarial/diagramas/tech-map-as-is.png\"",
+    "diagrams": "npm run diagrams:as-is && npm run diagrams:to-be && npm run diagrams:tech-map && npm run diagrams:modelo-er && npm run diagrams:modelo-estados"
   },
   "devDependencies": {
     "@mermaid-js/mermaid-cli": "^11.4.0"
