@@ -417,6 +417,7 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 
 #### Objetivos
 - Validar el 100% de órdenes en el momento del ingreso: dirección geo-validada, SKU existente, deduplicación por hash de contenido (no solo por ID externo).
+- Convertir Orquestador de Pedidos (APP-02) en un **OMS centralizado** para gobernar el ciclo de vida de la orden desde recepción hasta liquidación.
 - Implementar backpressure por cliente y prioridad por SLA para proteger el WMS en campaña.
 - Eliminar el canal de archivos CSV/S3; migrar clientes medianos al Portal B2B (Carga CSV/Excel) con validación automática.
 - Reducir defectos de ingreso de 6% a menos de 1%.
@@ -427,20 +428,20 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 | Cliente empresarial | Solo canal API o Portal B2B (Carga CSV/Excel) con validación en tiempo real |
 | Mesa B2B | Se enfoca en onboarding; las excepciones de datos se resuelven antes del ingreso |
 | Planeamiento | Recibe órdenes ya validadas y priorizadas por SLA |
-| Sistema (automatizado) | Valida, deduplica y enruta sin intervención humana |
+| OMS centralizado / Orquestador de Pedidos (APP-02) | Valida, deduplica, asegura idempotencia, gobierna el estado canónico y coordina reservas/liberaciones sin intervención humana |
 
 ### Arquitectura de Datos
 
 #### Entidades de Datos (cambios)
 | Entidad | Cambio TO BE |
 |---|---|
-| Orden | ID interno + hash de contenido como clave idempotente; estado canónico desde el ingreso |
+| Orden | Gobernada por OMS centralizado / Orquestador de Pedidos (APP-02), con ID interno + hash de contenido como clave idempotente y estado canónico desde el ingreso |
 | Destinatario | Dirección geo-validada obligatoria antes de aceptar la orden |
 | Estado del pedido | Modelo canónico: recibido → validado → reservado → pickeado → despachado → en ruta → entregado / fallido / devuelto → liquidado |
 
 ### Arquitectura de Aplicaciones
 
-**Guion de exposición (TO BE):** En recepción validamos al ingreso: nuevo Servicio de Validación de Órdenes y Bus de Eventos Central (PLT-03) desacoplan Orquestador de Pedidos (APP-02) de WMS Principal (On Premises) (APP-06); fortalecemos Azure API Management (APP-01) con rate limiting y backpressure; eliminamos Validador de Pedidos (APP-05), Bucket S3 Legado (archivos) (APP-04) y migramos Portal B2B (Carga CSV/Excel) (APP-03) a un canal unificado con validación automática.
+**Guion de exposición (TO BE):** En recepción, Orquestador de Pedidos (APP-02) evoluciona a **OMS centralizado**: gobierna el ciclo de vida de la orden, mantiene el estado canónico, aplica idempotencia y coordina reservas/liberaciones con WMS Cloud, TMS y ERP. El nuevo Servicio de Validación de Órdenes y Bus de Eventos Central (PLT-03) desacoplan este OMS del WMS Principal (On Premises) (APP-06) durante la transición; fortalecemos Azure API Management (APP-01) con rate limiting y backpressure; eliminamos Validador de Pedidos (APP-05), Bucket S3 Legado (archivos) (APP-04) y migramos Portal B2B (Carga CSV/Excel) (APP-03) a un canal unificado con validación automática.
 
 #### NUEVO
 | App | Descripción | Plataforma propuesta |
@@ -453,7 +454,7 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 | App | Cambio | Plataforma |
 |---|---|---|
 | Azure API Management (APP-01) | Agregar políticas de rate limiting, backpressure y OAuth 2.0 por cliente | Cloud MS Azure (EEUU) |
-| Orquestador de Pedidos (APP-02) | Agregar circuit breaker, backpressure y prioridad por SLA; publicar a Event Hub | Cloud MS Azure (EEUU) |
+| Orquestador de Pedidos (APP-02) | Evolucionar a **OMS centralizado**: ciclo de vida de orden, estado canónico, idempotencia, deduplicación, reservas/liberaciones y publicación a Event Hub | Cloud MS Azure (EEUU) |
 | APP-06 WMS Principal (On Premises) | Se mantiene en F1; recibe reservas vía Event Hub con backpressure (sin migración hasta F2) | On Premises (Lima) |
 
 #### ELIMINAR
@@ -472,7 +473,7 @@ Fuente: Caso 6a — las 6 fases de la cadena de valor están explícitamente des
 | Componente | Tecnología TO BE | Plataforma | Cambio respecto AS IS |
 |---|---|---|---|
 | Bus de mensajes | **Azure Event Hubs (PLT-03)** | Cloud MS Azure (EEUU) | NUEVO — no existía |
-| APP-02 Orquestador de Pedidos | AKS + KEDA (auto-scaling por eventos) | Cloud MS Azure (EEUU) | MODIFICAR — agregar HPA y KEDA |
+| APP-02 Orquestador de Pedidos / OMS centralizado | AKS + KEDA (auto-scaling por eventos) + store canónico de órdenes | Cloud MS Azure (EEUU) | MODIFICAR — evoluciona de orquestador técnico a OMS |
 | API Management | Azure API Management con WAF y políticas avanzadas | Cloud MS Azure (EEUU) | MODIFICAR — agregar reglas de seguridad |
 | APP-06 WMS Principal (On Premises) | Integración vía Event Hub; sin migración de plataforma en F1 | On Premises (Lima) | CONSERVAR — protegido con backpressure |
 
@@ -818,7 +819,7 @@ Toda aplicación del AS IS debe aparecer en exactamente una disposición. Nombre
 | Fase | App (AS IS) | Disposición TO BE | Detalle |
 |---|---|---|---|
 | **F1** | APP-01 Azure API Management | MODIFICAR | Rate limiting, OAuth 2.0, backpressure |
-| **F1** | APP-02 Orquestador de Pedidos | MODIFICAR | Circuit breaker, Event Hub, prioridad SLA |
+| **F1** | APP-02 Orquestador de Pedidos | MODIFICAR | Evoluciona a **OMS centralizado / Orquestador de Pedidos**: estado canónico, idempotencia, deduplicación, reservas/liberaciones, Event Hub y prioridad SLA |
 | **F1** | APP-03 Portal B2B (Carga CSV/Excel) | ELIMINAR | → Portal B2B unificado |
 | **F1** | APP-04 Bucket S3 Legado (archivos) | ELIMINAR | Canal CSV/S3 deprecado |
 | **F1** | APP-05 Validador de Pedidos | ELIMINAR | → Servicio de Validación de Órdenes |

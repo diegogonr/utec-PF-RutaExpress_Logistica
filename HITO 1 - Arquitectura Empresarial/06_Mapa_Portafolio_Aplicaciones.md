@@ -41,6 +41,14 @@ Plan TO BE (§4, 09) →  PLT a crear/completar  +  APP a modificar/eliminar
 
 > No usar indistintamente “WMS on premises”, “WMS central” o “WMS” en tablas de aplicaciones: referirse siempre al nombre oficial con ID (**APP-06** / **APP-07**). “WMS Cloud” es el reemplazo TO BE a partir de F2.
 
+### Nomenclatura oficial — OMS / Orquestación de pedidos
+
+| ID | Nombre oficial AS IS | Nombre oficial TO BE | Función |
+|---|---|---|---|
+| APP-02 | **Orquestador de Pedidos** | **OMS centralizado / Orquestador de Pedidos** (evoluciona APP-02) | Gestiona el ciclo de vida de la orden end-to-end: validación, deduplicación, idempotencia, estado canónico, reservas, liberaciones y coordinación con WMS Cloud, TMS y ERP |
+
+> No crear un nuevo ID para “OMS” en el Hito 1. El OMS es la evolución TO BE de **Orquestador de Pedidos (APP-02)**: conserva la aplicación y su plataforma base, pero amplía su responsabilidad desde coordinación técnica hacia gobierno del ciclo de vida de la orden.
+
 ### Convención — Plataforma, origen y “tercerizado”
 
 En el catálogo se usan **tres clasificaciones distintas**. No son intercambiables:
@@ -452,10 +460,10 @@ Veintiséis apps en multinube sin estrategia unificada, identidad parcial (PLT-0
 
 | Capa | Acción TO BE | Componentes |
 |---|---|---|
-| Transversal | **Crear** PLT-01, PLT-03, PLT-04 · **Completar** PLT-02 | Ver iniciativas INI-01 (Bus), INI-07 (Observabilidad/IAM) en doc 10/11 |
+| Transversal | **Crear** PLT-01, PLT-03, PLT-04 · **Completar** PLT-02 | Ver iniciativas INI-02 (Integración API-First/Event-Driven) e INI-05 (Observabilidad/Seguridad/Gobierno) en doc 10/11 |
 | Canales | Mejorar integración + nuevo canal proactivo | APP-15 (rediseño), Portal B2B (Trazabilidad) / APP-18 (datos consistentes), nuevo canal WhatsApp |
 | Integración | Reemplazar P2P + deprecar legado | APP-04 (deprecar), APP-21 (mantener), **Azure Event Hubs (PLT-03)** |
-| Core | Modernizar críticos + batch→RT | APP-06 y APP-07 → **WMS Cloud**; APP-08 **eliminar** (absorbido por WMS Cloud, sin app TO BE); APP-12 (batch→RT); APP-15 (offline robusto) |
+| Core | Modernizar críticos + batch→RT | APP-02 evoluciona a **OMS centralizado / Orquestador de Pedidos**; APP-06 y APP-07 → **WMS Cloud**; APP-08 **eliminar** (absorbido por WMS Cloud, sin app TO BE); APP-12 (batch→RT); APP-15 (offline robusto) |
 | Data | Pasar a streaming + limpiar datos | APP-22 (streaming), APP-24 (datos limpios), Event Store nuevo |
 | Soporte | Deprecar legado | APP-08 **eliminar** (→ WMS Cloud), APP-14 (deprecar), APP-17 (mantener) |
 | CRM de Atención al Cliente (APP-20) | Integrar con fuente única | APP-20 (adoptar taxonomía canónica + integrar Event Store) |
