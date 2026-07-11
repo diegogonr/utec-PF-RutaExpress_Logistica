@@ -1,333 +1,366 @@
 # ADM - Fase F: Migration Planning
 ## RutaExpress Fulfillment & Transporte
 
-> **Para el comité de arquitectura** — **Plan de migración 36 meses**: costos (USD 1.53M), roadmap, dependencias y ROI (~4.6x). **Mensaje clave:** arrancar **INI-07** (**PLT-01**, **PLT-02**, **PLT-04**) e **INI-01** (**PLT-03**) en mes 1; quick wins **INI-03** (**APP-15**) e **INI-06** (Servicio de Validación de Órdenes — reemplaza **APP-05**) en meses 2–6.
+> **Para el comité de arquitectura** — **Plan de migración 36 meses** para las **6 iniciativas** aprobadas en ADM E. **Mensaje clave:** iniciar en mes 1 con Observabilidad/Seguridad/Gobierno (INI-05) e Integración API-First/Event-Driven (INI-02); ejecutar Modernización de última milla (INI-03) como quick win; y desplegar el OMS + inventario (INI-01), rutas dinámicas (INI-04) y liquidación automatizada (INI-06) sobre la plataforma de eventos y trazabilidad.
 
 ---
 
 ## 1. Propósito
 
-Definir el plan de migración para llevar la arquitectura desde el estado AS IS al TO BE, con estimaciones de tiempo, costo y priorización de iniciativas según el valor que generan al negocio. Incluye el roadmap de implementación con dependencias entre iniciativas.
+Definir el plan de migración desde el estado AS IS hacia el TO BE, con estimaciones de tiempo, costo, prioridades, dependencias, hitos y riesgos. El plan mantiene consistencia con el catálogo de aplicaciones del Hito 1: no se crean nuevos IDs de aplicación y el OMS se implementa como evolución funcional de Orquestador de Pedidos (APP-02).
 
 ---
 
 ## 2. Iniciativas Priorizadas
 
-### Criterios de Priorización
+### Criterios de priorización
 
 | Criterio | Peso |
 |---|---|
-| Impacto en reducción de penalidades / ingresos | 30% |
-| Reducción de riesgo operativo (disponibilidad, integridad) | 25% |
-| Habilitador de otras iniciativas | 20% |
-| Velocidad de entrega de valor (time-to-value) | 15% |
-| Complejidad / Riesgo de implementación | 10% |
+| Impacto en penalidades, ingresos retenidos o costo operativo | 30% |
+| Reducción de riesgo operativo y de integridad de datos | 25% |
+| Habilitación de otras iniciativas | 20% |
+| Velocidad de entrega de valor | 15% |
+| Complejidad y riesgo de implementación | 10% |
 
----
+### Ranking recomendado
 
-## 3. Fichas de Iniciativas con Estimación
-
-### INI-01: PLT-03 Bus de Eventos Central
-**Prioridad**: 1 (Fundacional)
-**Duración**: 6 meses
-**Equipo**: 2 arquitectos + 4 ingenieros backend + 1 DevOps
-**Alcance**:
-- Desplegar **PLT-03** con **Azure Event Hubs** (hub central en Azure)
-- Migrar integración **APP-06** WMS Principal (On Premises) → **APP-11** TMS (Transportation Management) a eventos
-- Migrar integración **APP-11** TMS (Transportation Management) → **APP-15** App de Conductores a eventos
-- Implementar modelo canónico de estados de pedido
-- Replay y auditoría de eventos
-
-| Componente de Costo | Estimación Mensual | 6 meses |
-|---|---|---|
-| Azure Event Hubs (Premium) | USD 800/mes | USD 4,800 |
-| Azure AKS (nodos adicionales) | USD 1,200/mes | USD 7,200 |
-| Equipo desarrollo (7 personas) | USD 35,000/mes | USD 210,000 |
-| Infraestructura adicional (staging, monitoring) | USD 500/mes | USD 3,000 |
-| **TOTAL INI-01** | | **USD 225,000** |
-
-**Beneficios que aporta:**
-- Integración desacoplada: nuevos sistemas se conectan al bus sin tocar WMS (APP-06) ni TMS (APP-11).
-- Estados canónicos visibles al cliente en Portal B2B (Trazabilidad) (APP-18) y App de Conductores (APP-15).
-- Replay y auditoría de eventos para resolver disputas y reconstruir historial.
-- Habilita WMS Cloud, liquidación automática y analítica en streaming.
-
-**ROI esperado**: Reducción de incidentes de integración. Habilita todas las iniciativas siguientes.
-
----
-
-### INI-02: WMS Cloud — reemplaza APP-06 / APP-07
-**Prioridad**: 2 (Crítica)
-**Duración**: 10 meses
-**Equipo**: 1 arquitecto senior + 5 ingenieros + 1 DBA + 1 DevOps + consultoría WMS
-**Alcance**:
-- Implementar **WMS Cloud custom** en **Azure AKS + Azure SQL Managed Instance** (sin COTS de licencia elevada)
-- Migración datos históricos (ETL)
-- Implementación HA multi-zona en Azure
-- Auto-scaling horizontal con KEDA
-- Modo degradado automático con reconciliación
-- Integración vía Event Hub (reemplaza integración directa)
-- Migración por fases: 1 CD piloto → 3 CDs → todos los 14 CDs
-
-| Componente de Costo | Estimación | Total |
-|---|---|---|
-| Azure AKS + Azure SQL Managed Instance | USD 3,500/mes | USD 35,000 (10m) |
-| Equipo desarrollo + consultoría (8 personas) | USD 45,000/mes | USD 450,000 (10m) |
-| Migración de datos y testing | USD 30,000 (one-time) | USD 30,000 |
-| Capacitación operadores almacén | USD 20,000 (one-time) | USD 20,000 |
-| **TOTAL INI-02** | | **USD 535,000** |
-
-**Beneficios que aporta:**
-- Auto-scaling que absorbe picos 3× sin caídas de 6 h en campañas.
-- Inventario único en tiempo real entre los 14 centros de distribución.
-- Modo degradado con reconciliación automática al reconectar.
-- DR multi-zona con RTO/RPO definidos.
-
-**ROI esperado**: Evitar USD 1.1M en penalidades solo en próximo Cyber Days. Payback < 1 año.
-
----
-
-### INI-03: APP-15 App de Conductores Resiliente
-**Prioridad**: 3 (Quick Win)
-**Duración**: 4 meses
-**Equipo**: 1 arquitecto + 3 ingenieros mobile/backend + 1 QA
-**Alcance**:
-- Rediseño módulo offline (SQLite cifrado AES-256)
-- Sincronización atómica de evidencias (foto + firma + GPS + timestamp)
-- Retry robusto con preservación de evidencias ante reinstalación/cambio de equipo
-- Taxonomía normalizada de motivos de excepción (obligatoria)
-- MDM (Mobile Device Management) para gestión de dispositivos
-- Integración con Kinesis para eventos en tiempo real
-
-| Componente de Costo | Estimación | Total |
-|---|---|---|
-| AWS ECS Fargate (backend) | USD 800/mes | USD 3,200 (4m) |
-| AWS Kinesis Data Streams | USD 400/mes | USD 1,600 (4m) |
-| Equipo desarrollo (5 personas) | USD 22,000/mes | USD 88,000 (4m) |
-| MDM (licencias y setup) | USD 5,000 one-time | USD 5,000 |
-| Testing y QA (campo) | USD 8,000 one-time | USD 8,000 |
-| **TOTAL INI-03** | | **USD 105,800** |
-
-**Beneficios que aporta:**
-- Cero pérdida de firmas, fotos y GPS aunque el conductor cambie de equipo.
-- Elimina disputas de custodia y cobros retenidos por evidencias faltantes.
-- Taxonomía de excepciones lista para entrenar ML / Optimización de Rutas (GCP) (APP-24).
-- Conductores operan con confianza en zonas sin señal 4G.
-
-**ROI esperado**: Eliminar disputas por evidencias (1,200 firmas perdidas = ~USD 180K retenidos en 1 incidente). Datos de excepciones limpios para ML.
-
----
-
-### INI-04: APP-12 Optimizador de Rutas en Tiempo Real
-**Prioridad**: 4 (Estratégica)
-**Duración**: 7 meses
-**Equipo**: 1 arquitecto + 2 ingenieros ML + 2 ingenieros backend + 1 DevOps
-**Alcance**:
-- Migración de GCE batch a GKE Autopilot
-- Integración con Google Cloud Pub/Sub para datos de tráfico en tiempo real
-- Re-optimización dinámica durante jornada (cada 30 min o ante evento crítico)
-- Integración con **APP-11** TMS (Transportation Management) vía **PLT-03** Event Hub
-- Dashboard de rutas en tiempo real para planners
-
-| Componente de Costo | Estimación | Total |
-|---|---|---|
-| GKE Autopilot | USD 1,500/mes | USD 10,500 (7m) |
-| Cloud Pub/Sub + Google Maps Platform | USD 2,000/mes | USD 14,000 (7m) |
-| Equipo desarrollo (6 personas) | USD 30,000/mes | USD 210,000 (7m) |
-| Datos de tráfico histórico y entrenamiento | USD 15,000 one-time | USD 15,000 |
-| **TOTAL INI-04** | | **USD 249,500** |
-
-**Beneficios que aporta:**
-- Re-optimización dinámica con tráfico y excepciones actualizados cada 30 min.
-- Menos correcciones manuales del 17% de rutas que hoy arreglan los planners.
-- Dashboard en tiempo real para supervisión de rutas activas.
-- Mejor cumplimiento de ventanas de entrega SLA.
-
-**ROI esperado**: Reducir 17% rutas manuales → ahorro en combustible y tiempo. Meta: -15% costo por entrega = USD 2M+/año en volumen de 68K entregas.
-
----
-
-### INI-05: Liquidación automatizada — reemplaza APP-26
-**Prioridad**: 5 (Alto Impacto Financiero)
-**Duración**: 6 meses
-**Equipo**: 1 arquitecto + 3 ingenieros backend + 1 analista de negocio + 1 QA
-**Alcance**:
-- Microservicio de Liquidación (**.NET 8 en Azure AKS** + Azure SQL Database)
-- Integración con Event Store para estados de pedido
-- Reglas de negocio (reemplaza **APP-26** Sistema de Liquidación Excel)
-- API conciliación con **APP-25** ERP Financiero (On Premises)
-- Portal de conciliación para clientes (reemplaza proceso manual 23 días)
-- Alertas automáticas ante diferencias
-
-| Componente de Costo | Estimación | Total |
-|---|---|---|
-| Azure AKS + Azure SQL | USD 1,000/mes | USD 6,000 (6m) |
-| Equipo desarrollo + analista (6 personas) | USD 28,000/mes | USD 168,000 (6m) |
-| Integración ERP (consultoría de integración) | USD 40,000 one-time | USD 40,000 |
-| Testing y validación financiera | USD 15,000 one-time | USD 15,000 |
-| **TOTAL INI-05** | | **USD 229,000** |
-
-**Beneficios que aporta:**
-- Conciliación de 23 días a menos de 1 día entre operación y facturación.
-- Penalidades y tarifas calculadas automáticamente, sin Excel ni errores manuales.
-- Portal de conciliación B2B alineado al ERP Financiero (On Premises) (APP-25).
-- Finanzas liberadas de trabajo manual repetitivo.
-
-**ROI esperado**: Recuperar USD 2.4M retenidos por un solo cliente. Reducir 7% facturas observadas a <1.5%. Payback inmediato.
-
----
-
-### INI-06: Servicio de Validación de Órdenes (reemplaza APP-05) + Orquestador de Pedidos (APP-02)
-**Prioridad**: 6 (Quick Win)
-**Duración**: 4 meses
-**Equipo**: 1 arquitecto + 2 ingenieros backend + 1 QA
-**Alcance**:
-- **Servicio de Validación de Órdenes** (NUEVO en Cloud MS Azure (EEUU)) — reemplaza Validador de Pedidos (APP-05), que se **elimina** en TO BE F1
-- Validación en tiempo real (dirección geo-validada, SKU existente, deduplicación hash)
-- Integración con API de geocodificación (**Google Maps Platform**)
-- Comunicación proactiva con destinatario (WhatsApp/SMS/email antes de la entrega)
-- Confirmación de ventana horaria con el destinatario
-- Dashboard de órdenes con defectos para mesa B2B
-
-| Componente de Costo | Estimación | Total |
-|---|---|---|
-| Azure AKS (servicio validación) | USD 500/mes | USD 2,000 (4m) |
-| APIs geocodificación (Google Maps) | USD 1,200/mes | USD 4,800 (4m) |
-| Plataforma notificaciones (WhatsApp Business API) | USD 800/mes | USD 3,200 (4m) |
-| Equipo desarrollo (3 personas) | USD 14,000/mes | USD 56,000 (4m) |
-| **TOTAL INI-06** | | **USD 66,000** |
-
-**Beneficios que aporta:**
-- Dirección, SKU y duplicados validados antes de reservar inventario.
-- Ventana horaria confirmada con destinatario vía Servicio de Notificación (SMS/Email) (APP-21).
-- Evita incidentes masivos de pedidos duplicados.
-- Menos entregas fallidas por dirección incorrecta o ausencia del destinatario.
-
-**ROI esperado**: Reducir entregas fallidas del 34% de causas prevenibles. Ahorro en reintentos: 8,500 fallas/día × 34% × USD 1.50 × 365 = USD 1.58M/año.
-
----
-
-### INI-07: PLT-01 Plataforma de Observabilidad Unificada + PLT-02 Plataforma de Identidad y Accesos (IAM) + PLT-04 Plataforma IaC
-**Prioridad**: 7 (Habilitador Transversal)
-**Duración**: 5 meses (en paralelo con otras iniciativas)
-**Equipo**: 1 arquitecto seguridad + 2 ingenieros DevSecOps + 1 SRE
-**Alcance** (alineado con doc `10`, servicios nativos, alcance medio):
-- **Azure Monitor + Application Insights** + Amazon CloudWatch + Google Cloud Logging (PLT-01)
-- **Terraform** para toda la infraestructura cloud (PLT-04)
-- Microsoft Entra ID + MFA + Azure Key Vault + WAF en **APP-01** Azure API Management (PLT-02)
-- Conectividad entre nubes: **VPN site-to-site cifrada (Azure VPN Gateway)**
-
-| Componente de Costo | Estimación | Total |
-|---|---|---|
-| Azure Monitor + Application Insights + CloudWatch export | USD 800/mes | USD 4,000 (5m) |
-| Entra ID + Key Vault + WAF (setup) | USD 1,500/mes | USD 7,500 (5m) |
-| Azure VPN Gateway (site-to-site) | USD 300/mes | USD 1,500 (5m) |
-| Equipo DevSecOps (4 personas) | USD 20,000/mes | USD 100,000 (5m) |
-| Terraform repos + pipelines CI | USD 10,000 one-time | USD 10,000 |
-| **TOTAL INI-07** | | **USD 123,000** |
-
-**Beneficios que aporta:**
-- Tablero central con métricas, logs y trazas de Azure, AWS y GCP.
-- Alertas automáticas antes de que un fallo escale a indisponibilidad de campaña.
-- MFA, WAF y Entra ID central refuerzan acceso a APIs y datos personales.
-- Terraform y VPN site-to-site: despliegues reproducibles y conectividad cifrada a bajo costo.
-
-**ROI esperado**: Detección temprana de incidentes, menor tiempo de recuperación y base segura para el resto de iniciativas.
-
----
-
-## 4. Resumen de Costos por Iniciativa
-
-| Iniciativa | Duración | Costo Estimado | Prioridad |
+| Prioridad | Iniciativa | Tipo | Motivo |
 |---|---|---|---|
-| INI-01: Bus de Eventos Central (PLT-03) | 6 meses | USD 225,000 | 1 (Fundacional) |
-| INI-02: WMS Cloud (reemplaza WMS Principal (On Premises) (APP-06) / WMS Satélite (On Premises local) (APP-07)) | 10 meses | USD 535,000 | 2 (Crítica) |
-| INI-03: App de Conductores (APP-15) | 4 meses | USD 105,800 | 3 (Quick Win) |
-| INI-04: Optimizador de Rutas en Tiempo Real (reemplaza APP-12) | 7 meses | USD 249,500 | 4 (Estratégica) |
-| INI-05: Servicio de Liquidación (reemplaza Sistema de Liquidación (Excel) (APP-26)) | 6 meses | USD 229,000 | 5 (Alto Impacto) |
-| INI-06: Servicio de Validación de Órdenes (reemplaza Validador de Pedidos (APP-05)) | 4 meses | USD 66,000 | 6 (Quick Win) |
-| INI-07: Plataforma de Observabilidad Unificada (PLT-01) + Plataforma de Identidad y Accesos (IAM) (PLT-02) + Plataforma IaC (PLT-04) | 5 meses | USD 123,000 | 7 (Habilitador) |
-| **TOTAL TRANSFORMACIÓN** | **36 meses** | **USD 1,533,300** | |
-
-**Nota**: Costos operativos recurrentes de infraestructura cloud no incluidos en el estimado de proyecto (se incorporan al presupuesto operativo de TI).
+| 1 | INI-05 Observabilidad, seguridad y gobierno multinube | Fundacional | Da trazabilidad, IAM, secretos, IaC y gobierno para todo el programa |
+| 2 | INI-02 Integración API-First y Event-Driven | Fundacional | Habilita contratos, eventos, colas, reintentos y desacoplamiento |
+| 3 | INI-03 Modernización de última milla y gestión de excepciones | Quick win operativo | Reduce pérdida de evidencias y normaliza excepciones temprano |
+| 4 | INI-01 Gestión unificada de órdenes e inventario end-to-end | Transformación core | Centraliza órdenes, inventario, reservas, idempotencia y reconciliación |
+| 5 | INI-04 Optimización dinámica de rutas y despacho | Optimización operativa | Usa eventos, excepciones y datos limpios para reducir costo por entrega |
+| 6 | INI-06 Conciliación financiera y liquidación automatizada | Alto impacto financiero | Monetiza la trazabilidad end-to-end y reduce dependencia de Excel |
 
 ---
 
-## 5. Roadmap de Implementación
+## 3. Fichas de iniciativas con estimación
 
-```
-MES:    1    2    3    4    5    6    7    8    9    10   11   12
-        │    │    │    │    │    │    │    │    │    │    │    │
-INI-07  ████████████████████████████████████                        (Paralelo desde M1)
-INI-01  ████████████████████████████████████████████               (M1-M6)
-INI-03       ████████████████████████████████                      (M2-M5, Quick Win)
-INI-06            ████████████████████████████                     (M3-M6, Quick Win)
-INI-02                 ████████████████████████████████████████████ (M4-M13)
-INI-05                      ████████████████████████████████       (M5-M10)
-INI-04                           ███████████████████████████████   (M6-M12)
+### INI-01: Gestión unificada de órdenes e inventario end-to-end
 
-MES:    13   14   15   16   17   18   19   20   21   22   23   24
-        │    │    │    │    │    │    │    │    │    │    │    │
-INI-02  ████                                                        (Finaliza M13)
-        [TRANSICIÓN 1 COMPLETA - Fin mes 12]
-        [TRANSICIÓN 2 INICIA]
-        Ajustes, estabilización, ML predictivo                    ████████████████
+**Prioridad:** 4 (Transformación core)
+**Duración:** 12 meses
+**Equipo:** 1 arquitecto senior + 1 product owner logístico + 5 ingenieros backend + 1 DBA + 1 DevOps + 1 analista funcional WMS/ERP
+**Alcance:**
 
-MES:    25   26   27   28   29   30   31   32   33   34   35   36
-        [TO BE COMPLETO - Fin mes 36]
-        KPIs objetivo: 94% cumplimiento, 99.9% disponibilidad, 98% trazabilidad
-```
+- Evolucionar Orquestador de Pedidos (APP-02) hacia capacidad OMS centralizada.
+- Integrar validación, deduplicación, idempotencia y estado canónico de orden.
+- Implementar vista unificada de inventario por SKU, almacén, ubicación, lote y estado.
+- Migrar progresivamente WMS Principal (On Premises) (APP-06) y WMS Satélite (On Premises local) (APP-07) hacia WMS Cloud.
+- Absorber la función de Control de Inventario (APP-08) dentro de WMS Cloud.
+- Integrar reservas, liberaciones y movimientos con TMS (Transportation Management) (APP-11) y ERP Financiero (On Premises) (APP-25).
+- Reconciliar conflictos de inventario al reconectar almacenes locales.
 
-### Hitos del Roadmap
+| Componente de costo | Estimación | Total |
+|---|---|---|
+| Azure AKS + Azure SQL / SQL Managed Instance | USD 4,000/mes | USD 48,000 |
+| Equipo desarrollo y arquitectura | USD 42,000/mes | USD 504,000 |
+| Migración de datos, pruebas de inventario y reconciliación | One-time | USD 45,000 |
+| Capacitación de operación y almacenes | One-time | USD 20,000 |
+| Contingencia técnica | One-time | USD 33,000 |
+| **TOTAL INI-01** | | **USD 650,000** |
 
-| Hito | Mes | Descripción | KPI Esperado |
+**Beneficios que aporta:**
+
+- Órdenes válidas antes de reservar inventario.
+- Inventario único y reconciliado entre almacenes.
+- Reducción de duplicados, ajustes manuales y conflictos de stock.
+- Base operacional para rutas, última milla y liquidación automática.
+
+**ROI esperado:** evita incidentes de pedidos duplicados, reduce ajustes de inventario y disminuye el riesgo de penalidades por indisponibilidad de WMS en campañas.
+
+---
+
+### INI-02: Integración API-First y Event-Driven
+
+**Prioridad:** 2 (Fundacional)
+**Duración:** 8 meses
+**Equipo:** 2 arquitectos + 4 ingenieros backend/integración + 1 DevOps
+**Alcance:**
+
+- Implementar Bus de Eventos Central (PLT-03) con hub principal en Azure y conectores hacia AWS y GCP.
+- Fortalecer Azure API Management (APP-01) como capa de gobierno API-first.
+- Definir contratos de APIs, eventos y modelos de datos.
+- Migrar progresivamente integraciones punto a punto entre OMS, WMS, TMS, App de Conductores (APP-15), ERP Financiero (On Premises) (APP-25), Portal B2B (Trazabilidad) (APP-18) y Plataforma de Analítica (GCP batch) (APP-22).
+- Incorporar colas, reintentos, priorización, backpressure y dead-letter queues.
+- Habilitar event replay y auditoría.
+
+| Componente de costo | Estimación | Total |
+|---|---|---|
+| Azure Event Hubs / conectores cloud | USD 1,200/mes | USD 9,600 |
+| Capacidad AKS/API adicional | USD 1,200/mes | USD 9,600 |
+| Equipo desarrollo e integración | USD 30,000/mes | USD 240,000 |
+| Diseño de contratos, pruebas y gobierno | One-time | USD 5,400 |
+| **TOTAL INI-02** | | **USD 264,600** |
+
+**Beneficios que aporta:**
+
+- Desacopla sistemas críticos.
+- Evita pérdida de mensajes y reprocesos manuales.
+- Permite estados canónicos y trazabilidad entre sistemas.
+- Habilita INI-01, INI-03, INI-04 e INI-06.
+
+**ROI esperado:** reducción de incidentes de integración y menor costo de cambio en flujos core.
+
+---
+
+### INI-03: Modernización de última milla y gestión de excepciones
+
+**Prioridad:** 3 (Quick win operativo)
+**Duración:** 5 meses
+**Equipo:** 1 arquitecto + 3 ingenieros mobile/backend + 1 QA + 1 analista de operación última milla
+**Alcance:**
+
+- Rediseñar App de Conductores (APP-15) con almacenamiento local cifrado y operación offline-first.
+- Implementar sincronización store-and-forward, confirmación backend y reintentos automáticos.
+- Garantizar persistencia de firma, foto, GPS, timestamp y motivo de excepción.
+- Añadir hash de integridad para evidencias en Almacenamiento Evidencias (S3) (APP-16).
+- Definir taxonomía única de excepciones para App de Conductores (APP-15), TMS (Transportation Management) (APP-11), CRM de Atención al Cliente (APP-20) y Portal B2B (Trazabilidad) (APP-18).
+- Automatizar reintentos, devoluciones, reasignaciones y escalamiento.
+
+| Componente de costo | Estimación | Total |
+|---|---|---|
+| Backend AWS / sincronización | USD 1,000/mes | USD 5,000 |
+| Mensajería/eventos última milla | USD 500/mes | USD 2,500 |
+| Equipo desarrollo y QA | USD 22,000/mes | USD 110,000 |
+| MDM, pruebas de campo y seguridad local | One-time | USD 17,500 |
+| **TOTAL INI-03** | | **USD 135,000** |
+
+**Beneficios que aporta:**
+
+- Reduce pérdida de evidencias.
+- Mejora soporte a reclamos y liquidación.
+- Normaliza datos para ML / Optimización de Rutas (GCP) (APP-24).
+- Reduce reintentos manuales y disputas de custodia.
+
+**ROI esperado:** evita retenciones por evidencias faltantes y reduce costos de reintento en última milla.
+
+---
+
+### INI-04: Optimización dinámica de rutas y despacho
+
+**Prioridad:** 5 (Optimización operativa)
+**Duración:** 7 meses
+**Equipo:** 1 arquitecto + 2 ingenieros ML + 2 ingenieros backend + 1 DevOps
+**Alcance:**
+
+- Evolucionar Optimizador de Rutas (GCP batch) (APP-12) hacia optimización dinámica en GCP.
+- Integrar tráfico, capacidad vehicular, ventanas horarias, cadena de frío, seguridad y SLA.
+- Integrar el optimizador con TMS (Transportation Management) (APP-11) mediante APIs y eventos.
+- Automatizar asignación de vehículos, conductores y paquetes.
+- Registrar cambios manuales de rutas con usuario, motivo, timestamp e impacto.
+- Alimentar ML / Optimización de Rutas (GCP) (APP-24) con excepciones normalizadas.
+
+| Componente de costo | Estimación | Total |
+|---|---|---|
+| GCP GKE / procesamiento dinámico | USD 1,500/mes | USD 10,500 |
+| Datos de tráfico, mapas y Pub/Sub | USD 2,000/mes | USD 14,000 |
+| Equipo desarrollo y ML | USD 30,000/mes | USD 210,000 |
+| Datos históricos, entrenamiento y pruebas piloto | One-time | USD 20,500 |
+| **TOTAL INI-04** | | **USD 255,000** |
+
+**Beneficios que aporta:**
+
+- Reduce rutas inviables y correcciones manuales.
+- Mejora cumplimiento de ventanas de entrega.
+- Optimiza uso de flota, conductores y capacidad.
+- Reduce costo por entrega.
+
+**ROI esperado:** meta de hasta 15% de reducción en costo por entrega, equivalente a USD 2M+ anuales sobre el volumen actual.
+
+---
+
+### INI-05: Observabilidad, seguridad y gobierno multinube
+
+**Prioridad:** 1 (Fundacional transversal)
+**Duración:** 6 meses
+**Equipo:** 1 arquitecto de seguridad + 2 DevSecOps + 1 SRE + 1 analista FinOps
+**Alcance:**
+
+- Implementar Plataforma de Observabilidad Unificada (PLT-01) con métricas, logs y trazas de Azure, AWS, GCP, SaaS y on premises.
+- Definir correlation ID end-to-end para pedidos, inventario, rutas, entregas, evidencias, colas y liquidación.
+- Crear tableros y alertas para colas, pedidos, inventario, rutas, entregas y SLA.
+- Completar Plataforma de Identidad y Accesos (IAM) (PLT-02) con identidad federada, mínimo privilegio, MFA, secretos centralizados y políticas en Azure API Management (APP-01).
+- Implementar Plataforma IaC (PLT-04) con Terraform y pipelines.
+- Aplicar cifrado, auditoría y gobierno FinOps.
+
+| Componente de costo | Estimación | Total |
+|---|---|---|
+| Observabilidad nativa cloud y exportaciones | USD 1,000/mes | USD 6,000 |
+| IAM, Key Vault/secretos, WAF y hardening | USD 1,700/mes | USD 10,200 |
+| Equipo DevSecOps/SRE/FinOps | USD 20,000/mes | USD 120,000 |
+| Repos IaC, pipelines y tableros FinOps | One-time | USD 8,800 |
+| **TOTAL INI-05** | | **USD 145,000** |
+
+**Beneficios que aporta:**
+
+- Visibilidad end-to-end.
+- Menor tiempo de detección y recuperación.
+- Seguridad homogénea en multinube.
+- Infraestructura reproducible y auditable.
+- Control de costos cloud en campañas.
+
+**ROI esperado:** reducción de riesgo operativo, menor tiempo de indisponibilidad y base de gobierno para todas las iniciativas.
+
+---
+
+### INI-06: Conciliación financiera y liquidación automatizada
+
+**Prioridad:** 6 (Alto impacto financiero)
+**Duración:** 7 meses
+**Equipo:** 1 arquitecto + 3 ingenieros backend + 1 analista de negocio financiero + 1 QA + soporte ERP
+**Alcance:**
+
+- Implementar motor de liquidación en Azure AKS + Azure SQL.
+- Integrar OMS, WMS Cloud, TMS (Transportation Management) (APP-11), tracking, evidencias, Portal B2B (Trazabilidad) (APP-18) y ERP Financiero (On Premises) (APP-25).
+- Conciliar órdenes, estados, evidencias, SLA, tarifas y penalidades.
+- Automatizar bonificaciones, penalidades y notas de crédito.
+- Reemplazar el uso operativo de Sistema de Liquidación (Excel) (APP-26).
+- Exponer tablero/portal de conciliación para clientes B2B.
+
+| Componente de costo | Estimación | Total |
+|---|---|---|
+| Azure AKS + Azure SQL | USD 1,200/mes | USD 8,400 |
+| Equipo desarrollo y QA | USD 28,000/mes | USD 196,000 |
+| Integración ERP y validación financiera | One-time | USD 40,000 |
+| Pruebas de reglas, evidencias y portal | One-time | USD 15,600 |
+| **TOTAL INI-06** | | **USD 260,000** |
+
+**Beneficios que aporta:**
+
+- Conciliación en menos de 1 día.
+- Reducción de facturas observadas y notas de crédito manuales.
+- Liberación de caja retenida por disputas.
+- Auditoría financiera con trazabilidad de evidencias y SLA.
+
+**ROI esperado:** recuperación de USD 2.4M retenidos por un solo cliente y reducción de facturas observadas de 7% a menos de 1.5%.
+
+---
+
+## 4. Resumen de costos por iniciativa
+
+| Iniciativa | Duración | Costo estimado | Prioridad |
 |---|---|---|---|
-| H1 | Mes 3 | **PLT-03** Bus de Eventos Central operativo (piloto WMS Principal (On Premises) (APP-06) ↔ TMS (Transportation Management) (APP-11)) | Integración desacoplada WMS Principal ↔ TMS |
-| H2 | Mes 5 | **APP-15** v2 en producción | 0 pérdidas de evidencias |
-| H3 | Mes 6 | Validación órdenes y pre-entrega activos | Defectos <3%, -20% fallas |
-| H4 | Mes 6 | **PLT-03** completo (todas las integraciones) | Estados consistentes |
-| H5 | Mes 10 | Liquidación automatizada en producción | Conciliación <3 días |
-| H6 | Mes 12 | WMS Cloud + Optimizador de Rutas en Tiempo Real (APP-12) | Disponibilidad 98% campaña |
-| H7 | Mes 12 | **Transición 1 completa** | 91% cumplimiento promesa |
-| H8 | Mes 24 | **Transición 2 completa** | 93% cumplimiento, 99.5% disponib. |
-| H9 | Mes 36 | **TO BE completo** | 94%, 99.9%, 98% tracking |
+| INI-05 Observabilidad, seguridad y gobierno multinube | 6 meses | USD 145,000 | 1 |
+| INI-02 Integración API-First y Event-Driven | 8 meses | USD 264,600 | 2 |
+| INI-03 Modernización de última milla y gestión de excepciones | 5 meses | USD 135,000 | 3 |
+| INI-01 Gestión unificada de órdenes e inventario end-to-end | 12 meses | USD 650,000 | 4 |
+| INI-04 Optimización dinámica de rutas y despacho | 7 meses | USD 255,000 | 5 |
+| INI-06 Conciliación financiera y liquidación automatizada | 7 meses | USD 260,000 | 6 |
+| **TOTAL TRANSFORMACIÓN** | **36 meses** | **USD 1,709,600** | |
+
+**Nota:** costos operativos recurrentes de infraestructura cloud no incluidos en el estimado de proyecto; se incorporan al presupuesto operativo de TI y al gobierno FinOps de INI-05.
 
 ---
 
-## 6. Análisis de Dependencias
+## 5. Roadmap de implementación
 
+```text
+MES:       1    2    3    4    5    6    7    8    9    10   11   12
+INI-05   [========================]                                      Observabilidad/IAM/IaC base
+INI-02   [================================]                              APIs, eventos, contratos, colas
+INI-03        [====================]                                      Última milla y excepciones
+INI-01             [==============================================]      OMS + inventario + WMS Cloud piloto
+INI-04                            [============================]         Rutas dinámicas
+INI-06                                 [============================]    Motor liquidación
+
+MES:       13   14   15   16   17   18   19   20   21   22   23   24
+INI-01   [========]                                                       Despliegue WMS Cloud total y estabilización
+INI-04   [====]                                                           Ajustes de optimización y ML
+INI-06   [====]                                                           Cierre financiero y portal B2B
+          [============================]                                  Transición 2: expansión, hardening y adopción
+
+MES:       25   26   27   28   29   30   31   32   33   34   35   36
+          [============================================]                  TO BE completo: optimización continua, FinOps,
+                                                                          auditoría, DR y mejora de KPIs
 ```
-INI-07 (**PLT-01**, **PLT-02**, **PLT-04**) ──► Todas las iniciativas
-INI-01 (**PLT-03**) ──► INI-02, INI-04, INI-05
-INI-03 (**APP-15**) ──► INI-05
-INI-02 (WMS Cloud) ──► INI-04 (**APP-12** RT)
-```
+
+### Hitos del roadmap
+
+| Hito | Mes | Descripción | KPI esperado |
+|---|---|---|---|
+| H1 | Mes 2 | Correlation ID y tableros base de Plataforma de Observabilidad Unificada (PLT-01) | Trazabilidad inicial de pedidos y colas |
+| H2 | Mes 4 | Bus de Eventos Central (PLT-03) piloto entre Orquestador de Pedidos (APP-02), WMS Principal (On Premises) (APP-06) y TMS (Transportation Management) (APP-11) | Integración desacoplada para flujo crítico |
+| H3 | Mes 5 | App de Conductores (APP-15) offline-first y taxonomía de excepciones en producción piloto | 0 pérdida funcional de evidencias piloto |
+| H4 | Mes 6 | Gobierno API-first, IAM base, secretos y pipelines IaC operativos | APIs críticas con políticas y despliegues reproducibles |
+| H5 | Mes 8 | OMS MVP sobre Orquestador de Pedidos (APP-02) con validación, deduplicación e idempotencia | Defectos de órdenes <3% |
+| H6 | Mes 10 | Motor de liquidación piloto con ERP Financiero (On Premises) (APP-25) y evidencias | Conciliación piloto <3 días |
+| H7 | Mes 12 | Rutas dinámicas piloto integradas con TMS (Transportation Management) (APP-11) | Reducción de cambios manuales no trazados |
+| H8 | Mes 14 | WMS Cloud estabilizado y vista unificada de inventario | Ajustes de inventario <0.5% |
+| H9 | Mes 18 | Liquidación automatizada en operación estándar | Conciliación <1 día |
+| H10 | Mes 24 | Transición 2 completa | 93% cumplimiento de promesa y 99.5% disponibilidad |
+| H11 | Mes 36 | TO BE completo | 94% cumplimiento, 99.9% disponibilidad y 98% tracking confiable |
 
 ---
 
-## 7. Gestión de Riesgos del Plan de Migración
+## 6. Análisis de dependencias
+
+```text
+INI-05 Observabilidad/Seguridad/Gobierno -> Todas las iniciativas
+INI-02 API-First/Event-Driven -> INI-01, INI-03, INI-04, INI-06
+INI-03 Última milla/Excepciones -> INI-04, INI-06
+INI-01 OMS/Inventario -> INI-04, INI-06
+INI-04 Rutas dinámicas -> Mejora continua de INI-03 e INI-06
+INI-06 Liquidación automatizada -> Depende de estados, evidencias y SLA confiables
+```
+
+| Dependencia | Motivo | Mitigación |
+|---|---|---|
+| INI-01 depende de INI-02 | OMS e inventario requieren contratos, eventos y backpressure | Empezar INI-02 en mes 1 y entregar piloto en mes 4 |
+| INI-03 depende parcialmente de INI-02 | Store-and-forward debe publicar eventos confiables | Usar adaptadores temporales hasta que PLT-03 esté completo |
+| INI-04 depende de INI-03 | Rutas dinámicas necesitan excepciones normalizadas | Habilitar taxonomía mínima antes del piloto de rutas |
+| INI-06 depende de INI-01/INI-03 | Liquidación requiere órdenes, inventario, tracking y evidencias confiables | Piloto financiero con subconjunto de clientes y rutas |
+| Todas dependen de INI-05 | Seguridad, trazabilidad y despliegues deben ser gobernados | Entregar baseline de observabilidad/IAM/IaC en primeros 6 meses |
+
+---
+
+## 7. Gestión de riesgos del plan de migración
 
 | Riesgo | Probabilidad | Impacto | Mitigación |
 |---|---|---|---|
-| Resistencia al cambio en almacenes (WMS nuevo) | Alta | Alto | Plan de change management, capacitación, piloto en 1 CD |
-| Migración WMS más larga de lo esperado | Media | Alto | Modo puente: API sobre WMS Principal (On Premises) (APP-06) durante transición a WMS Cloud |
-| Clientes que no actualizan sus integraciones | Media | Medio | Backward-compatibility garantizada 18 meses |
-| Costo real superior al estimado (desarrollo WMS custom) | Media | Alto | Reserva de contingencia 20% del presupuesto |
-| Disponibilidad del equipo técnico | Baja | Medio | Contratación anticipada + alianza con consultoras |
+| OMS se interpreta como aplicación nueva y no como evolución de Orquestador de Pedidos (APP-02) | Media | Medio | Alinear decisión de arquitectura al inicio; si se crea app separada, actualizar `06`, `08` y `09` antes del diseño detallado |
+| Migración WMS Cloud se extiende más de lo previsto | Media | Alto | Mantener WMS Principal (On Premises) (APP-06) en modo puente, con APIs/eventos y migración por centros |
+| Contratos de eventos no son adoptados por todos los equipos | Media | Alto | Comité de gobierno API/eventos, versionamiento y pruebas de contrato obligatorias |
+| Resistencia operativa en almacenes y última milla | Alta | Alto | Pilotos por centro/ruta, capacitación y soporte en campo |
+| Costos cloud superiores al estimado | Media | Medio | Presupuesto FinOps, etiquetas obligatorias, alertas de gasto y revisión mensual |
+| Datos históricos incompletos para rutas y liquidación | Media | Medio | Reglas de calidad de datos, reconciliación y ventanas de estabilización |
 
 ---
 
-## 8. Beneficios Esperados y ROI
+## 8. Beneficios esperados y ROI
 
-| Beneficio | Valor Anual Estimado |
+| Beneficio | Valor anual estimado |
 |---|---|
-| Evitar penalidades en campañas | USD 1,100,000+ |
-| Reducción entregas fallidas (reintentos) | USD 1,580,000 |
-| Recuperación disputas de liquidación | USD 2,400,000 (solo 1 cliente) |
-| Reducción costo/entrega (-15%) | USD 2,000,000+ |
-| **Beneficio total estimado año 1 post-TO BE** | **USD 7,080,000+** |
-| **Inversión total transformación** | **USD 1,533,300** |
-| **ROI** | **~4.6x** |
+| Evitar penalidades en campañas por indisponibilidad WMS | USD 1,100,000+ |
+| Reducción de entregas fallidas y reintentos | USD 1,580,000 |
+| Recuperación de disputas de liquidación | USD 2,400,000 |
+| Reducción de costo por entrega por rutas dinámicas | USD 2,000,000+ |
+| Reducción de errores por órdenes duplicadas/defectuosas | USD 300,000+ |
+| **Beneficio total estimado año 1 post-TO BE** | **USD 7,380,000+** |
+| **Inversión total transformación** | **USD 1,709,600** |
+| **ROI estimado** | **~4.3x** |
+
+---
+
+## 9. Verificación de consistencia con aplicaciones
+
+| Documento | Resultado de verificación | Acción requerida |
+|---|---|---|
+| `06_Mapa_Portafolio_Aplicaciones.md` | Las iniciativas usan aplicaciones y plataformas ya catalogadas: Orquestador de Pedidos (APP-02), Validador de Pedidos (APP-05), WMS Principal (On Premises) (APP-06), WMS Satélite (On Premises local) (APP-07), Control de Inventario (APP-08), TMS (Transportation Management) (APP-11), Optimizador de Rutas (GCP batch) (APP-12), App de Conductores (APP-15), Almacenamiento Evidencias (S3) (APP-16), Portal B2B (Trazabilidad) (APP-18), CRM de Atención al Cliente (APP-20), ERP Financiero (On Premises) (APP-25), Sistema de Liquidación (Excel) (APP-26), PLT-01, PLT-02, PLT-03 y PLT-04. Se explicita que Orquestador de Pedidos (APP-02) evoluciona a OMS centralizado en TO BE | Actualizado |
+| `08_Mapeo_Aplicaciones_Tecnologia.md` | El documento es AS IS; las nuevas capacidades son TO BE y no obligan a alterar el stack AS IS | No requiere cambios |
+| `09_ADM_Fases_CadenasValor_B_C_D_ASIS_TOBE.md` | La disposición TO BE ya contempla WMS Cloud, Servicio de Validación, Optimizador de Rutas en Tiempo Real, Event Store, Servicio de Liquidación y plataformas PLT. Se actualiza F1 para indicar que Orquestador de Pedidos (APP-02) evoluciona a OMS centralizado | Actualizado |
+
+**Nota de arquitectura:** la línea base aprobada es que "OMS centralizado" sea la evolución TO BE de Orquestador de Pedidos (APP-02). Si el comité solicita tratarlo como aplicación separada, los cambios necesarios serían:
+
+| Cambio potencial | Documento afectado | Detalle |
+|---|---|---|
+| Crear nuevo ID APP para OMS | `06_Mapa_Portafolio_Aplicaciones.md` | Agregar aplicación TO BE en capa core y ajustar resumen del portafolio |
+| Definir stack del OMS | `08_Mapeo_Aplicaciones_Tecnologia.md` | Agregar fila TO BE o sección complementaria si se decide documentar tecnologías objetivo |
+| Ajustar matriz de disposición | `09_ADM_Fases_CadenasValor_B_C_D_ASIS_TOBE.md` | Cambiar Orquestador de Pedidos (APP-02) de MODIFICAR a reemplazo parcial o integración con nuevo OMS |
+
+No se recomienda este cambio para el Hito 1 porque el alcance funcional puede cubrirse con Orquestador de Pedidos (APP-02) evolucionado, manteniendo el catálogo estable.
 
 ---
 

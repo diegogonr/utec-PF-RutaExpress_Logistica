@@ -1,13 +1,19 @@
 # ADM - Fase E: Opportunities and Solutions
 ## RutaExpress Fulfillment & Transporte
 
-> **Para el comité de arquitectura** — **Gap analysis** (negocio, datos, apps, tecnología) y **7 iniciativas** (INI-01 … INI-07) con arquitecturas de transición. **Mensaje clave:** priorizar **INI-01** (**PLT-03** Bus de Eventos Central) e **INI-02** (WMS Cloud reemplaza WMS Principal (On Premises) (APP-06) / WMS Satélite (On Premises local) (APP-07)); quick wins **INI-03** (**APP-15**) e **INI-06** (Servicio de Validación de Órdenes — reemplaza **APP-05**).
+> **Para el comité de arquitectura** — **Gap analysis** de negocio, datos, aplicaciones y tecnología, consolidado en **6 iniciativas** de transformación. **Mensaje clave:** mantener el catálogo de aplicaciones del Hito 1 sin cambios, modelando el **OMS centralizado** como evolución funcional de Orquestador de Pedidos (APP-02), y usando WMS Cloud, Servicio de Validación, Servicio de Liquidación, Bus de Eventos Central (PLT-03), Plataforma de Observabilidad Unificada (PLT-01), Plataforma de Identidad y Accesos (IAM) (PLT-02) y Plataforma IaC (PLT-04) como componentes TO BE ya reconocidos en los documentos `06`, `08` y `09`.
 
 ---
 
 ## 1. Propósito
 
-Identificar y consolidar las brechas (gaps) entre el estado AS IS y el TO BE en las dimensiones de Negocio, Datos, Aplicaciones y Tecnología. Agrupar estas brechas en iniciativas o proyectos priorizados, y definir las arquitecturas de transición necesarias.
+Identificar y consolidar las brechas entre el estado AS IS y el TO BE de RutaExpress en las dimensiones de negocio, datos, aplicaciones y tecnología. La fase E agrupa esas brechas en iniciativas accionables, priorizadas y consistentes con el portafolio de aplicaciones del Hito 1.
+
+**Criterio de consistencia aplicado:** no se crean nuevos IDs de aplicación en este documento. Cuando la iniciativa menciona un componente nuevo, se trata como:
+
+- evolución de una aplicación existente, por ejemplo Orquestador de Pedidos (APP-02) hacia capacidad OMS;
+- reemplazo TO BE ya documentado, por ejemplo WMS Cloud reemplaza WMS Principal (On Premises) (APP-06) y WMS Satélite (On Premises local) (APP-07);
+- plataforma habilitadora ya catalogada como brecha, por ejemplo Bus de Eventos Central (PLT-03).
 
 ---
 
@@ -17,336 +23,326 @@ Identificar y consolidar las brechas (gaps) entre el estado AS IS y el TO BE en 
 
 | ID Gap | Descripción | Impacto | Dominio |
 |---|---|---|---|
-| GN-01 | Sin validación integral de órdenes (dirección, SKU, duplicados) antes de ingresar al flujo | Alto - 6% órdenes con defectos, incidente 32K duplicados | Recepción |
-| GN-02 | Gestión de excepciones sin taxonomía normalizada impide aprender y prevenir | Alto - 34% fallas prevenibles, USD 1.20-2.80/reintento | Última Milla |
-| GN-03 | Sin comunicación proactiva con destinatario antes de la entrega | Alto - ausencia/dirección = 34% de fallas | Última Milla |
-| GN-04 | Proceso de liquidación manual con **APP-26** Sistema de Liquidación (Excel) y conciliación de 23 días | Alto - USD 2.4M retenidos, 7% facturas observadas | Liquidación |
-| GN-05 | Sin visibilidad operativa en tiempo real (Plataforma de Analítica (GCP batch) (APP-22) en batch, sin Plataforma de Observabilidad Unificada (PLT-01)) | Medio - planners trabajan con datos del día anterior | Analítica |
-| GN-06 | Asignación manual de rutas en 17% de casos sin causa documentada | Medio - costos elevados, SLA en riesgo | Transporte |
+| GN-01 | El ciclo de vida de órdenes no se gestiona end-to-end desde una fuente única; la validación depende de Orquestador de Pedidos (APP-02), Validador de Pedidos (APP-05), WMS Principal (On Premises) (APP-06) y canales externos sin control uniforme | Alto - 6% de órdenes con defectos e incidente de 32,000 duplicados | Recepción |
+| GN-02 | Inventario sin vista unificada por SKU, almacén, ubicación, lote y estado; reservas y liberaciones no se coordinan de forma consistente | Crítico - 2.8% de movimientos con ajuste y conflictos al reconectar WMS Satélite (On Premises local) (APP-07) | Almacén |
+| GN-03 | Integraciones punto a punto dificultan escalar, priorizar clientes y operar con contratos estandarizados | Alto - fallas de integración se propagan entre WMS, TMS, app, ERP y portales | Integración |
+| GN-04 | Gestión de última milla y excepciones sin taxonomía única ni persistencia offline robusta | Alto - 1,200 entregas sin firma y 34% de fallas prevenibles | Última Milla |
+| GN-05 | Planificación de rutas rígida y con intervención manual no trazada | Medio - 17% de rutas corregidas manualmente y SLA en riesgo | Despacho |
+| GN-06 | Visibilidad operativa, seguridad y gobierno multinube insuficientes | Alto - detección tardía de incidentes y riesgo en APIs, secretos y costos cloud | Gobierno TI |
+| GN-07 | Liquidación financiera manual, basada en hojas Excel y conciliaciones tardías | Crítico - 23 días de conciliación, USD 2.4M retenidos y 7% de facturas observadas | Finanzas |
 
 ### 2.2 Gaps de Datos
 
 | ID Gap | Descripción | Impacto | Dominio |
 |---|---|---|---|
-| GD-01 | Sin modelo canónico de estados entre **APP-06**, **APP-11**, **APP-15** y **APP-18** Portal B2B (Trazabilidad) | Crítico - estados contradictorios visibles al cliente | Todos |
-| GD-02 | Múltiples fuentes de verdad para inventario (**APP-06**, **APP-07**, **APP-25** ERP) | Alto - 2.8% movimientos con ajuste, conflictos en reconexión | Almacén |
-| GD-03 | Eventos de tracking sin orden garantizado, pérdida en offline | Alto - 1,200 entregas sin firma, clientes disputan estados | Tracking |
-| GD-04 | **APP-22** Plataforma de Analítica semanal, sin **PLT-01** | Medio - no se detectan degradaciones hasta que explotan | Analítica |
-| GD-05 | Datos de excepciones inconsistentes impiden entrenar **APP-24** ML | Medio - **APP-12** Optimizador aprende con datos sucios | ML/Rutas |
+| GD-01 | No existe modelo canónico de orden, estado, reserva, entrega y excepción entre Orquestador de Pedidos (APP-02), WMS Principal (On Premises) (APP-06), TMS (Transportation Management) (APP-11), App de Conductores (APP-15) y Portal B2B (Trazabilidad) (APP-18) | Crítico - estados contradictorios visibles para clientes | Todos |
+| GD-02 | Inventario distribuido entre WMS Principal (On Premises) (APP-06), WMS Satélite (On Premises local) (APP-07), Control de Inventario (APP-08) y ERP Financiero (On Premises) (APP-25) | Alto - reservas duplicadas, ajustes manuales y conflicto de stock | Almacén |
+| GD-03 | Pedidos sin idempotencia y deduplicación robusta ante cambios de identificador externo | Alto - duplicados masivos y reprocesos manuales | Recepción |
+| GD-04 | Eventos sin contratos estándar, orden garantizado, reintentos ni manejo consistente de mensajes fallidos | Alto - pérdida de tracking, datos fuera de secuencia y reprocesos | Integración |
+| GD-05 | Excepciones, reclamos y motivos de no entrega no comparten taxonomía entre App de Conductores (APP-15), TMS (Transportation Management) (APP-11), CRM de Atención al Cliente (APP-20) y Portal B2B (Trazabilidad) (APP-18) | Medio - aprendizaje ML y causa raíz poco confiables | Última Milla |
+| GD-06 | Datos de SLA, tarifas, penalidades, evidencias y estados financieros no se concilian automáticamente | Crítico - liquidaciones discutibles y notas de crédito manuales | Finanzas |
 
 ### 2.3 Gaps de Aplicaciones
 
 | ID Gap | Descripción | Impacto | Dominio |
 |---|---|---|---|
-| GA-01 | **APP-06** WMS Principal (On Premises) sin capacidad de auto-scaling ni HA | Crítico - degradación en Cyber Days, USD 1.1M penalidades | Almacén |
-| GA-02 | **APP-02** Orquestador sin backpressure por cliente ni prioridad SLA | Crítico - cola sin control ante degradación WMS | Recepción |
-| GA-03 | **APP-12** Optimizador de Rutas en batch, no tiempo real | Alto - rutas inviables por datos de tráfico desactualizados | Transporte |
-| GA-04 | **APP-15** App de Conductores con offline frágil y evidencias que se pierden | Alto - disputas de liquidación, reclamos de custodia | Última Milla |
-| GA-05 | Sin **PLT-03** Bus de Eventos central, integraciones punto a punto | Alto - fragilidad, inconsistencia, difícil mantener | Todos |
-| GA-06 | Liquidación con **APP-26** Sistema de Liquidación (Excel) sin control | Crítico - errores manuales, penalidades mal calculadas | Liquidación |
-| GA-07 | Sin **PLT-01** Plataforma de Observabilidad unificada cross-cloud | Alto - sin visibilidad end-to-end, detección tardía de fallos | Todos |
+| GA-01 | Orquestador de Pedidos (APP-02) no actúa como OMS centralizado; Validador de Pedidos (APP-05) cubre validación parcial y falló en deduplicación | Crítico - órdenes defectuosas entran al flujo y consumen inventario | Recepción |
+| GA-02 | WMS Principal (On Premises) (APP-06), WMS Satélite (On Premises local) (APP-07) y Control de Inventario (APP-08) no ofrecen inventario único, resiliente y reconciliado | Crítico - indisponibilidad en campañas y stock inconsistente | Almacén |
+| GA-03 | Sin gobierno API-first ni Bus de Eventos Central (PLT-03); Azure API Management (APP-01) opera como gateway, pero no como gobierno completo de contratos, cuotas y políticas end-to-end | Alto - integraciones frágiles y costosas de mantener | Integración |
+| GA-04 | App de Conductores (APP-15) tiene offline frágil; Almacenamiento Evidencias (S3) (APP-16) no garantiza integridad completa; TMS (Transportation Management) (APP-11), CRM de Atención al Cliente (APP-20) y portales no comparten excepciones | Alto - disputas de custodia y reintentos manuales | Última Milla |
+| GA-05 | Optimizador de Rutas (GCP batch) (APP-12) planifica en batch; ML / Optimización de Rutas (GCP) (APP-24) aprende con datos sucios | Alto - rutas inviables y costo por entrega elevado | Despacho |
+| GA-06 | Sin Plataforma de Observabilidad Unificada (PLT-01), Plataforma de Identidad y Accesos (IAM) (PLT-02) completa ni Plataforma IaC (PLT-04) operativa | Alto - baja trazabilidad, gobierno manual y seguridad parcial | Gobierno TI |
+| GA-07 | Sistema de Liquidación (Excel) (APP-26) no escala ni controla reglas; ERP Financiero (On Premises) (APP-25) no integra en tiempo real | Crítico - liquidaciones lentas, errores y penalidades mal calculadas | Finanzas |
 
 ### 2.4 Gaps de Tecnología
 
 | ID Gap | Descripción | Impacto | Dominio |
 |---|---|---|---|
-| GT-01 | **APP-06** WMS Principal (On Premises) sobre SQL Server sin escalado ni HA | Crítico - degradación en campañas | Almacén |
-| GT-02 | Sin **PLT-04** IaC | Alto - cambios manuales, no reproducibles | Todos |
-| GT-03 | Sin **PLT-02** Zero Trust | Alto - APIs expuestas, datos personales en riesgo | Seguridad |
-| GT-04 | Sin conexión privada entre nubes (tráfico por Internet público) | Medio - latencia variable, costos de egress, riesgo seguridad | Multinube |
-| GT-05 | Sin DR definido para **APP-06** WMS Principal (On Premises) y **APP-11** TMS (Transportation Management) | Alto - RTO/RPO indefinidos | Resiliencia |
+| GT-01 | WMS Principal (On Premises) (APP-06) sobre SQL Server sin alta disponibilidad, auto-scaling ni DR definido | Crítico - caída de 6 horas en campaña | Almacén |
+| GT-02 | Integraciones sin colas gobernadas, reintentos, priorización, backpressure ni dead-letter queues | Crítico - acumulación de mensajes y pérdida de trazabilidad | Integración |
+| GT-03 | Sin identificadores de correlación end-to-end para pedidos, inventario, rutas, entregas, evidencias y liquidación | Alto - causa raíz difícil y auditoría incompleta | Observabilidad |
+| GT-04 | Identidad, secretos y cifrado no están gobernados de manera homogénea entre Azure, AWS, GCP, SaaS y on premises | Alto - exposición de APIs y datos sensibles | Seguridad |
+| GT-05 | Infraestructura multinube aprovisionada con procesos manuales y bajo control FinOps limitado | Medio - ambientes no reproducibles y costos difíciles de explicar | Gobierno |
 
 ---
 
 ## 3. Iniciativas / Proyectos
 
-> **Principio de solución:** usar **servicios nativos de Azure, AWS o GCP** (PaaS/IaaS del proveedor). No se proponen herramientas SaaS externas de observabilidad, seguridad o integración (ej. Datadog, OpenTelemetry como producto, Kafka autogestionado). Alcance **medio**: suficiente para operar multinube sin sobre-ingeniería.
->
-> **Estructura por iniciativa:** primero los **gaps que cierra** (qué problema resuelve) y después los **beneficios que aporta** (qué valor genera al negocio y a TI).
+> **Principio de solución:** priorizar servicios nativos de Azure, AWS y GCP, reutilizando aplicaciones existentes o reemplazos TO BE ya definidos. No se propone cambiar el catálogo maestro de aplicaciones del documento `06` salvo que el comité decida separar formalmente el OMS como una nueva aplicación, decisión que no es necesaria para estas iniciativas.
 
-### INI-01: Plataforma de Integración por Eventos — Bus de Eventos Central (PLT-03)
-**Descripción**: Implementar Bus de Eventos Central (PLT-03) con **Azure Event Hubs** como hub principal en Azure, conectores hacia AWS (Amazon EventBridge) y GCP (Pub/Sub) para reemplazar integraciones P2P entre WMS Principal (On Premises) (APP-06), TMS (Transportation Management) (APP-11), App de Conductores (APP-15) y Plataforma de Analítica (GCP batch) (APP-22).
+### INI-01: Gestión unificada de órdenes e inventario end-to-end
 
-**Resumen de gaps que cierra (5):**
+**Descripción:** Crear una capacidad OMS centralizada sobre Orquestador de Pedidos (APP-02), fortalecida con validación, deduplicación, idempotencia y modelo canónico de órdenes. Integrar reservas, liberaciones y movimientos entre WMS Cloud, TMS (Transportation Management) (APP-11), ERP Financiero (On Premises) (APP-25) y canales B2B. La vista de inventario será única por SKU, almacén, ubicación, lote y estado, con reconciliación automática de conflictos entre WMS Cloud y almacenes locales.
+
+**Componentes principales:**
+
+- Orquestador de Pedidos (APP-02) evoluciona a capacidad OMS centralizada.
+- Validador de Pedidos (APP-05) se absorbe como reglas/servicio de validación dentro del flujo TO BE ya previsto.
+- WMS Cloud reemplaza WMS Principal (On Premises) (APP-06) y WMS Satélite (On Premises local) (APP-07).
+- Control de Inventario (APP-08) se elimina como app separada; su función queda absorbida por WMS Cloud.
+- ERP Financiero (On Premises) (APP-25) integra inventario valorizado y estados financieros por API/eventos.
+
+**Resumen de gaps que cierra:**
 
 | ID | Dimensión | Brecha resumida |
 |---|---|---|
-| GA-05 | Aplicaciones | Integraciones punto a punto sin Bus de Eventos Central (PLT-03) — frágiles e inconsistentes |
-| GD-01 | Datos | Sin modelo canónico de estados entre WMS (APP-06), TMS (APP-11), App de Conductores (APP-15) y Portal B2B (Trazabilidad) (APP-18) |
-| GD-03 | Datos | Eventos de tracking sin orden garantizado; pérdida de datos en modo offline |
-| GD-04 | Datos | Analítica en batch semanal; sin base de eventos para detectar degradaciones a tiempo |
-| GT-02 | Tecnología | Infraestructura y despliegues del bus sin IaC reproducible (habilitado junto con PLT-04 en INI-07) |
+| GN-01 | Negocio | Ciclo de vida de órdenes sin fuente única ni validación integral |
+| GN-02 | Negocio | Inventario sin vista unificada y reservas inconsistentes |
+| GD-01 | Datos | Modelo canónico de orden y estado inexistente |
+| GD-02 | Datos | Múltiples fuentes de verdad de inventario |
+| GD-03 | Datos | Falta de idempotencia y deduplicación robusta |
+| GA-01 | Aplicaciones | Orquestador de Pedidos (APP-02) no cumple rol OMS |
+| GA-02 | Aplicaciones | WMS Principal/Satélite e inventario local no están reconciliados |
+| GT-01 | Tecnología | WMS Principal (On Premises) (APP-06) sin HA, escalado ni DR |
 
 **Beneficios que aporta:**
 
 | Beneficio | Impacto esperado |
 |---|---|
-| Integración desacoplada | Nuevos consumidores (analítica, liquidación, portales) se conectan al bus sin modificar WMS (APP-06) ni TMS (APP-11) |
-| Estados consistentes | Un solo modelo canónico de pedido visible en Portal B2B (Trazabilidad) (APP-18) y App de Conductores (APP-15) |
-| Resiliencia operativa | Backpressure y circuit breaker protegen WMS Principal (On Premises) (APP-06) en picos de campaña |
-| Auditoría y recuperación | Replay de eventos para reconstruir historial y resolver disputas con trazabilidad |
-| Habilitador estratégico | Base obligatoria para WMS Cloud, liquidación automática y analítica en streaming |
+| Órdenes confiables desde el ingreso | Menos duplicados, errores de dirección y pedidos inválidos antes de reservar stock |
+| Inventario único operativo | Disminución de ajustes de inventario y conflictos de stock entre centros |
+| Menor impacto de campañas | WMS Cloud con HA y escalado reduce riesgo de caída en Cyber Days |
+| Trazabilidad de reservas y liberaciones | OMS, WMS, TMS y ERP comparten estados auditables |
+| Base para liquidación automática | Estados e inventario conciliables alimentan el motor financiero |
 
-**Complejidad**: Alta · **Duración estimada**: 6-9 meses
+**Complejidad:** Muy Alta · **Duración estimada:** 9-12 meses
 
-### INI-02: Modernización WMS — WMS Principal (On Premises) (APP-06) / WMS Satélite (On Premises local) (APP-07) → WMS Cloud
-**Descripción**: Migrar WMS Principal (On Premises) (APP-06) y WMS Satélite (On Premises local) (APP-07) a **WMS Cloud custom** en **Azure AKS + Azure SQL Managed Instance** con auto-scaling, modo degradado y sync en tiempo real.
+### INI-02: Integración API-First y Event-Driven
 
-**Resumen de gaps que cierra (4):**
+**Descripción:** Implementar una capa central de gestión y gobierno de APIs usando Azure API Management (APP-01) y crear Bus de Eventos Central (PLT-03) como plataforma event-driven entre Orquestador de Pedidos (APP-02), WMS Cloud, TMS (Transportation Management) (APP-11), App de Conductores (APP-15), ERP Financiero (On Premises) (APP-25), Portal B2B (Trazabilidad) (APP-18), Plataforma de Analítica (GCP batch) (APP-22) y Dashboards Operativos (APP-23).
+
+**Alcance clave:**
+
+- Contratos estandarizados de APIs, eventos y modelos de datos.
+- Reemplazo progresivo de integraciones punto a punto.
+- Colas, reintentos, priorización por SLA, backpressure, circuit breakers y dead-letter queues.
+- Versionamiento de contratos y gobierno de cambios.
+- Event Store canónico con replay para auditoría y recuperación.
+
+**Resumen de gaps que cierra:**
 
 | ID | Dimensión | Brecha resumida |
 |---|---|---|
-| GA-01 | Aplicaciones | WMS Principal (On Premises) (APP-06) sin auto-scaling ni HA — caída de 6 h en Cyber Days |
-| GD-02 | Datos | Inventario desalineado entre WMS Principal (APP-06), WMS Satélite (APP-07) y ERP Financiero (On Premises) (APP-25) |
-| GT-01 | Tecnología | SQL Server on premises sin escalado ni alta disponibilidad bajo picos de campaña |
-| GT-05 | Tecnología | Sin plan de DR (RTO/RPO) definido para WMS Principal (On Premises) (APP-06) |
+| GN-03 | Negocio | Integraciones punto a punto dificultan escalabilidad y priorización |
+| GD-04 | Datos | Eventos sin contratos, orden garantizado ni manejo de fallidos |
+| GA-03 | Aplicaciones | Falta Bus de Eventos Central (PLT-03) y gobierno API completo |
+| GT-02 | Tecnología | Sin backpressure, reintentos, priorización ni DLQ |
+| GT-03 | Tecnología | Sin correlación end-to-end |
 
 **Beneficios que aporta:**
 
 | Beneficio | Impacto esperado |
 |---|---|
-| Resiliencia en campaña | Auto-scaling absorbe picos de hasta 3× sin caídas de 6 h como en Cyber Days |
-| Inventario confiable | Una sola fuente de verdad en tiempo real entre los 14 centros de distribución |
-| Continuidad operativa | Modo degradado local con reconciliación automática al reconectar |
-| Protección financiera | Evita USD 1.1M+ en penalidades por indisponibilidad en temporadas críticas |
-| Precisión operativa | Reduce ajustes de inventario de 2.8% a menos de 0.5% |
+| Integración desacoplada | Nuevos consumidores se integran sin modificar sistemas core |
+| Resiliencia operativa | Colas y backpressure protegen WMS Cloud, TMS (Transportation Management) (APP-11) y App de Conductores (APP-15) |
+| Auditoría y replay | Reconstrucción de historial de pedido, inventario, ruta y liquidación |
+| Menor costo de cambio | Contratos versionados reducen dependencias ocultas |
+| Habilitador transversal | Soporta OMS, última milla, rutas dinámicas, observabilidad y liquidación |
 
-**Complejidad**: Muy Alta · **Duración estimada**: 9-12 meses
+**Complejidad:** Alta · **Duración estimada:** 6-8 meses
 
-### INI-03: App de Conductores (APP-15) Resiliente (Offline + Evidencias)
-**Descripción**: Rediseñar App de Conductores (APP-15) con SQLite cifrado, sync atómica hacia Almacenamiento Evidencias (S3) (APP-16), taxonomía de excepciones y MDM.
+### INI-03: Modernización de última milla y gestión de excepciones
 
-**Resumen de gaps que cierra (3):**
+**Descripción:** Fortalecer App de Conductores (APP-15) con operación offline-first, almacenamiento local cifrado, persistencia store-and-forward, confirmación backend, reintentos automáticos y sincronización idempotente. Definir taxonomía única de excepciones para App de Conductores (APP-15), TMS (Transportation Management) (APP-11), CRM de Atención al Cliente (APP-20) y Portal B2B (Trazabilidad) (APP-18), automatizando reintentos, devoluciones, reasignaciones y escalamiento.
+
+**Resumen de gaps que cierra:**
 
 | ID | Dimensión | Brecha resumida |
 |---|---|---|
-| GA-04 | Aplicaciones | App de Conductores (APP-15) con offline frágil y evidencias perdidas (1.200 firmas en campaña) |
-| GD-03 | Datos | Tracking sin orden garantizado; eventos fuera de secuencia al reconectar |
-| GN-02 | Negocio | Excepciones sin taxonomía normalizada — 34% de fallas prevenibles no se aprenden |
+| GN-04 | Negocio | Última milla con evidencias perdidas y excepciones manuales |
+| GD-05 | Datos | Taxonomías distintas entre app, TMS, CRM y portal |
+| GA-04 | Aplicaciones | Offline frágil en App de Conductores (APP-15) y evidencias sin integridad completa |
+| GD-04 | Datos | Tracking fuera de orden al reconectar |
 
 **Beneficios que aporta:**
 
 | Beneficio | Impacto esperado |
 |---|---|
-| Evidencias inviolables | Firma, foto y GPS se preservan aunque el conductor reinstale la app o cambie de equipo |
-| Confianza comercial | Elimina disputas de custodia y cobros retenidos (~USD 180K en un solo incidente) |
-| Datos accionables | Taxonomía de excepciones alimenta ML / Optimización de Rutas (GCP) (APP-24) con datos limpios |
-| Operación en campo | Conductores trabajan con seguridad en zonas sin señal 4G |
-| Cumplimiento legal | Trazabilidad de entrega auditable para clientes y reguladores |
+| Cero pérdida funcional de evidencias | Firma, foto, GPS y timestamp se preservan aunque no haya señal |
+| Excepciones accionables | Misma taxonomía para operación, atención al cliente y aprendizaje ML |
+| Menos reintentos manuales | Reasignación, devolución y escalamiento con reglas automáticas |
+| Mayor confianza de clientes | Evidencias íntegras reducen disputas de custodia |
+| Datos limpios para rutas | ML / Optimización de Rutas (GCP) (APP-24) aprende de causas normalizadas |
 
-**Complejidad**: Media · **Duración estimada**: 3-4 meses
+**Complejidad:** Media · **Duración estimada:** 4-5 meses
 
-### INI-04: Optimizador de Rutas en Tiempo Real (reemplaza Optimizador de Rutas (GCP batch) (APP-12))
-**Descripción**: Migrar Optimizador de Rutas (GCP batch) (APP-12) de batch a streaming (GKE + Cloud Pub/Sub) con re-optimización dinámica.
+### INI-04: Optimización dinámica de rutas y despacho
 
-**Resumen de gaps que cierra (3):**
+**Descripción:** Evolucionar Optimizador de Rutas (GCP batch) (APP-12) hacia planificación dinámica integrada con TMS (Transportation Management) (APP-11) mediante APIs y eventos. La solución incorpora tráfico, capacidad vehicular, ventanas horarias, cadena de frío, seguridad, SLA, disponibilidad de conductores y restricciones de paquetes. Registra cambios manuales de rutas y automatiza asignación de vehículos, conductores y paquetes.
+
+**Resumen de gaps que cierra:**
 
 | ID | Dimensión | Brecha resumida |
 |---|---|---|
-| GA-03 | Aplicaciones | Optimizador de Rutas (GCP batch) (APP-12) solo en batch — rutas con tráfico desactualizado |
-| GN-06 | Negocio | 17% de rutas corregidas manualmente sin causa documentada |
-| GD-05 | Datos | Datos de excepciones inconsistentes impiden entrenar ML / Optimización de Rutas (GCP) (APP-24) |
+| GN-05 | Negocio | Rutas corregidas manualmente sin trazabilidad |
+| GD-05 | Datos | Excepciones no normalizadas degradan planificación |
+| GA-05 | Aplicaciones | Optimizador de Rutas (GCP batch) (APP-12) opera en batch |
+| GT-02 | Tecnología | Integración con TMS sin eventos ni reintentos robustos |
 
 **Beneficios que aporta:**
 
 | Beneficio | Impacto esperado |
 |---|---|
-| Rutas viables | Re-optimización cada 30 min con tráfico y excepciones actualizados |
-| Eficiencia operativa | Reduce el 17% de rutas corregidas manualmente por planners |
-| Ahorro directo | Meta −15% costo por entrega → USD 2M+/año sobre 68K entregas diarias |
-| Cumplimiento SLA | Menos entregas fuera de ventana por rutas obsoletas |
-| Visibilidad para planners | Dashboard en tiempo real de rutas activas y desvíos |
+| Rutas dinámicas | Reoptimización ante tráfico, excepción, cambio de capacidad o incumplimiento SLA |
+| Mejor uso de flota | Asignación automática de vehículos, conductores y paquetes |
+| Menos intervención manual | Cambios manuales quedan registrados con motivo, usuario e impacto |
+| Reducción de costo por entrega | Meta de hasta 15% en costo por entrega sobre operación de alto volumen |
+| Cumplimiento de cadena de frío | Reglas de temperatura y seguridad integradas al plan |
 
-**Complejidad**: Alta · **Duración estimada**: 6-8 meses
+**Complejidad:** Alta · **Duración estimada:** 6-8 meses
 
-### INI-05: Automatización Liquidación — reemplaza Sistema de Liquidación (Excel) (APP-26)
-**Descripción**: Reemplazar Sistema de Liquidación (Excel) (APP-26) con microservicio **.NET 8 en Azure AKS + Azure SQL Database** que concilia WMS Principal (On Premises) (APP-06), TMS (Transportation Management) (APP-11), App de Conductores (APP-15) y ERP Financiero (On Premises) (APP-25) en tiempo real.
+### INI-05: Observabilidad, seguridad y gobierno multinube
 
-**Resumen de gaps que cierra (3):**
+**Descripción:** Centralizar métricas, logs y trazas de Azure, AWS, GCP, SaaS y on premises mediante Plataforma de Observabilidad Unificada (PLT-01), completando Plataforma de Identidad y Accesos (IAM) (PLT-02) y Plataforma IaC (PLT-04). Incorporar identificadores de correlación end-to-end, tableros y alertas para colas, pedidos, inventario, rutas, entregas y SLA; aplicar identidad federada, mínimo privilegio, gestión central de secretos, cifrado, auditoría, infraestructura como código y gobierno FinOps.
+
+**Resumen de gaps que cierra:**
 
 | ID | Dimensión | Brecha resumida |
 |---|---|---|
-| GA-06 | Aplicaciones | Sistema de Liquidación (Excel) (APP-26) manual — errores y penalidades mal calculadas |
-| GN-04 | Negocio | Conciliación de hasta 23 días; USD 2.4M retenidos; 7% facturas observadas |
-| GD-04 | Datos | Datos de liquidación desactualizados; sin fuente única para conciliar en tiempo real |
+| GN-06 | Negocio | Gobierno multinube y visibilidad operativa insuficientes |
+| GA-06 | Aplicaciones | Falta Plataforma de Observabilidad Unificada (PLT-01), IAM completo e IaC |
+| GT-03 | Tecnología | Sin correlación end-to-end |
+| GT-04 | Tecnología | Identidad, secretos y cifrado no homogéneos |
+| GT-05 | Tecnología | Infraestructura manual y FinOps limitado |
 
 **Beneficios que aporta:**
 
 | Beneficio | Impacto esperado |
 |---|---|
-| Conciliación ágil | De 23 días a menos de 1 día entre operación y facturación |
-| Recuperación de caja | Libera USD 2.4M retenidos por un solo cliente en disputa |
-| Calidad de facturación | Facturas observadas bajan de 7% a menos de 1.5% |
-| Automatización de reglas | Penalidades y tarifas calculadas sin Excel ni errores manuales |
-| Transparencia B2B | Portal de conciliación para clientes con estados alineados al ERP Financiero (On Premises) (APP-25) |
+| Visibilidad end-to-end | Pedido, inventario, ruta, entrega y liquidación trazados con un mismo correlation ID |
+| Menor tiempo de detección | Alertas de colas, errores, SLA, evidencias y fallas de integración |
+| Seguridad reforzada | Identidad federada, mínimo privilegio y secretos centralizados |
+| Ambientes reproducibles | Terraform y pipelines reducen cambios manuales |
+| Control de costos | Gobierno FinOps para uso multinube y campañas |
 
-**Complejidad**: Alta · **Duración estimada**: 5-7 meses
+**Complejidad:** Media · **Duración estimada:** 5-6 meses
 
-### INI-06: Servicio de Validación de Órdenes (reemplaza APP-05) + Orquestador de Pedidos (APP-02)
-**Descripción**: Crear **Servicio de Validación de Órdenes** en Cloud MS Azure (EEUU) (NUEVO — reemplaza y elimina Validador de Pedidos (APP-05) en TO BE F1) y fortalecer Orquestador de Pedidos (APP-02) con validación en tiempo real y comunicación proactiva (Servicio de Notificación (SMS/Email) (APP-21)).
+### INI-06: Conciliación financiera y liquidación automatizada
 
-**Resumen de gaps que cierra (3):**
+**Descripción:** Implementar un motor de liquidación que integre OMS, WMS Cloud, TMS (Transportation Management) (APP-11), tracking, evidencias en Almacenamiento Evidencias (S3) (APP-16), Portal B2B (Trazabilidad) (APP-18) y ERP Financiero (On Premises) (APP-25). El motor concilia órdenes, estados, evidencias, SLA, tarifas y penalidades; automatiza bonificaciones, penalidades y notas de crédito; y reemplaza el uso operativo de Sistema de Liquidación (Excel) (APP-26).
+
+**Resumen de gaps que cierra:**
 
 | ID | Dimensión | Brecha resumida |
 |---|---|---|
-| GN-01 | Negocio | Sin validación integral al ingreso — 6% órdenes con defectos; incidente 32K duplicados |
-| GN-03 | Negocio | Sin comunicación proactiva al destinatario — 34% fallas por ausencia/dirección |
-| GD-01 | Datos | Estados y validaciones inconsistentes desde el origen del pedido |
+| GN-07 | Negocio | Liquidación manual con conciliación de 23 días |
+| GD-06 | Datos | Estados, evidencias, SLA, tarifas y penalidades no conciliados |
+| GA-07 | Aplicaciones | Sistema de Liquidación (Excel) (APP-26) no controla reglas ni auditoría |
+| GT-03 | Tecnología | Sin trazabilidad end-to-end para auditoría financiera |
 
 **Beneficios que aporta:**
 
 | Beneficio | Impacto esperado |
 |---|---|
-| Calidad al ingreso | Dirección, SKU y duplicados validados antes de reservar inventario |
-| Prevención de incidentes | Evita repetición de eventos masivos (32K pedidos duplicados) |
-| Menos fallas en ruta | Reduce entregas fallidas de 12.5% hacia 7% al corregir dirección y ausencia |
-| Experiencia destinatario | Ventana horaria confirmada por SMS/email antes de salir el camión |
-| Ahorro operativo | USD 1.58M/año menos en reintentos (8,500 fallas/día × 34% prevenibles) |
+| Liquidación rápida | De 23 días a menos de 1 día en conciliación estándar |
+| Menos facturas observadas | Reglas automáticas reducen errores manuales y notas de crédito tardías |
+| Recuperación de caja | Menos retenciones por disputas de evidencia o SLA |
+| Transparencia B2B | Portal con estado de liquidación y trazabilidad auditable |
+| Menor dependencia de Excel | Sistema de Liquidación (Excel) (APP-26) deja de ser fuente operativa |
 
-**Complejidad**: Media · **Duración estimada**: 3-5 meses
+**Complejidad:** Alta · **Duración estimada:** 6-7 meses
 
-### INI-07: Plataforma de Observabilidad Unificada (PLT-01) + Plataforma de Identidad y Accesos (IAM) (PLT-02) + Plataforma IaC (PLT-04)
+### 3.1 Matriz consolidada - Iniciativa, gaps y beneficio clave
 
-**Descripción**: Habilitadores transversales usando **solo servicios nativos de nube** (Azure, AWS, GCP), con alcance **medio** — sin herramientas SaaS externas de observabilidad ni seguridad.
-
-| PLT | Solución propuesta (servicios nativos) | Alcance |
+| Iniciativa | Gaps principales | Beneficio clave |
 |---|---|---|
-| **PLT-01** Plataforma de Observabilidad Unificada | **Azure:** Azure Monitor + Application Insights + Log Analytics (tablero central operativo)<br>**AWS:** Amazon CloudWatch (métricas/logs de App de Conductores (APP-15), IoT Core (sensores temperatura) (APP-09))<br>**GCP:** Google Cloud Logging + Cloud Trace (Optimizador de Rutas (GCP batch) (APP-12), Plataforma de Analítica (GCP batch) (APP-22)) | Correlación básica cross-cloud vía exportación a Azure Monitor; alertas por umbral en servicios críticos |
-| **PLT-02** Plataforma de Identidad y Accesos (IAM) | **Azure:** Microsoft Entra ID (Azure AD) + MFA + Azure Key Vault + políticas OAuth en Azure API Management (APP-01)<br>**AWS:** IAM roles/policies para App de Conductores (APP-15) y Almacenamiento Evidencias (S3) (APP-16) | Identidad central en Azure; accesos mínimos en AWS; sin SIEM/DLP de terceros en esta fase |
-| **PLT-04** Plataforma IaC | **Terraform** (repos Git de TI) para Azure, AWS y GCP | Plantillas versionadas multinube; despliegue reproducible en ambientes dev/staging/prod |
-
-**Resumen de gaps que cierra (5):**
-
-| ID | Dimensión | Brecha resumida |
-|---|---|---|
-| GA-07 | Aplicaciones | Sin Plataforma de Observabilidad Unificada (PLT-01) cross-cloud — detección tardía de fallos |
-| GN-05 | Negocio | Sin visibilidad operativa en tiempo real — planners con datos del día anterior |
-| GT-02 | Tecnología | Sin Plataforma IaC (PLT-04) — cambios manuales, ambientes no reproducibles |
-| GT-03 | Tecnología | Plataforma de Identidad y Accesos (IAM) (PLT-02) incompleta — APIs expuestas, sin MFA unificado |
-| GT-04 | Tecnología | Tráfico entre nubes solo por Internet público — latencia y riesgo de seguridad (mejora con **VPN site-to-site cifrada (Azure VPN Gateway)** en fase 1) |
-
-**Beneficios que aporta:**
-
-| Beneficio | Impacto esperado |
-|---|---|
-| Visibilidad unificada | Tablero central con métricas, logs y trazas de Azure, AWS y GCP |
-| Detección temprana | Alertas automáticas antes de que un fallo en WMS (APP-06) o TMS (APP-11) escale a campaña |
-| Seguridad reforzada | MFA, WAF y Entra ID central reducen exposición de APIs y datos de destinatarios |
-| Despliegues confiables | Terraform garantiza ambientes dev/staging/prod idénticos y auditables |
-| Conectividad segura | VPN site-to-site cifrada entre nubes sin costo de ExpressRoute en fase 1 |
-
-**Complejidad**: Media · **Duración estimada**: 4-6 meses
-
-### 3.1 Matriz consolidada — Iniciativa ↔ Gaps ↔ Beneficio clave
-
-| Iniciativa | Gaps (IDs) | Total | Beneficio clave |
-|---|---|---|---|
-| INI-01 Bus de Eventos Central (PLT-03) | GA-05, GD-01, GD-03, GD-04, GT-02* | 5 | Integración desacoplada y estados canónicos en toda la cadena |
-| INI-02 WMS Cloud | GA-01, GD-02, GT-01, GT-05 | 4 | Resiliencia en campaña y inventario único en 14 CDs |
-| INI-03 App de Conductores (APP-15) | GA-04, GD-03, GN-02 | 3 | Cero pérdida de evidencias y datos limpios para ML |
-| INI-04 Optimizador tiempo real (APP-12) | GA-03, GN-06, GD-05 | 3 | Rutas viables en tiempo real y −15% costo por entrega |
-| INI-05 Servicio de Liquidación (APP-26) | GA-06, GN-04, GD-04 | 3 | Conciliación <1 día y recuperación de caja retenida |
-| INI-06 Servicio de Validación (reemplaza APP-05) + APP-02 | GN-01, GN-03, GD-01 | 3 | Órdenes válidas al ingreso y menos reintentos en ruta |
-| INI-07 PLT-01 + PLT-02 + PLT-04 | GA-07, GN-05, GT-02, GT-03, GT-04 | 5 | Visibilidad multinube, seguridad y despliegues reproducibles |
-
-*\* GT-02 se cierra principalmente en INI-07 (PLT-04); INI-01 lo habilita al estandarizar despliegue del bus.*
-
-**Gaps sin iniciativa exclusiva (requieren combinación):** GA-02 (Orquestador de Pedidos (APP-02) sin backpressure) se aborda en INI-01 + INI-06; GD-01 y GD-03 son compartidos entre INI-01, INI-03 e INI-06.
+| INI-01 Gestión unificada de órdenes e inventario end-to-end | GN-01, GN-02, GD-01, GD-02, GD-03, GA-01, GA-02, GT-01 | Órdenes e inventario con fuente única, idempotencia y reservas trazables |
+| INI-02 Integración API-First y Event-Driven | GN-03, GD-04, GA-03, GT-02, GT-03 | Integración desacoplada, gobernada y resiliente |
+| INI-03 Modernización de última milla y gestión de excepciones | GN-04, GD-05, GA-04, GD-04 | Offline robusto y excepciones normalizadas entre app, TMS, CRM y portal |
+| INI-04 Optimización dinámica de rutas y despacho | GN-05, GD-05, GA-05, GT-02 | Rutas dinámicas, trazabilidad de cambios manuales y menor costo por entrega |
+| INI-05 Observabilidad, seguridad y gobierno multinube | GN-06, GA-06, GT-03, GT-04, GT-05 | Correlación end-to-end, gobierno de seguridad e IaC multinube |
+| INI-06 Conciliación financiera y liquidación automatizada | GN-07, GD-06, GA-07, GT-03 | Liquidación automática, auditable y sin dependencia operativa de Excel |
 
 ---
 
 ## 4. Arquitecturas de Transición
 
-### Estado AS IS → TO BE
+### Estado AS IS -> TO BE
 
-```
-AS IS (Año 0):
-────────────────────────────────────────────────
-• WMS Principal (On Premises) (APP-06) — SQL Server
-• Integraciones P2P (sin Bus de Eventos Central (PLT-03))
-• Optimizador de Rutas (GCP batch) (APP-12)
-• App de Conductores (APP-15) offline frágil
-• Sistema de Liquidación (Excel) (APP-26)
-• Sin Plataforma de Observabilidad Unificada (PLT-01)
+```text
+AS IS (Año 0)
+------------------------------------------------
+- Orquestador de Pedidos (APP-02) sin rol OMS completo.
+- Validador de Pedidos (APP-05) con deduplicación frágil.
+- WMS Principal (On Premises) (APP-06), WMS Satélite (On Premises local) (APP-07)
+  y Control de Inventario (APP-08) con inventario fragmentado.
+- Integraciones punto a punto; no existe Bus de Eventos Central (PLT-03).
+- App de Conductores (APP-15) con offline frágil.
+- Optimizador de Rutas (GCP batch) (APP-12) en batch.
+- Plataforma de Observabilidad Unificada (PLT-01) ausente, IAM parcial e IaC ausente.
+- Sistema de Liquidación (Excel) (APP-26) manual.
 
-         │
-         ▼
+        |
+        v
 
-TRANSICIÓN 1 (Año 1 - primeros 12 meses):
-────────────────────────────────────────────────
-• Bus de Eventos Central (PLT-03) operativo (Azure Event Hubs)
-• Orquestador de Pedidos (APP-02) con backpressure
-• App de Conductores (APP-15) rediseñada (offline + taxonomía)
-• Servicio de Validación de Órdenes (reemplaza Validador de Pedidos (APP-05))
-• Plataforma IaC (PLT-04) — **Terraform** en repos Git
-• Plataforma de Observabilidad Unificada (PLT-01) básica — **Azure Monitor + Application Insights** + CloudWatch
-• WMS Principal (On Premises) (APP-06) en modo puente (API, sin migración aún)
+TRANSICIÓN 1 (Meses 1-12)
+------------------------------------------------
+- Bus de Eventos Central (PLT-03) y gobierno API-first operativo para flujos críticos.
+- Orquestador de Pedidos (APP-02) evoluciona a OMS MVP con validación, idempotencia
+  y modelo canónico de orden.
+- WMS Principal (On Premises) (APP-06) opera en modo puente mientras se prepara WMS Cloud.
+- App de Conductores (APP-15) offline-first y taxonomía de excepciones inicial.
+- Plataforma de Observabilidad Unificada (PLT-01), IAM e IaC con cobertura base.
+- Primeros tableros de colas, pedidos, inventario, rutas y SLA.
 
-         │
-         ▼
+        |
+        v
 
-TRANSICIÓN 2 (Año 2 - meses 12-24):
-────────────────────────────────────────────────
-• WMS Cloud (reemplaza WMS Principal (On Premises) (APP-06) / WMS Satélite (On Premises local) (APP-07))
-• Optimizador de Rutas en Tiempo Real (reemplaza Optimizador de Rutas (GCP batch) (APP-12)) — GKE + Pub/Sub
-• Servicio de Liquidación (reemplaza Sistema de Liquidación (Excel) (APP-26))
-• Servicio de Notificación (SMS/Email) (APP-21) — comunicación proactiva
-• Plataforma de Identidad y Accesos (IAM) (PLT-02) — Entra ID + MFA + Key Vault
-• Plataforma de Analítica (GCP batch) (APP-22) streaming — BigQuery + Dataflow
-• ERP Financiero (On Premises) (APP-25) integrado en tiempo real
+TRANSICIÓN 2 (Meses 12-24)
+------------------------------------------------
+- WMS Cloud reemplaza WMS Principal (On Premises) (APP-06) y WMS Satélite (On Premises local) (APP-07).
+- Vista unificada de inventario y reconciliación de conflictos.
+- Optimizador de Rutas en Tiempo Real reemplaza Optimizador de Rutas (GCP batch) (APP-12).
+- Motor de liquidación reemplaza Sistema de Liquidación (Excel) (APP-26).
+- ERP Financiero (On Premises) (APP-25), Portal B2B (Trazabilidad) (APP-18)
+  y Almacenamiento Evidencias (S3) (APP-16) integrados al flujo financiero.
 
-         │
-         ▼
+        |
+        v
 
-TO BE (Año 3 - meses 24-36):
-────────────────────────────────────────────────
-• Plataforma logística digital completa
-• Event Store canónico como fuente única de verdad
-• ML predictivo para rutas y detección de excepciones
-• Auto-scaling ante cualquier pico (hasta 3x)
-• Disponibilidad 99.9% en campaña
-• Conciliación automática <1 día
-• 98% trazabilidad confiable
-• Plataforma de Identidad y Accesos (IAM) (PLT-02) + observabilidad nativa multinube (PLT-01) operativas
-```
-
-### Diagrama de Transición
-
-```
-┌────────────┐     ┌────────────────────┐     ┌────────────────────┐     ┌──────────┐
-│   AS IS    │────►│  TRANSICIÓN 1      │────►│  TRANSICIÓN 2      │────►│  TO BE   │
-│            │     │                    │     │                    │     │          │
-│ WMS        │     │ Bus de Eventos +   │     │ WMS Cloud +        │     │ Platform │
-│ Principal  │     │ App de             │     │ Optimizador de     │     │ Digital  │
-│ (On        │     │ Conductores v2 +   │     │ Rutas en Tiempo    │     │ Completa │
-│ Premises)  │     │ Validación +       │     │ Real + Liquidación │     │          │
-│ Batch      │     │ IaC + Observab.    │     │ + IAM (PLT-02) +   │     │          │
-│ Integ P2P  │     │ nativa (PLT-01)    │     │ Analítica Stream.  │     │          │
-│ Sistema de │     │                    │     │                    │     │          │
-│ Liquidación│     │                    │     │                    │     │          │
-│ (Excel)    │     │                    │     │                    │     │          │
-└────────────┘     └────────────────────┘     └────────────────────┘     └──────────┘
-   Hoy             Año 1 (mes 12)              Año 2 (mes 24)             Año 3 (mes 36)
+TO BE (Meses 24-36)
+------------------------------------------------
+- Plataforma logística digital con OMS, WMS Cloud, TMS, app, ERP y portales integrados.
+- Event Store canónico para tracking operativo y financiero.
+- Rutas dinámicas con aprendizaje de excepciones.
+- Observabilidad, seguridad, secretos, cifrado, auditoría, IaC y FinOps gobernados.
+- Liquidación automática en menos de 1 día y trazabilidad auditable end-to-end.
 ```
 
 ---
 
 ## 5. Priorización de Iniciativas (Valor vs Esfuerzo)
 
-```
-ALTO VALOR / BAJO ESFUERZO (Quick Wins):
-  ► INI-03: **APP-15** App de Conductores Resiliente (3-4 meses)
-  ► INI-06: Servicio de Validación de Órdenes (reemplaza **APP-05**) (3-5 meses)
+```text
+FUNDACIONALES / HABILITADORES TRANSVERSALES
+  - INI-05: Observabilidad, seguridad y gobierno multinube
+  - INI-02: Integración API-First y Event-Driven
 
-ALTO VALOR / ALTO ESFUERZO (Apuestas Estratégicas):
-  ► INI-01: **PLT-03** Bus de Eventos Central
-  ► INI-02: WMS Cloud (reemplaza **APP-06**/**APP-07**)
-  ► INI-04: **APP-12** Optimizador Tiempo Real
-  ► INI-05: Liquidación (reemplaza **APP-26**)
+ALTO VALOR / TRANSFORMACIÓN CORE
+  - INI-01: Gestión unificada de órdenes e inventario end-to-end
+  - INI-06: Conciliación financiera y liquidación automatizada
 
-MEDIO VALOR / MEDIO ESFUERZO (Habilitadores nativos cloud):
-  ► INI-07: Plataforma de Observabilidad Unificada (PLT-01) + Plataforma de Identidad y Accesos (IAM) (PLT-02) + Plataforma IaC (PLT-04) — servicios Azure/AWS/GCP, complejidad media
+ALTO VALOR / OPERACIÓN
+  - INI-03: Modernización de última milla y gestión de excepciones
+  - INI-04: Optimización dinámica de rutas y despacho
 ```
+
+**Orden recomendado:** iniciar INI-05 e INI-02 en el mes 1 porque habilitan trazabilidad, seguridad, contratos y eventos para el resto. Ejecutar INI-03 temprano como quick win operativo. Implementar INI-01 con despliegue progresivo porque concentra el mayor cambio core. Encadenar INI-04 e INI-06 sobre los datos y eventos estabilizados.
+
+---
+
+## 6. Verificación de consistencia con hojas de aplicaciones
+
+| Iniciativa | Componentes de aplicaciones/plataformas usados | ¿Requiere cambiar `06`/`08`? | Justificación |
+|---|---|---|---|
+| INI-01 | Orquestador de Pedidos (APP-02), Validador de Pedidos (APP-05), WMS Principal (On Premises) (APP-06), WMS Satélite (On Premises local) (APP-07), Control de Inventario (APP-08), ERP Financiero (On Premises) (APP-25), WMS Cloud TO BE | No | El OMS queda documentado como evolución TO BE de Orquestador de Pedidos (APP-02); WMS Cloud y eliminación de Control de Inventario (APP-08) ya están documentados como TO BE |
+| INI-02 | Azure API Management (APP-01), Bus de Eventos Central (PLT-03), Plataforma de Analítica (GCP batch) (APP-22), Dashboards Operativos (APP-23) | No | Bus de Eventos Central (PLT-03) ya existe como gap/plataforma TO BE; Azure API Management (APP-01) ya está en catálogo |
+| INI-03 | App de Conductores (APP-15), Almacenamiento Evidencias (S3) (APP-16), TMS (Transportation Management) (APP-11), CRM de Atención al Cliente (APP-20), Portal B2B (Trazabilidad) (APP-18) | No | Son modificaciones funcionales y de integración sobre aplicaciones existentes |
+| INI-04 | Optimizador de Rutas (GCP batch) (APP-12), ML / Optimización de Rutas (GCP) (APP-24), TMS (Transportation Management) (APP-11), App de Conductores (APP-15) | No | El reemplazo TO BE del optimizador batch por uno en tiempo real ya está previsto en `09` |
+| INI-05 | Plataforma de Observabilidad Unificada (PLT-01), Plataforma de Identidad y Accesos (IAM) (PLT-02), Plataforma IaC (PLT-04), Azure API Management (APP-01) | No | PLT-01/PLT-04 son gaps TO BE y PLT-02 ya existe como parcial en el catálogo |
+| INI-06 | Sistema de Liquidación (Excel) (APP-26), ERP Financiero (On Premises) (APP-25), TMS (Transportation Management) (APP-11), App de Conductores (APP-15), Almacenamiento Evidencias (S3) (APP-16), Portal B2B (Trazabilidad) (APP-18) | No | El reemplazo del Sistema de Liquidación (Excel) (APP-26) por servicio/motor de liquidación ya está documentado como TO BE |
+
+**Conclusión de consistencia:** la documentación TO BE deja explícito que el "OMS centralizado" es la evolución de Orquestador de Pedidos (APP-02), sin crear un nuevo ID de aplicación. La única decisión que podría forzar cambios adicionales sería exigir que el OMS tenga un ID propio e independiente; no se recomienda para este Hito porque aumenta el alcance sin agregar claridad arquitectónica.
 
 ---
 
