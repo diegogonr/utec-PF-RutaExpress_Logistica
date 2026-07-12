@@ -11,7 +11,7 @@ Identificar y consolidar las brechas entre el estado AS IS y el TO BE de RutaExp
 
 **Criterio de consistencia aplicado:** no se crean nuevos IDs de aplicación en este documento. Cuando la iniciativa menciona un componente nuevo, se trata como:
 
-- evolución de una aplicación existente, por ejemplo Orquestador de Pedidos (APP-02) hacia capacidad OMS;
+- evolución de una aplicación existente, por ejemplo Orquestador de Pedidos (APP-02) hacia capacidad OMS centralizado / Orquestador de Pedidos (APP-02);
 - reemplazo TO BE ya documentado, por ejemplo WMS Cloud reemplaza WMS Principal (On Premises) (APP-06) y WMS Satélite (On Premises local) (APP-07);
 - plataforma habilitadora ya catalogada como brecha, por ejemplo Bus de Eventos Central (PLT-03).
 
@@ -25,7 +25,7 @@ Identificar y consolidar las brechas entre el estado AS IS y el TO BE de RutaExp
 |---|---|---|---|
 | GN-01 | El ciclo de vida de órdenes no se gestiona end-to-end desde una fuente única; la validación depende de Orquestador de Pedidos (APP-02), Validador de Pedidos (APP-05), WMS Principal (On Premises) (APP-06) y canales externos sin control uniforme | Alto - 6% de órdenes con defectos e incidente de 32,000 duplicados | Recepción |
 | GN-02 | Inventario sin vista unificada por SKU, almacén, ubicación, lote y estado; reservas y liberaciones no se coordinan de forma consistente | Crítico - 2.8% de movimientos con ajuste y conflictos al reconectar WMS Satélite (On Premises local) (APP-07) | Almacén |
-| GN-03 | Integraciones punto a punto dificultan escalar, priorizar clientes y operar con contratos estandarizados | Alto - fallas de integración se propagan entre WMS, TMS, app, ERP y portales | Integración |
+| GN-03 | Integraciones punto a punto dificultan escalar, priorizar clientes y operar con contratos estandarizados | Alto - fallas de integración se propagan entre WMS Principal (On Premises) (APP-06), TMS (Transportation Management) (APP-11), app, ERP Financiero (On Premises) (APP-25) y portales | Integración |
 | GN-04 | Gestión de última milla y excepciones sin taxonomía única ni persistencia offline robusta | Alto - 1,200 entregas sin firma y 34% de fallas prevenibles | Última Milla |
 | GN-05 | Planificación de rutas rígida y con intervención manual no trazada | Medio - 17% de rutas corregidas manualmente y SLA en riesgo | Despacho |
 | GN-06 | Visibilidad operativa, seguridad y gobierno multinube insuficientes | Alto - detección tardía de incidentes y riesgo en APIs, secretos y costos cloud | Gobierno TI |
@@ -68,15 +68,15 @@ Identificar y consolidar las brechas entre el estado AS IS y el TO BE de RutaExp
 
 ## 3. Iniciativas / Proyectos
 
-> **Principio de solución:** priorizar servicios nativos de Azure, AWS y GCP, reutilizando aplicaciones existentes o reemplazos TO BE ya definidos. No se propone cambiar el catálogo maestro de aplicaciones del documento `06` salvo que el comité decida separar formalmente el OMS como una nueva aplicación, decisión que no es necesaria para estas iniciativas.
+> **Principio de solución:** priorizar servicios nativos de Azure, AWS y GCP, reutilizando aplicaciones existentes o reemplazos TO BE ya definidos. No se propone cambiar el catálogo maestro de aplicaciones del documento `06` salvo que el comité decida separar formalmente el OMS centralizado / Orquestador de Pedidos (APP-02) como una nueva aplicación, decisión que no es necesaria para estas iniciativas.
 
 ### INI-01: Gestión unificada de órdenes e inventario end-to-end
 
-**Descripción:** Crear una capacidad OMS centralizada sobre Orquestador de Pedidos (APP-02), fortalecida con validación, deduplicación, idempotencia y modelo canónico de órdenes. Integrar reservas, liberaciones y movimientos entre WMS Cloud, TMS (Transportation Management) (APP-11), ERP Financiero (On Premises) (APP-25) y canales B2B. La vista de inventario será única por SKU, almacén, ubicación, lote y estado, con reconciliación automática de conflictos entre WMS Cloud y almacenes locales.
+**Descripción:** Crear una capacidad OMS centralizado / Orquestador de Pedidos (APP-02) centralizada sobre Orquestador de Pedidos (APP-02), fortalecida con validación, deduplicación, idempotencia y modelo canónico de órdenes. Integrar reservas, liberaciones y movimientos entre WMS Cloud, TMS (Transportation Management) (APP-11), ERP Financiero (On Premises) (APP-25) y canales B2B. La vista de inventario será única por SKU, almacén, ubicación, lote y estado, con reconciliación automática de conflictos entre WMS Cloud y almacenes locales.
 
 **Componentes principales:**
 
-- Orquestador de Pedidos (APP-02) evoluciona a capacidad OMS centralizada.
+- Orquestador de Pedidos (APP-02) evoluciona a capacidad OMS centralizado / Orquestador de Pedidos (APP-02) centralizada.
 - Validador de Pedidos (APP-05) se absorbe como reglas/servicio de validación dentro del flujo TO BE ya previsto.
 - WMS Cloud reemplaza WMS Principal (On Premises) (APP-06) y WMS Satélite (On Premises local) (APP-07).
 - Control de Inventario (APP-08) se elimina como app separada; su función queda absorbida por WMS Cloud.
@@ -91,7 +91,7 @@ Identificar y consolidar las brechas entre el estado AS IS y el TO BE de RutaExp
 | GD-01 | Datos | Modelo canónico de orden y estado inexistente |
 | GD-02 | Datos | Múltiples fuentes de verdad de inventario |
 | GD-03 | Datos | Falta de idempotencia y deduplicación robusta |
-| GA-01 | Aplicaciones | Orquestador de Pedidos (APP-02) no cumple rol OMS |
+| GA-01 | Aplicaciones | Orquestador de Pedidos (APP-02) no cumple rol OMS centralizado / Orquestador de Pedidos (APP-02) |
 | GA-02 | Aplicaciones | WMS Principal/Satélite e inventario local no están reconciliados |
 | GT-01 | Tecnología | WMS Principal (On Premises) (APP-06) sin HA, escalado ni DR |
 
@@ -102,7 +102,7 @@ Identificar y consolidar las brechas entre el estado AS IS y el TO BE de RutaExp
 | Órdenes confiables desde el ingreso | Menos duplicados, errores de dirección y pedidos inválidos antes de reservar stock |
 | Inventario único operativo | Disminución de ajustes de inventario y conflictos de stock entre centros |
 | Menor impacto de campañas | WMS Cloud con HA y escalado reduce riesgo de caída en Cyber Days |
-| Trazabilidad de reservas y liberaciones | OMS, WMS, TMS y ERP comparten estados auditables |
+| Trazabilidad de reservas y liberaciones | OMS centralizado / Orquestador de Pedidos (APP-02), WMS Principal (On Premises) (APP-06), TMS (Transportation Management) (APP-11) y ERP Financiero (On Premises) (APP-25) comparten estados auditables |
 | Base para liquidación automática | Estados e inventario conciliables alimentan el motor financiero |
 
 **Complejidad:** Muy Alta · **Duración estimada:** 9-12 meses
@@ -117,7 +117,7 @@ Identificar y consolidar las brechas entre el estado AS IS y el TO BE de RutaExp
 - Reemplazo progresivo de integraciones punto a punto.
 - Colas, reintentos, priorización por SLA, backpressure, circuit breakers y dead-letter queues.
 - Versionamiento de contratos y gobierno de cambios.
-- Event Store canónico con replay para auditoría y recuperación.
+- **Bus de Eventos Central (PLT-03)** (Azure Event Hubs + Service Bus) canónico con replay para auditoría y recuperación.
 
 **Resumen de gaps que cierra:**
 
@@ -137,7 +137,7 @@ Identificar y consolidar las brechas entre el estado AS IS y el TO BE de RutaExp
 | Resiliencia operativa | Colas y backpressure protegen WMS Cloud, TMS (Transportation Management) (APP-11) y App de Conductores (APP-15) |
 | Auditoría y replay | Reconstrucción de historial de pedido, inventario, ruta y liquidación |
 | Menor costo de cambio | Contratos versionados reducen dependencias ocultas |
-| Habilitador transversal | Soporta OMS, última milla, rutas dinámicas, observabilidad y liquidación |
+| Habilitador transversal | Soporta OMS centralizado / Orquestador de Pedidos (APP-02), última milla, rutas dinámicas, observabilidad y liquidación |
 
 **Complejidad:** Alta · **Duración estimada:** 6-8 meses
 
@@ -150,7 +150,7 @@ Identificar y consolidar las brechas entre el estado AS IS y el TO BE de RutaExp
 | ID | Dimensión | Brecha resumida |
 |---|---|---|
 | GN-04 | Negocio | Última milla con evidencias perdidas y excepciones manuales |
-| GD-05 | Datos | Taxonomías distintas entre app, TMS, CRM y portal |
+| GD-05 | Datos | Taxonomías distintas entre app, TMS (Transportation Management) (APP-11), CRM y portal |
 | GA-04 | Aplicaciones | Offline frágil en App de Conductores (APP-15) y evidencias sin integridad completa |
 | GD-04 | Datos | Tracking fuera de orden al reconectar |
 
@@ -177,7 +177,7 @@ Identificar y consolidar las brechas entre el estado AS IS y el TO BE de RutaExp
 | GN-05 | Negocio | Rutas corregidas manualmente sin trazabilidad |
 | GD-05 | Datos | Excepciones no normalizadas degradan planificación |
 | GA-05 | Aplicaciones | Optimizador de Rutas (GCP batch) (APP-12) opera en batch |
-| GT-02 | Tecnología | Integración con TMS sin eventos ni reintentos robustos |
+| GT-02 | Tecnología | Integración con TMS (Transportation Management) (APP-11) sin eventos ni reintentos robustos |
 
 **Beneficios que aporta:**
 
@@ -219,7 +219,7 @@ Identificar y consolidar las brechas entre el estado AS IS y el TO BE de RutaExp
 
 ### INI-06: Conciliación financiera y liquidación automatizada
 
-**Descripción:** Implementar un motor de liquidación que integre OMS, WMS Cloud, TMS (Transportation Management) (APP-11), tracking, evidencias en Almacenamiento Evidencias (S3) (APP-16), Portal B2B (Trazabilidad) (APP-18) y ERP Financiero (On Premises) (APP-25). El motor concilia órdenes, estados, evidencias, SLA, tarifas y penalidades; automatiza bonificaciones, penalidades y notas de crédito; y reemplaza el uso operativo de Sistema de Liquidación (Excel) (APP-26).
+**Descripción:** Implementar un motor de liquidación que integre OMS centralizado / Orquestador de Pedidos (APP-02), WMS Cloud, TMS (Transportation Management) (APP-11), tracking, evidencias en Almacenamiento Evidencias (S3) (APP-16), Portal B2B (Trazabilidad) (APP-18) y ERP Financiero (On Premises) (APP-25). El motor concilia órdenes, estados, evidencias, SLA, tarifas y penalidades; automatiza bonificaciones, penalidades y notas de crédito; y reemplaza el uso operativo de Sistema de Liquidación (Excel) (APP-26).
 
 **Resumen de gaps que cierra:**
 
@@ -248,7 +248,7 @@ Identificar y consolidar las brechas entre el estado AS IS y el TO BE de RutaExp
 |---|---|---|
 | INI-01 Gestión unificada de órdenes e inventario end-to-end | GN-01, GN-02, GD-01, GD-02, GD-03, GA-01, GA-02, GT-01 | Órdenes e inventario con fuente única, idempotencia y reservas trazables |
 | INI-02 Integración API-First y Event-Driven | GN-03, GD-04, GA-03, GT-02, GT-03 | Integración desacoplada, gobernada y resiliente |
-| INI-03 Modernización de última milla y gestión de excepciones | GN-04, GD-05, GA-04, GD-04 | Offline robusto y excepciones normalizadas entre app, TMS, CRM y portal |
+| INI-03 Modernización de última milla y gestión de excepciones | GN-04, GD-05, GA-04, GD-04 | Offline robusto y excepciones normalizadas entre app, TMS (Transportation Management) (APP-11), CRM y portal |
 | INI-04 Optimización dinámica de rutas y despacho | GN-05, GD-05, GA-05, GT-02 | Rutas dinámicas, trazabilidad de cambios manuales y menor costo por entrega |
 | INI-05 Observabilidad, seguridad y gobierno multinube | GN-06, GA-06, GT-03, GT-04, GT-05 | Correlación end-to-end, gobierno de seguridad e IaC multinube |
 | INI-06 Conciliación financiera y liquidación automatizada | GN-07, GD-06, GA-07, GT-03 | Liquidación automática, auditable y sin dependencia operativa de Excel |
@@ -262,7 +262,7 @@ Identificar y consolidar las brechas entre el estado AS IS y el TO BE de RutaExp
 ```text
 AS IS (Año 0)
 ------------------------------------------------
-- Orquestador de Pedidos (APP-02) sin rol OMS completo.
+- Orquestador de Pedidos (APP-02) sin rol OMS centralizado / Orquestador de Pedidos (APP-02) completo.
 - Validador de Pedidos (APP-05) con deduplicación frágil.
 - WMS Principal (On Premises) (APP-06), WMS Satélite (On Premises local) (APP-07)
   y Control de Inventario (APP-08) con inventario fragmentado.
@@ -278,7 +278,7 @@ AS IS (Año 0)
 TRANSICIÓN 1 (Meses 1-12)
 ------------------------------------------------
 - Bus de Eventos Central (PLT-03) y gobierno API-first operativo para flujos críticos.
-- Orquestador de Pedidos (APP-02) evoluciona a OMS MVP con validación, idempotencia
+- Orquestador de Pedidos (APP-02) evoluciona a OMS centralizado / Orquestador de Pedidos (APP-02) MVP con validación, idempotencia
   y modelo canónico de orden.
 - WMS Principal (On Premises) (APP-06) opera en modo puente mientras se prepara WMS Cloud.
 - App de Conductores (APP-15) offline-first y taxonomía de excepciones inicial.
@@ -302,8 +302,8 @@ TRANSICIÓN 2 (Meses 12-24)
 
 TO BE (Meses 24-36)
 ------------------------------------------------
-- Plataforma logística digital con OMS, WMS Cloud, TMS, app, ERP y portales integrados.
-- Event Store canónico para tracking operativo y financiero.
+- Plataforma logística digital con OMS centralizado / Orquestador de Pedidos (APP-02), WMS Cloud, TMS (Transportation Management) (APP-11), app, ERP Financiero (On Premises) (APP-25) y portales integrados.
+- **Bus de Eventos Central (PLT-03)** canónico para tracking operativo y financiero.
 - Rutas dinámicas con aprendizaje de excepciones.
 - Observabilidad, seguridad, secretos, cifrado, auditoría, IaC y FinOps gobernados.
 - Liquidación automática en menos de 1 día y trazabilidad auditable end-to-end.
@@ -335,14 +335,14 @@ ALTO VALOR / OPERACIÓN
 
 | Iniciativa | Componentes de aplicaciones/plataformas usados | ¿Requiere cambiar `06`/`08`? | Justificación |
 |---|---|---|---|
-| INI-01 | Orquestador de Pedidos (APP-02), Validador de Pedidos (APP-05), WMS Principal (On Premises) (APP-06), WMS Satélite (On Premises local) (APP-07), Control de Inventario (APP-08), ERP Financiero (On Premises) (APP-25), WMS Cloud TO BE | No | El OMS queda documentado como evolución TO BE de Orquestador de Pedidos (APP-02); WMS Cloud y eliminación de Control de Inventario (APP-08) ya están documentados como TO BE |
+| INI-01 | Orquestador de Pedidos (APP-02), Validador de Pedidos (APP-05), WMS Principal (On Premises) (APP-06), WMS Satélite (On Premises local) (APP-07), Control de Inventario (APP-08), ERP Financiero (On Premises) (APP-25), WMS Cloud TO BE | No | El OMS centralizado / Orquestador de Pedidos (APP-02) queda documentado como evolución TO BE de Orquestador de Pedidos (APP-02); WMS Cloud y eliminación de Control de Inventario (APP-08) ya están documentados como TO BE |
 | INI-02 | Azure API Management (APP-01), Bus de Eventos Central (PLT-03), Plataforma de Analítica (GCP batch) (APP-22), Dashboards Operativos (APP-23) | No | Bus de Eventos Central (PLT-03) ya existe como gap/plataforma TO BE; Azure API Management (APP-01) ya está en catálogo |
 | INI-03 | App de Conductores (APP-15), Almacenamiento Evidencias (S3) (APP-16), TMS (Transportation Management) (APP-11), CRM de Atención al Cliente (APP-20), Portal B2B (Trazabilidad) (APP-18) | No | Son modificaciones funcionales y de integración sobre aplicaciones existentes |
 | INI-04 | Optimizador de Rutas (GCP batch) (APP-12), ML / Optimización de Rutas (GCP) (APP-24), TMS (Transportation Management) (APP-11), App de Conductores (APP-15) | No | El reemplazo TO BE del optimizador batch por uno en tiempo real ya está previsto en `09` |
-| INI-05 | Plataforma de Observabilidad Unificada (PLT-01), Plataforma de Identidad y Accesos (IAM) (PLT-02), Plataforma IaC (PLT-04), Azure API Management (APP-01) | No | PLT-01/PLT-04 son gaps TO BE y PLT-02 ya existe como parcial en el catálogo |
+| INI-05 | Plataforma de Observabilidad Unificada (PLT-01), Plataforma de Identidad y Accesos (IAM) (PLT-02), Plataforma IaC (PLT-04), Azure API Management (APP-01) | No | Plataforma de Observabilidad Unificada (PLT-01)/Plataforma IaC (PLT-04) son gaps TO BE y Plataforma de Identidad y Accesos (IAM) (PLT-02) ya existe como parcial en el catálogo |
 | INI-06 | Sistema de Liquidación (Excel) (APP-26), ERP Financiero (On Premises) (APP-25), TMS (Transportation Management) (APP-11), App de Conductores (APP-15), Almacenamiento Evidencias (S3) (APP-16), Portal B2B (Trazabilidad) (APP-18) | No | El reemplazo del Sistema de Liquidación (Excel) (APP-26) por servicio/motor de liquidación ya está documentado como TO BE |
 
-**Conclusión de consistencia:** la documentación TO BE deja explícito que el "OMS centralizado" es la evolución de Orquestador de Pedidos (APP-02), sin crear un nuevo ID de aplicación. La única decisión que podría forzar cambios adicionales sería exigir que el OMS tenga un ID propio e independiente; no se recomienda para este Hito porque aumenta el alcance sin agregar claridad arquitectónica.
+**Conclusión de consistencia:** la documentación TO BE deja explícito que el "OMS centralizado" es la evolución de Orquestador de Pedidos (APP-02), sin crear un nuevo ID de aplicación. La única decisión que podría forzar cambios adicionales sería exigir que el OMS centralizado / Orquestador de Pedidos (APP-02) tenga un ID propio e independiente; no se recomienda para este Hito porque aumenta el alcance sin agregar claridad arquitectónica.
 
 ---
 

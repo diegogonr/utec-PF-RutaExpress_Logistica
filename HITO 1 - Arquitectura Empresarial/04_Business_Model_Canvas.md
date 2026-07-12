@@ -23,8 +23,8 @@ Documentar el modelo de negocio de RutaExpress en formato Business Model Canvas,
 │   en campaña)       │ • Gestión de almacén  │ velocidad de         │   para clientes                      │
 │ • Proveedores cloud │   y picking           │ entrega, trazabilidad│   medianos                           │
 │   (AWS, Azure, GCP) │ • Optimización de     │ en tiempo real y     │ • App móvil para                     │
-│ • Proveedores WMS   │   rutas y transporte  │ capacidad de         │   conductores                        │
-│   y TMS             │ • Gestión de última   │ absorber picos de    │ • Portal de tracking                 │
+│ • Proveedores WMS Principal (On Premises) (APP-06)   │   rutas y transporte  │ capacidad de         │   conductores                        │
+│   y TMS (Transportation Management) (APP-11)             │ • Gestión de última   │ absorber picos de    │ • Portal de tracking                 │
 │ • Clientes de       │   milla y excepciones │ hasta 180,000        │   para destinatarios                 │
 │   combustible       │ • Logística inversa   │ entregas/día.        │ • Integración EDI                    │
 │ • Empresas de       │   y devoluciones      │                      │   y archivos CSV                     │
@@ -41,7 +41,7 @@ Documentar el modelo de negocio de RutaExpress en formato Business Model Canvas,
 │                     │ • 2,700 vehículos     │   confiable desde    │ • Portal B2B (trazabilidad)          │
 │                     │   propios             │   origen hasta       │   en tiempo real                     │
 │                     │ • 9,500 colaboradores │   destino            │ • Reportes automatizados             │
-│                     │ • WMS, TMS, app de    │ • Logística inversa  │   para clientes grandes              │
+│                     │ • WMS Principal (On Premises) (APP-06), TMS (Transportation Management) (APP-11), app de    │ • Logística inversa  │   para clientes grandes              │
 │                     │   conductores         │   y gestión de       │ • Atención personalizada             │
 │                     │ • Plataforma          │   devoluciones       │   para cuentas clave                 │
 │                     │   multinube           │ • Penalidades y      │ • Comunicación proactiva             │
@@ -67,7 +67,7 @@ Documentar el modelo de negocio de RutaExpress en formato Business Model Canvas,
 │ • Mano de obra (conductores, pickers,            │ • Tarifa por entrega (por zona, tipo, volumen)       │
 │   supervisores, TI: ~9,500 personas)             │ • Recargo por entrega express y ventana horaria      │
 │ • Infraestructura cloud (AWS, Azure, GCP)        │ • Tarifa por logística inversa / devolución          │
-│ • Licencias WMS, TMS, CRM, portales SaaS         │ • Tarifa por entregas refrigeradas y especiales      │
+│ • Licencias WMS Principal (On Premises) (APP-06), TMS (Transportation Management) (APP-11), CRM, portales SaaS         │ • Tarifa por entregas refrigeradas y especiales      │
 │ • Transportistas tercerizados (campaña)          │ • Bonificaciones por cumplimiento de SLA             │
 │ • Reintentos de entrega (USD 1.20-2.80/intento)  │ • Penalidades cobradas por SLA a transportistas      │
 │ • Penalidades pagadas a clientes (USD 1.1M       │ • Servicios premium de visibilidad y analítica       │
@@ -88,7 +88,7 @@ RutaExpress entrega a sus clientes la capacidad de tercerizar su operación log�
 Clientes B2B de alto volumen que no quieren o no pueden construir su propia operación logística. El segmento principal son los marketplaces y el e-commerce, que representan el mayor volumen pero también las exigencias más altas de trazabilidad, integración API y penalidades.
 
 ### 3. Canales
-Multicanal para integración: **APP-01** Azure API Management para grandes clientes, **APP-03** Portal B2B (Carga CSV/Excel) para medianos, **APP-04** Bucket S3 Legado (archivos) para legacy. **APP-15** App de Conductores es el canal de ejecución en campo. **APP-18** Portal B2B (Trazabilidad) y **APP-19** Portal Tracking Destinatarios son los canales de visibilidad para clientes empresariales y destinatarios finales, respectivamente.
+Multicanal para integración: **APP-01** Azure API Management (APP-01) para grandes clientes, **APP-03** Portal B2B (Carga CSV/Excel) para medianos, **APP-04** Bucket S3 Legado (archivos) para legacy. **APP-15** App de Conductores (APP-15) es el canal de ejecución en campo. **APP-18** Portal B2B (Trazabilidad) y **APP-19** Portal Tracking Destinatarios son los canales de visibilidad para clientes empresariales y destinatarios finales, respectivamente.
 
 ### 4. Relación con Clientes
 Relaciones contractuales de largo plazo con SLA y penalidades. La visibilidad en tiempo real y la comunicación proactiva son habilitadores de fidelización y diferenciación.

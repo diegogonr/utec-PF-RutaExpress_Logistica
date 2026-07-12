@@ -4,7 +4,8 @@
   "description": "Scripts para generar diagramas de arquitectura en alta resolución",
   "scripts": {
     "postinstall": "npx puppeteer browsers install chrome-headless-shell",
-    "prediagrams": "node -e \"require('fs').mkdirSync('HITO 1 - Arquitectura Empresarial/diagramas',{recursive:true});require('fs').mkdirSync('HITO 2 - Requerimientos Y Diseño de Arquitectura de Solución/diagramas',{recursive:true})\"",
+    "prediagrams": "node -e \"require('fs').mkdirSync('HITO 1 - Arquitectura Empresarial/diagramas',{recursive:true});require('fs').mkdirSync('HITO 2 - Requerimientos Y Diseño de Arquitectura de Solución/diagramas',{recursive:true});require('fs').mkdirSync('HITO 3 - MVP Multinube/diagramas_c4/imagenes',{recursive:true})\"",
+    "diagrams:hito3": "python \"HITO 3 - MVP Multinube/diagramas_c4/generar_diagramas_mvp_c4.py\"",
     "diagrams:hito2": "python \"HITO 2 - Requerimientos Y Diseño de Arquitectura de Solución/diagrams/generate_diagrams.py\"",
     "diagrams:as-is": "mmdc -c diagrams/mermaid-config.json -w 4200 -s 2 -i diagrams/infra-as-is.mmd -o \"HITO 1 - Arquitectura Empresarial/diagramas/infra-as-is.png\"",
     "diagrams:to-be": "mmdc -c diagrams/mermaid-config.json -w 4200 -s 2 -i diagrams/infra-to-be.mmd -o \"HITO 1 - Arquitectura Empresarial/diagramas/infra-to-be.png\"",

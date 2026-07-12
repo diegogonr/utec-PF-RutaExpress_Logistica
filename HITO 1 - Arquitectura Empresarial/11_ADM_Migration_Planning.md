@@ -1,13 +1,13 @@
 # ADM - Fase F: Migration Planning
 ## RutaExpress Fulfillment & Transporte
 
-> **Para el comité de arquitectura** — **Plan de migración 36 meses** para las **6 iniciativas** aprobadas en ADM E. **Mensaje clave:** iniciar en mes 1 con Observabilidad/Seguridad/Gobierno (INI-05) e Integración API-First/Event-Driven (INI-02); ejecutar Modernización de última milla (INI-03) como quick win; y desplegar el OMS + inventario (INI-01), rutas dinámicas (INI-04) y liquidación automatizada (INI-06) sobre la plataforma de eventos y trazabilidad.
+> **Para el comité de arquitectura** — **Plan de migración 36 meses** para las **6 iniciativas** aprobadas en ADM E. **Mensaje clave:** iniciar en mes 1 con Observabilidad/Seguridad/Gobierno (INI-05) e Integración API-First/Event-Driven (INI-02); ejecutar Modernización de última milla (INI-03) como quick win; y desplegar el OMS centralizado / Orquestador de Pedidos (APP-02) + inventario (INI-01), rutas dinámicas (INI-04) y liquidación automatizada (INI-06) sobre la plataforma de eventos y trazabilidad.
 
 ---
 
 ## 1. Propósito
 
-Definir el plan de migración desde el estado AS IS hacia el TO BE, con estimaciones de tiempo, costo, prioridades, dependencias, hitos y riesgos. El plan mantiene consistencia con el catálogo de aplicaciones del Hito 1: no se crean nuevos IDs de aplicación y el OMS se implementa como evolución funcional de Orquestador de Pedidos (APP-02).
+Definir el plan de migración desde el estado AS IS hacia el TO BE, con estimaciones de tiempo, costo, prioridades, dependencias, hitos y riesgos. El plan mantiene consistencia con el catálogo de aplicaciones del Hito 1: no se crean nuevos IDs de aplicación y el OMS centralizado / Orquestador de Pedidos (APP-02) se implementa como evolución funcional de Orquestador de Pedidos (APP-02).
 
 ---
 
@@ -42,10 +42,10 @@ Definir el plan de migración desde el estado AS IS hacia el TO BE, con estimaci
 
 **Prioridad:** 4 (Transformación core)
 **Duración:** 12 meses
-**Equipo:** 1 arquitecto senior + 1 product owner logístico + 5 ingenieros backend + 1 DBA + 1 DevOps + 1 analista funcional WMS/ERP
+**Equipo:** 1 arquitecto senior + 1 product owner logístico + 5 ingenieros backend + 1 DBA + 1 DevOps + 1 analista funcional WMS Principal (On Premises) (APP-06)/ERP
 **Alcance:**
 
-- Evolucionar Orquestador de Pedidos (APP-02) hacia capacidad OMS centralizada.
+- Evolucionar Orquestador de Pedidos (APP-02) hacia capacidad OMS centralizado / Orquestador de Pedidos (APP-02) centralizada.
 - Integrar validación, deduplicación, idempotencia y estado canónico de orden.
 - Implementar vista unificada de inventario por SKU, almacén, ubicación, lote y estado.
 - Migrar progresivamente WMS Principal (On Premises) (APP-06) y WMS Satélite (On Premises local) (APP-07) hacia WMS Cloud.
@@ -69,7 +69,7 @@ Definir el plan de migración desde el estado AS IS hacia el TO BE, con estimaci
 - Reducción de duplicados, ajustes manuales y conflictos de stock.
 - Base operacional para rutas, última milla y liquidación automática.
 
-**ROI esperado:** evita incidentes de pedidos duplicados, reduce ajustes de inventario y disminuye el riesgo de penalidades por indisponibilidad de WMS en campañas.
+**ROI esperado:** evita incidentes de pedidos duplicados, reduce ajustes de inventario y disminuye el riesgo de penalidades por indisponibilidad de WMS Principal (On Premises) (APP-06) en campañas.
 
 ---
 
@@ -80,16 +80,16 @@ Definir el plan de migración desde el estado AS IS hacia el TO BE, con estimaci
 **Equipo:** 2 arquitectos + 4 ingenieros backend/integración + 1 DevOps
 **Alcance:**
 
-- Implementar Bus de Eventos Central (PLT-03) con hub principal en Azure y conectores hacia AWS y GCP.
+- Implementar Bus de Eventos Central (PLT-03) con **Azure Event Hubs + Azure Service Bus** como hub principal en Azure y conectores hacia AWS y GCP.
 - Fortalecer Azure API Management (APP-01) como capa de gobierno API-first.
 - Definir contratos de APIs, eventos y modelos de datos.
-- Migrar progresivamente integraciones punto a punto entre OMS, WMS, TMS, App de Conductores (APP-15), ERP Financiero (On Premises) (APP-25), Portal B2B (Trazabilidad) (APP-18) y Plataforma de Analítica (GCP batch) (APP-22).
+- Migrar progresivamente integraciones punto a punto entre OMS centralizado / Orquestador de Pedidos (APP-02), WMS Principal (On Premises) (APP-06), TMS (Transportation Management) (APP-11), App de Conductores (APP-15), ERP Financiero (On Premises) (APP-25), Portal B2B (Trazabilidad) (APP-18) y Plataforma de Analítica (GCP batch) (APP-22).
 - Incorporar colas, reintentos, priorización, backpressure y dead-letter queues.
 - Habilitar event replay y auditoría.
 
 | Componente de costo | Estimación | Total |
 |---|---|---|
-| Azure Event Hubs / conectores cloud | USD 1,200/mes | USD 9,600 |
+| Azure Event Hubs / Service Bus / conectores cloud | USD 1,200/mes | USD 9,600 |
 | Capacidad AKS/API adicional | USD 1,200/mes | USD 9,600 |
 | Equipo desarrollo e integración | USD 30,000/mes | USD 240,000 |
 | Diseño de contratos, pruebas y gobierno | One-time | USD 5,400 |
@@ -210,11 +210,11 @@ Definir el plan de migración desde el estado AS IS hacia el TO BE, con estimaci
 
 **Prioridad:** 6 (Alto impacto financiero)
 **Duración:** 7 meses
-**Equipo:** 1 arquitecto + 3 ingenieros backend + 1 analista de negocio financiero + 1 QA + soporte ERP
+**Equipo:** 1 arquitecto + 3 ingenieros backend + 1 analista de negocio financiero + 1 QA + soporte ERP Financiero (On Premises) (APP-25)
 **Alcance:**
 
 - Implementar motor de liquidación en Azure AKS + Azure SQL.
-- Integrar OMS, WMS Cloud, TMS (Transportation Management) (APP-11), tracking, evidencias, Portal B2B (Trazabilidad) (APP-18) y ERP Financiero (On Premises) (APP-25).
+- Integrar OMS centralizado / Orquestador de Pedidos (APP-02), WMS Cloud, TMS (Transportation Management) (APP-11), tracking, evidencias, Portal B2B (Trazabilidad) (APP-18) y ERP Financiero (On Premises) (APP-25).
 - Conciliar órdenes, estados, evidencias, SLA, tarifas y penalidades.
 - Automatizar bonificaciones, penalidades y notas de crédito.
 - Reemplazar el uso operativo de Sistema de Liquidación (Excel) (APP-26).
@@ -224,7 +224,7 @@ Definir el plan de migración desde el estado AS IS hacia el TO BE, con estimaci
 |---|---|---|
 | Azure AKS + Azure SQL | USD 1,200/mes | USD 8,400 |
 | Equipo desarrollo y QA | USD 28,000/mes | USD 196,000 |
-| Integración ERP y validación financiera | One-time | USD 40,000 |
+| Integración ERP Financiero (On Premises) (APP-25) y validación financiera | One-time | USD 40,000 |
 | Pruebas de reglas, evidencias y portal | One-time | USD 15,600 |
 | **TOTAL INI-06** | | **USD 260,000** |
 
@@ -262,7 +262,7 @@ MES:       1    2    3    4    5    6    7    8    9    10   11   12
 INI-05   [========================]                                      Observabilidad/IAM/IaC base
 INI-02   [================================]                              APIs, eventos, contratos, colas
 INI-03        [====================]                                      Última milla y excepciones
-INI-01             [==============================================]      OMS + inventario + WMS Cloud piloto
+INI-01             [==============================================]      OMS centralizado / Orquestador de Pedidos (APP-02) + inventario + WMS Cloud piloto
 INI-04                            [============================]         Rutas dinámicas
 INI-06                                 [============================]    Motor liquidación
 
@@ -285,7 +285,7 @@ MES:       25   26   27   28   29   30   31   32   33   34   35   36
 | H2 | Mes 4 | Bus de Eventos Central (PLT-03) piloto entre Orquestador de Pedidos (APP-02), WMS Principal (On Premises) (APP-06) y TMS (Transportation Management) (APP-11) | Integración desacoplada para flujo crítico |
 | H3 | Mes 5 | App de Conductores (APP-15) offline-first y taxonomía de excepciones en producción piloto | 0 pérdida funcional de evidencias piloto |
 | H4 | Mes 6 | Gobierno API-first, IAM base, secretos y pipelines IaC operativos | APIs críticas con políticas y despliegues reproducibles |
-| H5 | Mes 8 | OMS MVP sobre Orquestador de Pedidos (APP-02) con validación, deduplicación e idempotencia | Defectos de órdenes <3% |
+| H5 | Mes 8 | OMS centralizado / Orquestador de Pedidos (APP-02) MVP sobre Orquestador de Pedidos (APP-02) con validación, deduplicación e idempotencia | Defectos de órdenes <3% |
 | H6 | Mes 10 | Motor de liquidación piloto con ERP Financiero (On Premises) (APP-25) y evidencias | Conciliación piloto <3 días |
 | H7 | Mes 12 | Rutas dinámicas piloto integradas con TMS (Transportation Management) (APP-11) | Reducción de cambios manuales no trazados |
 | H8 | Mes 14 | WMS Cloud estabilizado y vista unificada de inventario | Ajustes de inventario <0.5% |
@@ -301,15 +301,15 @@ MES:       25   26   27   28   29   30   31   32   33   34   35   36
 INI-05 Observabilidad/Seguridad/Gobierno -> Todas las iniciativas
 INI-02 API-First/Event-Driven -> INI-01, INI-03, INI-04, INI-06
 INI-03 Última milla/Excepciones -> INI-04, INI-06
-INI-01 OMS/Inventario -> INI-04, INI-06
+INI-01 OMS centralizado / Orquestador de Pedidos (APP-02)/Inventario -> INI-04, INI-06
 INI-04 Rutas dinámicas -> Mejora continua de INI-03 e INI-06
 INI-06 Liquidación automatizada -> Depende de estados, evidencias y SLA confiables
 ```
 
 | Dependencia | Motivo | Mitigación |
 |---|---|---|
-| INI-01 depende de INI-02 | OMS e inventario requieren contratos, eventos y backpressure | Empezar INI-02 en mes 1 y entregar piloto en mes 4 |
-| INI-03 depende parcialmente de INI-02 | Store-and-forward debe publicar eventos confiables | Usar adaptadores temporales hasta que PLT-03 esté completo |
+| INI-01 depende de INI-02 | OMS centralizado / Orquestador de Pedidos (APP-02) e inventario requieren contratos, eventos y backpressure | Empezar INI-02 en mes 1 y entregar piloto en mes 4 |
+| INI-03 depende parcialmente de INI-02 | Store-and-forward debe publicar eventos confiables | Usar adaptadores temporales hasta que Bus de Eventos Central (PLT-03) esté completo |
 | INI-04 depende de INI-03 | Rutas dinámicas necesitan excepciones normalizadas | Habilitar taxonomía mínima antes del piloto de rutas |
 | INI-06 depende de INI-01/INI-03 | Liquidación requiere órdenes, inventario, tracking y evidencias confiables | Piloto financiero con subconjunto de clientes y rutas |
 | Todas dependen de INI-05 | Seguridad, trazabilidad y despliegues deben ser gobernados | Entregar baseline de observabilidad/IAM/IaC en primeros 6 meses |
@@ -320,7 +320,7 @@ INI-06 Liquidación automatizada -> Depende de estados, evidencias y SLA confiab
 
 | Riesgo | Probabilidad | Impacto | Mitigación |
 |---|---|---|---|
-| OMS se interpreta como aplicación nueva y no como evolución de Orquestador de Pedidos (APP-02) | Media | Medio | Alinear decisión de arquitectura al inicio; si se crea app separada, actualizar `06`, `08` y `09` antes del diseño detallado |
+| OMS centralizado / Orquestador de Pedidos (APP-02) se interpreta como aplicación nueva y no como evolución de Orquestador de Pedidos (APP-02) | Media | Medio | Alinear decisión de arquitectura al inicio; si se crea app separada, actualizar `06`, `08` y `09` antes del diseño detallado |
 | Migración WMS Cloud se extiende más de lo previsto | Media | Alto | Mantener WMS Principal (On Premises) (APP-06) en modo puente, con APIs/eventos y migración por centros |
 | Contratos de eventos no son adoptados por todos los equipos | Media | Alto | Comité de gobierno API/eventos, versionamiento y pruebas de contrato obligatorias |
 | Resistencia operativa en almacenes y última milla | Alta | Alto | Pilotos por centro/ruta, capacitación y soporte en campo |
@@ -333,7 +333,7 @@ INI-06 Liquidación automatizada -> Depende de estados, evidencias y SLA confiab
 
 | Beneficio | Valor anual estimado |
 |---|---|
-| Evitar penalidades en campañas por indisponibilidad WMS | USD 1,100,000+ |
+| Evitar penalidades en campañas por indisponibilidad WMS Principal (On Premises) (APP-06) | USD 1,100,000+ |
 | Reducción de entregas fallidas y reintentos | USD 1,580,000 |
 | Recuperación de disputas de liquidación | USD 2,400,000 |
 | Reducción de costo por entrega por rutas dinámicas | USD 2,000,000+ |
@@ -348,17 +348,17 @@ INI-06 Liquidación automatizada -> Depende de estados, evidencias y SLA confiab
 
 | Documento | Resultado de verificación | Acción requerida |
 |---|---|---|
-| `06_Mapa_Portafolio_Aplicaciones.md` | Las iniciativas usan aplicaciones y plataformas ya catalogadas: Orquestador de Pedidos (APP-02), Validador de Pedidos (APP-05), WMS Principal (On Premises) (APP-06), WMS Satélite (On Premises local) (APP-07), Control de Inventario (APP-08), TMS (Transportation Management) (APP-11), Optimizador de Rutas (GCP batch) (APP-12), App de Conductores (APP-15), Almacenamiento Evidencias (S3) (APP-16), Portal B2B (Trazabilidad) (APP-18), CRM de Atención al Cliente (APP-20), ERP Financiero (On Premises) (APP-25), Sistema de Liquidación (Excel) (APP-26), PLT-01, PLT-02, PLT-03 y PLT-04. Se explicita que Orquestador de Pedidos (APP-02) evoluciona a OMS centralizado en TO BE | Actualizado |
+| `06_Mapa_Portafolio_Aplicaciones.md` | Las iniciativas usan aplicaciones y plataformas ya catalogadas: Orquestador de Pedidos (APP-02), Validador de Pedidos (APP-05), WMS Principal (On Premises) (APP-06), WMS Satélite (On Premises local) (APP-07), Control de Inventario (APP-08), TMS (Transportation Management) (APP-11), Optimizador de Rutas (GCP batch) (APP-12), App de Conductores (APP-15), Almacenamiento Evidencias (S3) (APP-16), Portal B2B (Trazabilidad) (APP-18), CRM de Atención al Cliente (APP-20), ERP Financiero (On Premises) (APP-25), Sistema de Liquidación (Excel) (APP-26), Plataforma de Observabilidad Unificada (PLT-01), Plataforma de Identidad y Accesos (IAM) (PLT-02), Bus de Eventos Central (PLT-03) y Plataforma IaC (PLT-04). Se explicita que Orquestador de Pedidos (APP-02) evoluciona a OMS centralizado en TO BE | Actualizado |
 | `08_Mapeo_Aplicaciones_Tecnologia.md` | El documento es AS IS; las nuevas capacidades son TO BE y no obligan a alterar el stack AS IS | No requiere cambios |
-| `09_ADM_Fases_CadenasValor_B_C_D_ASIS_TOBE.md` | La disposición TO BE ya contempla WMS Cloud, Servicio de Validación, Optimizador de Rutas en Tiempo Real, Event Store, Servicio de Liquidación y plataformas PLT. Se actualiza F1 para indicar que Orquestador de Pedidos (APP-02) evoluciona a OMS centralizado | Actualizado |
+| `09_ADM_Fases_CadenasValor_B_C_D_ASIS_TOBE.md` | La disposición TO BE contempla WMS Cloud, Servicio de Validación, Optimizador de Rutas en Tiempo Real, **Bus de Eventos Central (PLT-03)** (Azure Event Hubs + Service Bus), Servicio de Liquidación y plataformas PLT. Orquestador de Pedidos (APP-02) evoluciona a OMS centralizado; no se crea Event Store separado en AWS | Actualizado |
 
 **Nota de arquitectura:** la línea base aprobada es que "OMS centralizado" sea la evolución TO BE de Orquestador de Pedidos (APP-02). Si el comité solicita tratarlo como aplicación separada, los cambios necesarios serían:
 
 | Cambio potencial | Documento afectado | Detalle |
 |---|---|---|
-| Crear nuevo ID APP para OMS | `06_Mapa_Portafolio_Aplicaciones.md` | Agregar aplicación TO BE en capa core y ajustar resumen del portafolio |
-| Definir stack del OMS | `08_Mapeo_Aplicaciones_Tecnologia.md` | Agregar fila TO BE o sección complementaria si se decide documentar tecnologías objetivo |
-| Ajustar matriz de disposición | `09_ADM_Fases_CadenasValor_B_C_D_ASIS_TOBE.md` | Cambiar Orquestador de Pedidos (APP-02) de MODIFICAR a reemplazo parcial o integración con nuevo OMS |
+| Crear nuevo ID APP para OMS centralizado / Orquestador de Pedidos (APP-02) | `06_Mapa_Portafolio_Aplicaciones.md` | Agregar aplicación TO BE en capa core y ajustar resumen del portafolio |
+| Definir stack del OMS centralizado / Orquestador de Pedidos (APP-02) | `08_Mapeo_Aplicaciones_Tecnologia.md` | Agregar fila TO BE o sección complementaria si se decide documentar tecnologías objetivo |
+| Ajustar matriz de disposición | `09_ADM_Fases_CadenasValor_B_C_D_ASIS_TOBE.md` | Cambiar Orquestador de Pedidos (APP-02) de MODIFICAR a reemplazo parcial o integración con nuevo OMS centralizado / Orquestador de Pedidos (APP-02) |
 
 No se recomienda este cambio para el Hito 1 porque el alcance funcional puede cubrirse con Orquestador de Pedidos (APP-02) evolucionado, manteniendo el catálogo estable.
 

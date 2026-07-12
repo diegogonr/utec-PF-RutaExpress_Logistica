@@ -1,10 +1,10 @@
 flowchart TB
-    subgraph RXP["INFRAESTRUCTURA TO BE — RUTAEXPRESS"]
+    subgraph RXP["INFRAESTRUCTURA TO BE — RUTAEXPRESS (Alternativa A)"]
         direction TB
 
-        subgraph BUSCAPA["CAPA DE INTEGRACIÓN · Event Streaming"]
+        subgraph BUSCAPA["CAPA DE INTEGRACIÓN · PLT-03"]
             direction TB
-            bus["PLT-03<br/>Bus de Eventos Central"]
+            bus["PLT-03<br/>Azure Event Hubs + Service Bus<br/>hub central en Azure"]
         end
 
         subgraph FILA1["Plataformas cloud"]
@@ -13,46 +13,48 @@ flowchart TB
             subgraph AZURE["AZURE"]
                 direction TB
                 a1["APP-01<br/>Azure API Management + WAF"]
-                a2["APP-02<br/>Orquestador de Pedidos"]
+                a2["APP-02<br/>OMS centralizado / Orquestador de Pedidos"]
                 a3["APP-11<br/>TMS (Transportation Management)"]
                 a4["WMS Cloud<br/>reemplaza APP-06 / APP-07"]
                 a1 --> a2 --> a3
                 a2 --> a4
             end
 
-            subgraph AWS["AWS"]
+            subgraph AWS["AWS · última milla"]
                 direction TB
-                w1["APP-15<br/>App de Conductores ECS Fargate<br/>multi-AZ"]
-                w2["DynamoDB Global Tables<br/>tracking APP-15"]
-                w3["APP-16<br/>Almacenamiento Evidencias (S3)"]
-                w4["Kinesis Data Streams<br/>tracking APP-15"]
+                w1["APP-15<br/>App de Conductores ECS Fargate<br/>offline-first / store-and-forward"]
+                w2["DynamoDB<br/>outbox y estado móvil APP-15"]
+                w3["APP-16<br/>Almacenamiento Evidencias (S3) + KMS"]
+                w4["SQS / EventBridge<br/>puente hacia PLT-03"]
                 w5["APP-09<br/>IoT Core (sensores temperatura)"]
                 w1 --> w2
                 w1 --> w4
             end
         end
 
-        subgraph GCP["GCP · tiempo real"]
+        subgraph GCP["GCP · optimización y analítica"]
             direction LR
             g1["APP-12<br/>Optimizador de Rutas en Tiempo Real"]
-            g2["APP-22<br/>Plataforma de Analítica (GCP batch)"]
+            g2["APP-22<br/>Plataforma de Analítica streaming"]
             g3["APP-23<br/>Dashboards Operativos"]
+            g4["APP-24<br/>Vertex AI"]
         end
 
         subgraph TRANS["Capas transversales"]
             direction LR
-            obs["PLT-01<br/>Plataforma de Observabilidad Unificada"]
-            sec["PLT-02<br/>Plataforma de Identidad y Accesos (IAM)"]
+            obs["PLT-01<br/>OpenTelemetry + Azure Monitor"]
+            sec["PLT-02<br/>Entra ID + Key Vault"]
+            iac["PLT-04<br/>Terraform / pipelines"]
         end
 
-        subgraph PREM["ON PREMISES · solo transición"]
+        subgraph PREM["ON PREMISES · transición"]
             direction LR
             p1["APP-25<br/>ERP Financiero (On Premises)"]
             p2["APP-06<br/>WMS Principal (On Premises) · puente"]
         end
 
         bus --> AZURE
-        bus --> AWS
+        w4 --> bus
         bus --> GCP
         bus --> PREM
     end

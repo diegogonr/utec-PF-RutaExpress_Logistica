@@ -72,7 +72,7 @@ para cumplir promesas de entrega en campañas de alto volumen.
 **RF-1.5 Sincronización de inventario en tiempo real**
 
 Como supervisor de almacén,  
-quiero que el inventario se actualice en tiempo real entre el WMS central, los almacenes satélite y los sistemas downstream,  
+quiero que el inventario se actualice en tiempo real entre el WMS Principal (On Premises) (APP-06) central, los almacenes satélite y los sistemas downstream,  
 para eliminar ajustes manuales y el 2,8% de movimientos con discrepancia.
 
 **RF-1.6 Modo degradado con reconciliación**
@@ -110,7 +110,7 @@ para detectar duplicados, mensajes fuera de orden e inconsistencias entre plataf
 **RNF-1.2 Convergencia entre sistemas**
 
 Como arquitecto de datos,  
-quiero garantizar consistencia eventual con convergencia en menos de 60 segundos entre WMS, TMS y portales B2B,  
+quiero garantizar consistencia eventual con convergencia en menos de 60 segundos entre WMS Principal (On Premises) (APP-06), TMS (Transportation Management) (APP-11) y portales B2B,  
 para que clientes y operación vean el mismo estado del pedido.
 
 **RNF-1.3 Alerta de inconsistencias**
@@ -119,10 +119,10 @@ Como equipo de operaciones,
 quiero recibir alertas automáticas cuando los estados difieran entre almacén, transporte y portal de trazabilidad,  
 para corregir desalineaciones antes de que lleguen al cliente.
 
-**RNF-1.4 Resiliencia ante saturación del WMS**
+**RNF-1.4 Resiliencia ante saturación del WMS Principal (On Premises) (APP-06)**
 
 Como arquitecto de solución,  
-quiero circuit breakers y backpressure por cliente y prioridad SLA entre orquestador y WMS,  
+quiero circuit breakers y backpressure por cliente y prioridad SLA entre orquestador y WMS Principal (On Premises) (APP-06),  
 para evitar colas descontroladas y fallos en cascada en campaña.
 
 **RNF-1.5 Rendimiento de validación de órdenes**
@@ -154,7 +154,7 @@ para reducir el 17% de rutas que hoy se corrigen manualmente.
 **RF-2.2 Manifiesto completo antes del despacho**
 
 Como supervisor de despacho,  
-quiero que el manifiesto incluya solo paquetes confirmados por el WMS,  
+quiero que el manifiesto incluya solo paquetes confirmados por el WMS Principal (On Premises) (APP-06),  
 para evitar salir a ruta con entregas faltantes o inconsistentes.
 
 **RF-2.3 Auditoría de cambios manuales de ruta**
@@ -165,7 +165,7 @@ para analizar desvíos y mejorar la planificación.
 
 **RF-2.4 Restricciones operativas de flota**
 
-Como TMS,  
+Como TMS (Transportation Management) (APP-11),  
 quiero aplicar restricciones de vehículo, zona, capacidad y tipo de carga al asignar rutas,  
 para cumplir reglas operativas y de seguridad.
 
@@ -177,10 +177,10 @@ Como planner,
 quiero obtener una ruta optimizada para un lote de hasta 2.700 vehículos en menos de 5 minutos,  
 para reaccionar antes del inicio de la jornada o ante un evento crítico.
 
-**RNF-2.2 Disponibilidad del TMS**
+**RNF-2.2 Disponibilidad del TMS (Transportation Management) (APP-11)**
 
 Como COO,  
-quiero que el TMS tenga RTO menor a 15 minutos y forme parte del objetivo de 99,9% de disponibilidad en campaña,  
+quiero que el TMS (Transportation Management) (APP-11) tenga RTO menor a 15 minutos y forme parte del objetivo de 99,9% de disponibilidad en campaña,  
 para no detener despachos en temporadas críticas.
 
 ---
@@ -245,14 +245,14 @@ para no interrumpir la jornada de entrega.
 
 ### Epica 4 — Trazabilidad, eventos e integración
 
-*Bus de eventos, modelo canónico, orden de mensajes y visibilidad operativa transversal.*
+*Bus de Eventos Central (PLT-03), modelo canónico, orden de mensajes y visibilidad operativa transversal.*
 
 #### Requisitos Funcionales
 
 **RF-4.1 Publicación de eventos del ciclo de vida**
 
 Como arquitecto de integración,  
-quiero que todos los eventos del ciclo de vida del pedido se publiquen en un bus central,  
+quiero que todos los eventos del ciclo de vida del pedido se publiquen en un Bus de Eventos Central (PLT-03),  
 para desacoplar sistemas y eliminar integraciones frágiles punto a punto.
 
 **RF-4.2 Catálogo canónico de estados**
@@ -290,7 +290,7 @@ para actuar antes de que un retraso se convierta en penalidad.
 **RNF-4.3 Alertas ante degradación de servicios críticos**
 
 Como responsable de disponibilidad,  
-quiero alertas automáticas cuando WMS, TMS, app de conductores o portal de tracking se degraden,  
+quiero alertas automáticas cuando WMS Principal (On Premises) (APP-06), TMS (Transportation Management) (APP-11), app de conductores o portal de tracking se degraden,  
 para activar runbooks antes de impacto masivo al cliente.
 
 **RNF-4.4 Recuperación de datos operativos**
@@ -310,7 +310,7 @@ para no perder trazabilidad ante una falla de infraestructura.
 **RF-5.1 Conciliación automatizada multifuente**
 
 Como analista financiero,  
-quiero conciliar automáticamente estados entre almacén, transporte, última milla y ERP,  
+quiero conciliar automáticamente estados entre almacén, transporte, última milla y ERP Financiero (On Premises) (APP-25),  
 para reducir el tiempo de disputa de 23 días a menos de 1 día.
 
 **RF-5.2 Reportes de trazabilidad alineados a facturación**

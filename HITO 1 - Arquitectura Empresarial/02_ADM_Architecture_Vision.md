@@ -9,7 +9,7 @@
 
 RutaExpress opera la cadena logística completa (recepción de pedidos, preparación en almacén, transporte, última milla y liquidación) para clientes empresariales y destinatarios finales. Hoy la operación no sostiene las exigencias del mercado ni las campañas de alto volumen.
 
-- En el último **Cyber Days**, el cumplimiento de la promesa de entrega fue del **82%**; se pagaron **USD 1.1M** en penalidades por entregas tardías y el WMS principal estuvo degradado **6 horas** con **240.000 pedidos** en cola.
+- En el último **Cyber Days**, el cumplimiento de la promesa de entrega fue del **82%**; se pagaron **USD 1.1M** en penalidades por entregas tardías y el WMS Principal (On Premises) (APP-06) principal estuvo degradado **6 horas** con **240.000 pedidos** en cola.
 - **12,5%** de entregas fallan diariamente (~8.500 paquetes); el **34%** de esas fallas se deben a causas prevenibles (dirección incorrecta, ausencia del destinatario, datos erróneos al ingreso).
 - **6%** de órdenes llegan con defectos al flujo; un incidente generó **32.000 pedidos duplicados** por fallo de validación.
 - **2,8%** de movimientos de inventario requieren ajuste manual; el inventario no está alineado entre almacenes centrales, satélites y finanzas.
@@ -82,7 +82,7 @@ Metas de negocio concretas:
 
 **Fuera de alcance (Hito 1):**
 
-● Rediseño del ERP financiero (se integra, no se reemplaza)
+● Rediseño del ERP Financiero (On Premises) (APP-25) financiero (se integra, no se reemplaza)
 
 ● Rediseño del CRM de atención al cliente (se mejora la taxonomía de excepciones)
 

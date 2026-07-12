@@ -1,7 +1,7 @@
 # ADM - Preliminary
 ## RutaExpress Fulfillment & Transporte
 
-> **Para el comité de arquitectura** — Este documento fija el **marco de gobierno** (Comité quincenal, Board mensual), los **principios** que toda iniciativa debe cumplir (PN/PD/PA/PT) y las **herramientas** de trabajo (Jira, draw.io, Terraform). **Mensaje clave:** antes de aprobar diseños, validar que respeten principios como API-First (PA-01), PLT-03 event-driven y migración progresiva de **APP-06** hacia WMS Cloud.
+> **Para el comité de arquitectura** — Este documento fija el **marco de gobierno** (Comité quincenal, Board mensual), los **principios** que toda iniciativa debe cumplir (PN/PD/PA/PT) y las **herramientas** de trabajo (Jira, draw.io, Terraform). **Mensaje clave:** antes de aprobar diseños, validar que respeten principios como API-First (PA-01), Bus de Eventos Central (PLT-03) event-driven y migración progresiva de **APP-06** hacia WMS Cloud.
 
 ---
 
@@ -73,7 +73,7 @@ Esta fase establece el marco de trabajo, el modelo de gobierno y los principios 
 | # | Principio | Descripción |
 |---|---|---|
 | PA-01 | API-First | Toda integración entre sistemas internos y con clientes externos se realizará vía APIs RESTful o eventos, eliminando integraciones punto a punto y archivos. |
-| PA-02 | Evitar acoplamiento directo | Los sistemas no deben llamarse directamente en flujos críticos. Se usarán **PLT-03** Bus de Eventos o **APP-01** Azure API Management como intermediarios. |
+| PA-02 | Evitar acoplamiento directo | Los sistemas no deben llamarse directamente en flujos críticos. Se usarán **Bus de Eventos Central (PLT-03)** Bus de Eventos Central (PLT-03) o **APP-01** Azure API Management (APP-01) como intermediarios. |
 | PA-03 | Preferencia SaaS cuando sea viable | Para funcionalidades no diferenciadas (CRM, portales B2B de carga y trazabilidad, firma digital, pagos) se preferirán soluciones SaaS sobre desarrollo propio. |
 | PA-04 | Dominios de negocio alineados a arquitectura | Los sistemas se alinearán a dominios: Gestión de Pedidos, Almacén, Transporte, Última Milla, Trazabilidad, Liquidación. Cada dominio tendrá su propio equipo y responsabilidad. |
 | PA-05 | Idempotencia y deduplicación | Todos los servicios receptores de mensajes deben implementar idempotencia para evitar duplicaciones como el incidente de los 32,000 pedidos repetidos. |
@@ -85,7 +85,7 @@ Esta fase establece el marco de trabajo, el modelo de gobierno y los principios 
 | PT-01 | Cloud-First (Nube pública) | Las nuevas capacidades se construirán en nube pública (AWS, Azure, GCP). WMS Principal (On Premises) — APP-06 — migrará progresivamente a WMS Cloud. |
 | PT-02 | Infraestructura como Código (IaC) | Toda la infraestructura se define con **Terraform** (repos Git de TI). No se aprovisiona infraestructura manualmente en producción. |
 | PT-03 | Seguridad desde el diseño (Security by Design) | La seguridad se incorpora en el diseño, no como capa posterior. Incluye autenticación, autorización, cifrado en tránsito y reposo, y auditoría de accesos. |
-| PT-04 | Observabilidad nativa | Los sistemas deben emitir métricas, logs y trazas distribuidas desde el inicio. Se centralizará en **PLT-01** Plataforma de Observabilidad Unificada. |
+| PT-04 | Observabilidad nativa | Los sistemas deben emitir métricas, logs y trazas distribuidas desde el inicio. Se centralizará en **Plataforma de Observabilidad Unificada (PLT-01)** Plataforma de Observabilidad Unificada. |
 | PT-05 | Multinube por resiliencia y capacidad | AWS, Azure y GCP según fortaleza: Azure para Orquestador de Pedidos (APP-02) y TMS (Transportation Management) (APP-11); AWS para App de Conductores (APP-15) e IoT Core (sensores temperatura) (APP-09); GCP para Optimizador de Rutas (GCP batch) (APP-12) y Plataforma de Analítica (GCP batch) (APP-22). |
 
 ---

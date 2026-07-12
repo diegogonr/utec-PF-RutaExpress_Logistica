@@ -21,7 +21,7 @@ Complementar el catálogo del doc `06` con **atributos tecnológicos AS IS**: st
 
 | Aplicación | Tecnología / Stack | Base de Datos | Fuente |
 |---|---|---|---|
-| Azure API Management (APP-01) | Azure API Management (PaaS) | N/A | ✅ Caso 6a F1 |
+| Azure API Management (APP-01) | Azure API Management (APP-01) (PaaS) | N/A | ✅ Caso 6a F1 |
 | Orquestador de Pedidos (APP-02) | ⚠️ Suposición: .NET en Azure AKS | Azure SQL Database | ✅ AKS — Caso 6b |
 | Portal B2B (Carga CSV/Excel) (APP-03) | SaaS externo (vendor no especificado) | SaaS (vendor) | ✅ Caso 6a F1 |
 | Bucket S3 Legado (archivos) (APP-04) | Amazon S3 | N/A | ✅ Caso 6a F1 |
@@ -45,14 +45,14 @@ Complementar el catálogo del doc `06` con **atributos tecnológicos AS IS**: st
 | Plataforma de Analítica (GCP batch) (APP-22) | ⚠️ Suposición: Python/Spark o herramienta GCP | BigQuery (⚠️ herramienta específica) | ✅ Caso 6a F6 |
 | Dashboards Operativos (APP-23) | ⚠️ Suposición: herramienta BI en GCP | BigQuery (⚠️ Suposición) | ⚠️ Inferido — Caso 6a F6 |
 | ML / Optimización de Rutas (GCP) (APP-24) | ⚠️ Suposición: algoritmo ML en GCP | ⚠️ Suposición: datos históricos en GCP | ✅ Caso 6b R3 |
-| ERP Financiero (On Premises) (APP-25) | ⚠️ Suposición: ERP COTS | ⚠️ Suposición: BD propia del ERP | ✅ Caso 6a F6 |
+| ERP Financiero (On Premises) (APP-25) | ⚠️ Suposición: ERP Financiero (On Premises) (APP-25) COTS | ⚠️ Suposición: BD propia del ERP Financiero (On Premises) (APP-25) | ✅ Caso 6a F6 |
 | Sistema de Liquidación (Excel) (APP-26) | Microsoft Excel / hojas de cálculo | Archivos Excel locales | ✅ Caso 6a F6 |
 
 ---
 
 ## 3. Mapa visual por plataforma de infraestructura (AS IS)
 
-Vista tipo **Arquitectura Tecnológica**: cada aplicación agrupada en su **plataforma de infraestructura** (doc `07` §2.2) con **nombre oficial (APP-XX) + stack/BD**. Comunicación global P2P vía Internet/WAN, **sin Bus de Eventos Central (PLT-03)**. Detalle de red → doc `07` §3.
+Vista tipo **Arquitectura Tecnológica**: cada aplicación agrupada en su **plataforma de infraestructura** (doc `07` §2.2) con **nombre oficial (APP-XX) + stack/BD**. Comunicación global P2P vía Internet/WAN, **sin Bus de Eventos Central (PLT-03) (PLT-03) (Bus de Eventos Central (PLT-03)) (Bus de Eventos Central (PLT-03)) (Bus de Eventos Central (PLT-03))**. Detalle de red → doc `07` §3.
 
 > Regenerar PNG: `npm run diagrams:tech-map` (o `npm run diagrams`).
 
@@ -74,14 +74,14 @@ Vista tipo **Arquitectura Tecnológica**: cada aplicación agrupada en su **plat
 
 | Origen | Destino | Medio | Patrón | Problema |
 |---|---|---|---|---|
-| On Premises (Lima) — WMS Principal (On Premises) (APP-06) / WMS Satélite (On Premises local) (APP-07) | Cloud MS Azure (EEUU) — Orquestador de Pedidos (APP-02), TMS (Transportation Management) (APP-11) | WAN privada / Internet | API P2P | Sin bus central; acoplamiento |
+| On Premises (Lima) — WMS Principal (On Premises) (APP-06) / WMS Satélite (On Premises local) (APP-07) | Cloud MS Azure (EEUU) — Orquestador de Pedidos (APP-02), TMS (Transportation Management) (APP-11) | WAN privada / Internet | API P2P | sin Bus de Eventos Central (PLT-03) (PLT-03) (Bus de Eventos Central (PLT-03)) (Bus de Eventos Central (PLT-03)) (Bus de Eventos Central (PLT-03)) central; acoplamiento |
 | Cloud MS Azure (EEUU) — Azure API Management (APP-01), Orquestador de Pedidos (APP-02) | Cloud AWS (EEUU) — App de Conductores (APP-15), Bucket S3 Legado (archivos) (APP-04) | Internet público | REST / archivos S3 | Sin cifrado tránsito garantizado |
 | Cloud MS Azure (EEUU) — TMS (Transportation Management) (APP-11) | Cloud GCP (EEUU) — Optimizador de Rutas (GCP batch) (APP-12) | Internet público | Batch / export | Latencia; datos desactualizados |
 | Cloud AWS (EEUU) — App de Conductores (APP-15) | Cloud SaaS - Software as a Service (EEUU) — Portal B2B (Trazabilidad) (APP-18), Servicio de Notificación (SMS/Email) (APP-21) | Internet | Webhooks / APIs vendor | Estados inconsistentes |
 | On Premises (Lima) — WMS Principal (On Premises) (APP-06) | Cloud SaaS - Software as a Service (EEUU) — Portal B2B (Carga CSV/Excel) (APP-03) + Cloud AWS (EEUU) — Bucket S3 Legado (archivos) (APP-04) | Internet + S3 | CSV / SFTP legado | Canal manual sin validación |
 | Cloud AWS (EEUU) — App de Conductores (APP-15) | Cloud AWS (EEUU) — backend APP-15 | 4G móvil | HTTPS | Offline frágil |
 | On Premises (Lima) — App Handhelds (picking) (APP-10) | On Premises (Lima) — WMS Principal (On Premises) (APP-06) / WMS Satélite (On Premises local) (APP-07) | Wi-Fi interno LAN | Sync local | Sin redundancia (doc `07`) |
-| Todas las APP | — | — | ❌ Sin Bus de Eventos Central (PLT-03) | Integraciones frágiles |
+| Todas las APP | — | — | ❌ sin Bus de Eventos Central (PLT-03) (PLT-03) (Bus de Eventos Central (PLT-03)) (Bus de Eventos Central (PLT-03)) (Bus de Eventos Central (PLT-03)) | Integraciones frágiles |
 
 > **draw.io:** una caja por **plataforma de infraestructura**; en cada caja **nombre oficial (APP-XX) + stack** (como el diagrama).
 

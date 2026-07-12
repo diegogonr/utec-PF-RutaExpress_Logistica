@@ -48,7 +48,7 @@ Referencia de producto en el catálogo logístico.
 Almacén desde donde se preparan y despachan pedidos.
 - ID Centro, Nombre, Dirección, Capacidad total
 - Zonas de almacenamiento, Temperatura (seco/frío)
-- WMS asociado (**APP-06** / **APP-07**), Región de cobertura
+- WMS Principal (On Premises) (APP-06) asociado (**APP-06** / **APP-07**), Región de cobertura
 
 ### UBICACIÓN DE ALMACÉN
 Posición física de un ítem dentro del centro de distribución.
@@ -144,7 +144,7 @@ Cierre económico de los servicios prestados a un cliente.
 Documento de cobro por servicios logísticos.
 - ID Factura, Liquidación, Cliente
 - Fecha emisión, Monto total, Estado
-- Referencia ERP, Observaciones cliente
+- Referencia ERP Financiero (On Premises) (APP-25), Observaciones cliente
 
 ### RECLAMO
 Disputa del cliente sobre una liquidación o entrega.

@@ -1,0 +1,166 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1304" height="1224" viewBox="0 0 1304 1224">
+
+<defs>
+  <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+    <path d="M0,0 L0,6 L9,3 z" fill="#475569"/>
+  </marker>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#94a3b8" flood-opacity="0.25"/>
+  </filter>
+</defs>
+
+<rect x="0" y="0" width="100%" height="100%" fill="white"/>
+<text x="42" y="38" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" fill="#0f172a">Alternativa A - C4 Nivel 3 Componentes</text>
+<text x="42" y="66" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400" fill="#475569">Zoom a un unico contenedor: Bus de Eventos Central PLT-03 en Azure.</text>
+<text x="42" y="88" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400" fill="#64748b">Fuente: alternativa_A_n3_componentes.md</text>
+<g filter="url(#shadow)"><rect x="42" y="146" width="300" height="990" rx="14" fill="#f8fafc" stroke="#64748b" stroke-width="2" opacity="0.72"/></g>
+<text x="58" y="176" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#64748b">Productores</text>
+
+<rect x="71" y="198" width="242" height="78" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+<text x="192" y="234" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">OMS centralizado</text>
+<text x="192" y="251" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">APP-02</text>
+
+
+<rect x="71" y="300" width="242" height="78" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+<text x="192" y="344" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">Inventario y Reservas</text>
+
+
+<rect x="71" y="402" width="242" height="78" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+<text x="192" y="446" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">Backend movil AWS</text>
+
+
+<rect x="71" y="504" width="242" height="78" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+<text x="192" y="548" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">Adaptadores legados</text>
+
+<g filter="url(#shadow)"><rect x="502" y="146" width="300" height="990" rx="14" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2" opacity="0.72"/></g>
+<text x="518" y="176" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#7c3aed">Contenedor en foco</text>
+
+<rect x="531" y="198" width="242" height="78" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+<text x="652" y="242" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">Event Ingestion API</text>
+
+
+<rect x="531" y="300" width="242" height="78" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+<text x="652" y="344" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">Schema Validator</text>
+
+
+<rect x="531" y="402" width="242" height="78" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+<text x="652" y="446" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">Event Router</text>
+
+
+<rect x="531" y="504" width="242" height="78" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+<text x="652" y="548" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">Ordering Guard</text>
+
+
+<rect x="531" y="606" width="242" height="78" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+<text x="652" y="650" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">Retry Scheduler</text>
+
+
+<rect x="531" y="708" width="242" height="78" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+<text x="652" y="752" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">DLQ Manager</text>
+
+
+<rect x="531" y="810" width="242" height="78" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+<text x="652" y="854" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">Replay Controller</text>
+
+
+<rect x="531" y="912" width="242" height="78" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+<text x="652" y="956" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">Backpressure Controller</text>
+
+
+<rect x="531" y="1014" width="242" height="78" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+<text x="652" y="1058" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">Audit / Event Store</text>
+
+<g filter="url(#shadow)"><rect x="962" y="146" width="300" height="990" rx="14" fill="#f8fafc" stroke="#64748b" stroke-width="2" opacity="0.72"/></g>
+<text x="978" y="176" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#64748b">Consumidores</text>
+
+<rect x="991" y="198" width="242" height="78" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+<text x="1112" y="234" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">Adaptador TMS</text>
+<text x="1112" y="251" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">APP-11</text>
+
+
+<rect x="991" y="300" width="242" height="78" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+<text x="1112" y="344" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">Portal B2B / CRM</text>
+
+
+<rect x="991" y="402" width="242" height="78" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+<text x="1112" y="446" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">Optimizador GCP</text>
+
+
+<rect x="991" y="504" width="242" height="78" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+<text x="1112" y="540" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">Observabilidad</text>
+<text x="1112" y="557" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">PLT-01</text>
+
+
+<rect x="991" y="606" width="242" height="78" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+<text x="1112" y="642" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">Identidad y secretos</text>
+<text x="1112" y="659" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0f172a">PLT-02</text>
+
+
+<path d="M 313 237 L 422 237 L 422 237 L 531 237" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="378" y="226" width="88" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="422" y="241" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">OrderEvents</text>
+
+
+<path d="M 313 339 L 398 339 L 398 237 L 531 237" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="359" y="277" width="78" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="398" y="292" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">Inventory</text>
+
+
+<path d="M 313 441 L 446 441 L 446 237 L 531 237" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="407" y="328" width="78" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="446" y="343" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">Tracking</text>
+
+
+<path d="M 313 543 L 374 543 L 374 237 L 531 237" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="335" y="379" width="78" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="374" y="394" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">Legacy</text>
+
+
+<path d="M 773 237 L 785 237 L 785 339 L 773 339" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="746" y="277" width="78" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="785" y="292" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">valida</text>
+
+
+<path d="M 773 339 L 785 339 L 785 441 L 773 441" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="746" y="379" width="78" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="785" y="394" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">valido</text>
+
+
+<path d="M 773 441 L 785 441 L 785 543 L 773 543" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="746" y="481" width="78" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="785" y="496" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">secuencia</text>
+
+
+<path d="M 773 543 L 785 543 L 785 645 L 773 645" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="746" y="583" width="78" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="785" y="598" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">entrega</text>
+
+
+<path d="M 773 645 L 882 645 L 882 237 L 991 237" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="843" y="430" width="78" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="882" y="445" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">eventos</text>
+
+
+<path d="M 773 645 L 858 645 L 858 339 L 991 339" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="819" y="517" width="78" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="858" y="532" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">estado</text>
+
+
+<path d="M 773 645 L 906 645 L 906 441 L 991 441" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="867" y="550" width="78" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="906" y="565" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">analitica</text>
+
+
+<path d="M 773 441 L 785 441 L 785 747 L 773 747" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="746" y="619" width="78" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="785" y="634" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">fallo</text>
+
+
+<path d="M 773 747 L 785 747 L 785 849 L 773 849" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="746" y="787" width="78" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="785" y="802" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">replay</text>
+
+
+<path d="M 773 849 L 785 849 L 785 441 L 773 441" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="746" y="652" width="78" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="785" y="667" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">reinyecta</text>
+
+
+<path d="M 773 951 L 785 951 L 785 441 L 773 441" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="746" y="685" width="78" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="785" y="700" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">control</text>
+
+
+<path d="M 773 1053 L 834 1053 L 834 543 L 991 543" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="795" y="823" width="78" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="834" y="838" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">metricas</text>
+
+
+<path d="M 991 645 L 930 645 L 930 237 L 773 237" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="891" y="466" width="78" height="22" rx="6" fill="white" stroke="#cbd5e1"/><text x="930" y="481" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#334155">auth</text>
+
+</svg>
