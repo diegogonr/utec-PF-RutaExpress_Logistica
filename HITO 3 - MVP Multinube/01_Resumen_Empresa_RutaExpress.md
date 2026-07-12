@@ -1,7 +1,7 @@
 # Resumen de la empresa — RutaExpress
 ## Fulfillment & Transporte
 
-> **Para el comité** — Contexto de negocio en **5 minutos** antes del dossier MVP. Detalle completo del Hito 1 → `HITO 1 - Arquitectura Empresarial/`.
+> **Para el comité** — Contexto de negocio en **5 minutos** antes del dossier MVP. Términos técnicos: glosario en [`00_INDICE_COMITE.md`](00_INDICE_COMITE.md) §Glosario breve. Detalle completo del Hito 1 → `HITO 1 - Arquitectura Empresarial/`.
 
 ---
 
@@ -72,7 +72,7 @@ RutaExpress opera en **tres nubes** más sistemas **on premises**:
 | **Roadmap Hito 1 (36 meses)** | OMS centralizado, WMS Cloud, bus de eventos, última milla resiliente, liquidación automática, observabilidad multinube — **6 iniciativas de transformación INI-01 a INI-06** (cada iniciativa agrupa varias **aplicaciones (APP-XX)**, **plataformas (PLT-XX)** y, donde aplica, **microservicios (MS-INIxx-yy)**; las iniciativas **no** son aplicaciones) |
 | **MVP Hito 3 (este paquete)** | Prototipo desplegable que prueba el **núcleo**: orden → reserva → evento → entrega offline → evidencia, en **Azure + AWS + GCP**, con mocks del legado |
 
-El MVP **no reemplaza** todavía el WMS real ni la liquidación completa; demuestra que la **arquitectura hub central Azure** definida en el Hito 2 es viable antes de invertir en la migración total.
+El MVP **no reemplaza** todavía el WMS real ni la liquidación completa; demuestra que un **hub central en Azure** (donde ya viven Orquestador de Pedidos (APP-02) y Azure API Management (APP-01)) puede **orquestar orden, bus y Saga** con última milla en AWS y lectura en GCP — antes de invertir en la migración total del legado.
 
 ---
 
@@ -82,9 +82,11 @@ El MVP **no reemplaza** todavía el WMS real ni la liquidación completa; demues
 |:---:|---|
 | 1 | [`00_INDICE_COMITE.md`](00_INDICE_COMITE.md) — índice del paquete |
 | 2 | **Este resumen** ✓ |
-| 3 | [`02_Dossier_MVP_Alternativa_A.md`](02_Dossier_MVP_Alternativa_A.md) — alcance, patrones y decisiones del MVP |
-| 4 | [`03_C4_Model_MVP.md`](03_C4_Model_MVP.md) — diagramas C4 |
-| 5 | [`04_IaC_Costos_Despliegue.md`](04_IaC_Costos_Despliegue.md) — Terraform y costos |
+| 3 | [`01b_TOBE_vs_MVP_Alternativa_A.md`](01b_TOBE_vs_MVP_Alternativa_A.md) — marco plano / maqueta / casa entera |
+| 4 | [`02_Dossier_MVP_Alternativa_A.md`](02_Dossier_MVP_Alternativa_A.md) — alcance, patrones y decisiones del MVP |
+| 5 | [`03_C4_Model_MVP.md`](03_C4_Model_MVP.md) — diagramas C4 |
+| 6 | [`04_IaC_Costos_Despliegue.md`](04_IaC_Costos_Despliegue.md) — Terraform y costos |
+| — | [`06_Preguntas_Argumentos_Comite.md`](06_Preguntas_Argumentos_Comite.md) — *(opcional)* preguntas y argumentos para la defensa oral |
 
 ---
 

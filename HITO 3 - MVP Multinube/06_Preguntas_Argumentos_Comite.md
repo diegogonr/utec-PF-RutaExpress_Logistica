@@ -1,0 +1,192 @@
+# Preguntas frecuentes y argumentos para el comité
+
+**Hito 3 — MVP Multinube RutaExpress**  
+Documento de apoyo oral para la defensa. Complementa el dossier, el C4 y el índice del comité.
+
+> **Convención:** toda sigla o palabra técnica en inglés lleva entre paréntesis su significado breve. Glosario completo: [`00_INDICE_COMITE.md`](00_INDICE_COMITE.md) §Glosario breve.
+
+---
+
+## Reglas de argumentación (leer antes de defender)
+
+| Evitar (circular) | Usar en su lugar |
+|---|---|
+| «Porque la Alternativa A / el Hito 2 lo dice» | **AS IS del cliente**, dolores del caso (§`01`), perfil de carga, comparación técnica entre opciones |
+| «Porque un ADR nuestro lo aprobó» | **Requisito verificable** (E1–E8), restricción del enunciado, límite del producto Azure/AWS |
+| «Porque así lo documentamos» | **Qué pasa si se elige la otra opción** (riesgo, costo, qué escenario de demo se rompe) |
+
+La columna **Evidencia** apunta al paquete solo para **ampliar** si preguntan; la respuesta oral debe bastar **sin** abrir el PDF.
+
+---
+
+## 1. Alcance del MVP
+
+| Pregunta posible | Argumento para responder | Evidencia |
+|---|---|---|
+| ¿El MVP implementa todo el TO BE? | **No.** El TO BE describe 36 meses y seis iniciativas. El MVP es una **maqueta** que prueba el núcleo orden → reserva → evento → entrega offline → tracking (E1–E8), no la migración completa de 26 aplicaciones. | `01b`; `02` §1 |
+| ¿Por qué mocks de WMS, ERP, portal y TMS? | El enunciado **permite APIs mock**. Los legados on premises no están en alcance de despliegue; los mocks permiten probar **contratos HTTP y eventos** (Saga — pasos compensables, circuit breaker — corte ante fallos, CQRS — separar escritura y lectura) sin VPN ni migración del CD. | Enunciado; `02` §4.3 |
+| ¿Qué son E1–E8? | **Criterios de aceptación de la demo**, mapeados a dolores reales: 32.000 duplicados, Cyber Days, firmas perdidas, tracking inconsistente. | `01` §4; `02` §6 |
+| ¿Qué queda fuera? | WMS Cloud real, optimizador de rutas/ML, liquidación automática, observabilidad plena, Pub/Sub (publicar/suscribir) GCP en v1. | `02` §2.2 |
+
+---
+
+## 2. Multinube (Azure + AWS + GCP)
+
+### 2.1 Por qué tres nubes (argumento independiente)
+
+**1. RutaExpress ya opera en tres nubes** (`01` §3). El problema AS IS es la **integración punto a punto**, no el multicloud en sí.
+
+**2. Cada nube cubre un perfil de carga distinto:**
+
+| Rol | Perfil | Por qué no mezclarlo todo en un vendor en la maqueta |
+|---|---|---|
+| **Azure** | OLTP (transaccional en línea), Saga (pasos compensables), bus, API gateway | Orquestador y TMS **ya están en Azure**; SQL + Event Hubs + Service Bus encajan transacción y campañas |
+| **AWS** | Móvil offline, S3 evidencias | APP-15 y S3 **ya están en AWS**; ACK (acuse de recibo) al conductor y objetos grandes cerca del borde |
+| **GCP** | Lectura analítica | Analítica **ya en GCP**; BigQuery evita que el tracking masivo golpee SQL transaccional (CQRS — separar escritura y lectura) |
+
+**3. Consolidar en una sola nube en el MVP** = re-plataformar móvil y analítica **antes** de validar el bus — migración de años, no alcance de prototipo.
+
+**Respuesta oral (30 s):** «El cliente **ya** está en Azure, AWS y GCP. Falló la **integración**, no tener tres proveedores. Separamos por **tipo de carga** y unimos con **eventos**. El MVP demuestra ese remedio en E1–E8.»
+
+### 2.2 Otras preguntas multinube
+
+| Pregunta | Argumento | Evidencia |
+|---|---|---|
+| ¿Más caro/complejo? | Egress (tráfico de salida entre nubes) ~USD 18/mes en demo baja; es el costo de **no migrar 68k entregas/día y S3** de golpe. Mitigación: eventos compactos, región coherente. | `04` §4.2 |
+| ¿Azure = SPOF (punto único de falla)? | El **hub de decisión de negocio** (orden, bus) concentra donde ya está el OMS. Mitigación: particiones, DLQ/replay (cola de fallidos / reproceso auditado), backpressure (frenado de ingesta — caso 240k pedidos). Multi-región = post-MVP. | `01` §4; `03` Flujo D |
+| ¿Conductor → Azure directo? | Última milla necesita **ACK local** y S3 donde ya está APP-15. Cada entrega dependería de red al hub; el caso perdió **1.200 firmas** por conectividad. Patrón: sync a AWS, luego puente async (asíncrono) al hub. | `01` §4; `03` §4.0.3 |
+| ¿Integración entre nubes? | Móvil → SQS → EventBridge → Event Hubs; hub → Cloud Run → BigQuery; lectura E8 vía APIM → BQ. **Un bus canónico en Azure**; sin llamadas ad hoc AWS↔GCP. | `03` §3.3 |
+
+---
+
+## 3. Azure — compute y plataforma
+
+### 3.1 ¿Por qué AKS y no Azure Functions / App Service?
+
+**Contexto del workload:** tres piezas de **software de dominio** en Azure — Orquestador (orden, Saga, outbox — cola de salida de eventos), Inventario (reserva async — asíncrona), workers del bus (validación, replay, backpressure). Carga **siempre encendida** en demo, picos en campaña, procesos **de fondo** (publicador outbox, consumidores Service Bus).
+
+| Criterio | **AKS** (Kubernetes administrado en Azure) | **Azure Functions** | **App Service** |
+|---|---|---|---|
+| **API HTTP + procesos de fondo en el mismo equipo** | Un contenedor puede exponer REST **y** ejecutar workers outbox/Saga en el mismo despliegue o en pods (unidades de ejecución en Kubernetes) vecinos del mismo cluster | Functions separa HTTP (triggers — disparadores) de lógica larga; Saga + outbox + polling (consulta periódica) implica **Durable Functions** o varias funciones encadenadas — más piezas y cold starts (arranque en frío) en ruta crítica | App Service sirve web/API; workers de bus y segundo microservicio con **escalado distinto** suelen terminar en planes o apps separadas sin el mismo control que K8s (Kubernetes) |
+| **Duración / espera síncrona** | Sin límite de 10–30 min por «invocación»; la Saga **espera** respuesta mock-WMS (HTTP sync — síncrono) dentro del mismo proceso | Timeout por invocación (aunque extensible) y modelo evento-a-evento **no natural** para Saga síncrona con compensación en la misma unidad lógica | Similar a Functions para trabajos largos; menos idóneo para workers custom del bus |
+| **Varios microservicios (OMS + inventario)** | **Dos deployments** en un cluster: aislamiento de dominio, red interna, políticas comunes (secretos, OTel — OpenTelemetry) | Un Function App por dominio o un monolito de funciones — peor frontera de dominio o peor operación | Varios App Services = varios planes; menos estándar para patrón microservicio + worker |
+| **Integración con Event Hubs / Service Bus** | SDKs en proceso largo, reconexión, backpressure custom (E4, E5) | Posible pero fragmentado en triggers; lógica de replay auditado más incómoda | Menos flexible para consumidores dedicados con lógica propia |
+| **Afinidad con lo existente** | Orquestador **APP-02 ya corre en Azure**; contenedores son el siguiente paso natural sin cambiar modelo mental del equipo | Cambio de paradigma (functions) para un dominio ya pensado como **servicio** | Intermedio; muchos equipos acaban en AKS cuando crecen microservicios + workers |
+| **Costo MVP demo** | Cluster pequeño 2 nodos ~USD 140/mes — caro pero **un solo plano** para OMS + inventario + bus workers | Puede ser más barato en invocaciones bajas, pero **más funciones/apps** para el mismo alcance | Varios planes Web + workers → coste comparable sin ventaja clara |
+
+**Qué escenario de demo se rompe si solo Functions/App Service:** E4/E5 (workers de bus con replay y backpressure acoplados al mismo runtime de dominio), operación de **dos microservicios** con outbox SQL, y Saga con paso WMS síncrono + compensación en un flujo continuo.
+
+**Respuesta oral:** «Elegimos **AKS** porque tenemos **varios servicios de dominio con estado**, workers de fondo (outbox, bus) y **Saga con llamada síncrona al WMS mock**, no funciones aisladas de segundos. Functions encajaría para un endpoint puntual; aquí el Orquestador, Inventario y el bus son **procesos de vida larga** que comparten un cluster. App Service quedaría corto para workers custom y dos microservicios con escalado distinto.»
+
+### 3.2 Otras preguntas Azure
+
+| Pregunta | Argumento | Evidencia |
+|---|---|---|
+| ¿Event Hubs **y** Service Bus? | **Funciones distintas:** Hubs = **stream** (flujo continuo) alto volumen, replay (reproceso), alimentar GCP; Service Bus = **colas por consumidor** con ACK y DLQ (inventario, mock-tms). Un solo producto no cubre ambos patrones bien. | `03` §4.0.1 |
+| ¿Tantos componentes en el bus? | El caso **Cyber Days** exige DLQ con payload (cuerpo del mensaje) intacto y **replay auditado** (240k mensajes). Los brokers administrados no sustituyen **replay gobernado + validación de contrato** sin perder la narrativa E5. | `01` §4; `03` §4.1 |
+| ¿SQL compartida OMS + inventario? | **Costo y operación MVP:** una instancia, **esquemas separados**, sin joins cross-dominio; integración por bus. Escalar a instancias separadas no cambia el contrato de dominio. | `03` §4.4 |
+| ¿Redis además de SQL? | Dedup (deduplicación) e idempotencia (misma petición sin duplicar) (E1, E2) con **latencia ms** y TTL (tiempo de vida en caché) 24h sin martillar SQL en cada reintento del cliente. | `01` §4; `03` §4.0.2 |
+| ¿APIM Developer? | Prototipo académico sin SLA: ~USD 50/mes vs ~700 Standard; suficiente para OAuth (autorización delegada), mocks y demo. | `04` §4.1 |
+| ¿Saga → WMS por HTTP sync? | El contrato con WMS on premises en el caso es **confirmación síncrona** en almacén; la demo usa mock con 503/timeout (E4). WMS solo-async retrasaría saber si la orden queda confirmada y complicaría compensación **en la misma conversación de negocio**. | `02` §2.1 INI-01; Flujo A |
+| ¿Sin Pub/Sub hacia GCP? | El **productor canónico** está en Azure (Event Hubs). Añadir Pub/Sub en v1 sería **otro broker** sin beneficio en la maqueta; el consumidor es un handler Cloud Run. | `03` §4.0.6 |
+
+---
+
+## 4. AWS — última milla
+
+### 4.1 ¿Por qué ECS Fargate y no Lambda?
+
+| Criterio | **ECS Fargate** (contenedores sin administrar servidores) | **Lambda** (funciones serverless) |
+|---|---|---|
+| **Modelo** | Servicio **HTTP continuo** (ALB — balanceador de carga): lote del móvil → S3 + DynamoDB → **ACK** en la misma sesión | Modelo por invocación; API + evidencias + ACK + relay suelen **fragmentarse** en varias funciones |
+| **Retry Worker** | Polling (consulta periódica) de SQS con **jitter** (espera aleatoria entre reintentos para no saturar) en el **mismo task** (tarea de contenedor) que la API — un despliegue, trazas unificadas | Lambda + trigger SQS + posible segunda función para relay; más cold starts en el puente |
+| **Duración** | Subida de evidencias y lotes offline sin techo rígido de invocación | Límite por invocación; lotes grandes o muchas fotos acercan al límite |
+| **Store-and-forward** (guardar y reenviar) | Handler orquesta evidencia + outbox en **un flujo** en memoria | Más round-trips stateless (sin estado en servidor) a S3/DynamoDB entre pasos |
+| **Costo demo** | ~USD 38/mes 24/7 — coherente con demo siempre disponible | Más barato a volumen mínimo; ahorro no compensa fragmentar INI-03 |
+
+**Respuesta oral:** «El backend móvil es **una API REST con ACK inmediato al conductor**, evidencias S3 y **retry del puente en el mismo servicio**. Lambda obligaría a trocear eso y complicaría el patrón offline sin ganancia clara en la demo.»
+
+### 4.2 Otras preguntas AWS
+
+| Pregunta | Argumento | Evidencia |
+|---|---|---|
+| ¿DynamoDB vs RDS? | Outbox y ACK: acceso clave-valor, baja latencia, on-demand (pago por uso); sin administrar instancia SQL en AWS para colas PENDING. | `03` §4.0.3 |
+| ¿S3 evidencias? | Objetos inmutables, KMS (gestión de llaves), costo por GB; encaja fotos/firmas y caso de firmas perdidas (E7). | `01` §4 |
+| ¿Offline en DynamoDB? | **No.** Offline = teléfono. DynamoDB cuando hay red **hacia AWS**. | `03` §4.0.3 |
+| ¿SQS + EventBridge? | SQS absorbe picos del móvil; EventBridge publica al hub — desacopla fallos del puente Azure. | `03` §3.3 |
+| ¿ALB vs API Gateway? | ALB es el patrón estándar **TLS (cifrado en tránsito) + health check (sondeo de salud) → ECS Fargate**; API Gateway añade capa y costo sin requisito de API management en AWS (eso está en APIM). | `03` §3.2 |
+
+---
+
+## 5. GCP
+
+| Pregunta | Argumento | Evidencia |
+|---|---|---|
+| ¿Qué hace GCP? | **Solo lectura CQRS** (separar escritura y lectura): Cloud Run proyecta eventos → BigQuery; cliente consulta vía mock-portal (E8). No transacciona órdenes. | `03` §4.0.6 |
+| ¿Cloud Run vs GKE? | Handler **ligero**, escala a cero, pago por invocación; GKE (Kubernetes en GCP) sería overkill para un proyector mínimo. | `03` §4.6 |
+| ¿BigQuery vs leer SQL Azure? | Tracking masivo **no debe** bloquear OLTP del OMS; CQRS separa escritura (SQL) y lectura (BQ). | `03` Flujo C |
+| ¿Firestore u otro? | E8 y mock-portal usan **SQL analítico** sobre proyecciones tabulares; BigQuery encaja consultas ad hoc de tracking; cambiar store obligaría rehacer contrato del portal mock. | `03` §4.0.6 |
+| ¿INI-04 rutas/ML? | Fuera del MVP; GCP en maqueta = proyector + sandbox BQ. | `01` §5 |
+
+---
+
+## 6. Patrones
+
+| Pregunta | Argumento | Evidencia |
+|---|---|---|
+| ¿Los 6 patrones? | Caso **distribuido** (orden, stock, bus, móvil, lectura): microservicios, DDD (diseño por dominio), EDA (eventos), CQRS, Saga, resiliencia — cada uno responde un dolor (duplicados, desincronización, offline, tracking). | `02` §3; `01` §4 |
+| ¿Outbox repetido? | Mismo **patrón** (cola de salida de eventos), distinto store: garantizar que el evento no se pierde si el broker falla **después** del commit SQL o del ACK al móvil. | `03` §1.2 |
+| ¿Idempotencia + dedup? | Dos problemas AS IS: reintento con misma clave (E1) vs **misma orden con clave distinta** (E2, 32k duplicados). | `01` §4 |
+| ¿CQRS duplica datos? | Sí **a propósito:** proyección eventual en BQ; fuente de verdad transaccional en SQL. | `03` Flujo C |
+
+---
+
+## 7. C4 y diagramas
+
+| Pregunta | Argumento | Evidencia |
+|---|---|---|
+| ¿Muchas cajas N3? | **Módulos lógicos** (responsabilidades), no un pod (unidad en Kubernetes) por caja; pocos contenedores desplegables. | `03` §4.0 |
+| ¿APIM sin flecha a Key Vault en N3 OMS? | N3 = zoom de **un contenedor**; seguridad transversal en N2 y en políticas APIM (§4.0.5). | `03` §4.0.2 |
+| ¿Query API vs tracking E8? | Query API = soporte sobre SQL; E8 = mock-portal → BigQuery (cliente). | `03` §4.0.2 |
+
+---
+
+## 8. Seguridad
+
+| Pregunta | Argumento | Evidencia |
+|---|---|---|
+| ¿OAuth/JWT? | Validación en **APIM** (entrada) y **Order API** (defensa en profundidad); OAuth (autorización delegada) y JWT (token firmado de identidad); keys en Key Vault, no en código. | `03` §4.0.5; `04` §3 |
+| ¿Evidencias? | S3 SSE-KMS (cifrado con llaves gestionadas) + SHA-256 (huella criptográfica) (E7). | `03` §4.0.3 |
+
+---
+
+## 9. Costos e IaC
+
+| Pregunta | Argumento | Evidencia |
+|---|---|---|
+| ¿Costo total? | ~USD 449/mes demo baja (`04` §4). | `04` |
+| ¿IaC 100%? | Requisito enunciado; módulos Terraform (infraestructura como código) por nube. | `04` §1 |
+
+---
+
+## 10. Preguntas incómodas
+
+| Pregunta | Argumento | Evidencia |
+|---|---|---|
+| ¿Todo en Azure? | Ignora AS IS (APP-15, S3, analítica GCP); obliga a **migrar antes de probar** el bus; no demuestra integración multinube del caso. | `01` §3 |
+| ¿K8s en las 3 nubes? | Solo el **dominio transaccional** justifica cluster; móvil y proyector son **cargas acotadas** → Fargate y Cloud Run reducen operación sin perder funcionalidad. | `02` §5 |
+| ¿Microservicios overkill? | El caso ya tiene **dominios separados** (orden vs inventario vs móvil); el MVP usa **tres workloads**, no decenas. | `01` §2 cadena valor |
+
+---
+
+## 11. Guion 5 minutos
+
+1. **Dolores** (`01` §4): duplicados, Cyber Days, offline, tracking.
+2. **Multinube** (`06` §2.1): AS IS → hub por eventos; AWS entrega; GCP lee.
+3. **Demo** (`03` Flujo A): orden → bus → inventario → Saga WMS mock.
+4. **Diferencial:** DLQ/replay, móvil offline, CQRS E8.
+5. **Cierre:** IaC, ~USD 449/mes, mocks = contratos legado.
+
+---
+
+*RutaExpress — Hito 3 — UTEC*

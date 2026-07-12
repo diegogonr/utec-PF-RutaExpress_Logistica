@@ -3,8 +3,10 @@
 
 > **Audiencia:** Comité de Arquitectura y evaluación UTEC.  
 > **Contexto de negocio:** ver primero [`01_Resumen_Empresa_RutaExpress.md`](01_Resumen_Empresa_RutaExpress.md) (5 min).  
+> **TO BE vs MVP vs Alternativa A:** ver [`01b_TOBE_vs_MVP_Alternativa_A.md`](01b_TOBE_vs_MVP_Alternativa_A.md) — evita la confusión «¿el Hito 3 implementa toda la Alternativa A?».  
 > **Estado:** Documentación de diseño de implementación — **sin despliegue aún**.  
-> **Nomenclatura (regla de oro):** cada **APP-XX**, **PLT-XX** y **MS-INI01-02** va siempre con su **nombre oficial** — catálogo en `HITO 1 - .../06_Mapa_Portafolio_Aplicaciones.md`. El prefijo **MS** significa *microservicio*; **MS-INI01-02** identifica el microservicio de inventario de la iniciativa **INI-01**, con ID propio distinto del catálogo **APP-01…APP-26**.
+> **Nomenclatura (regla de oro):** cada **APP-XX**, **PLT-XX** y **MS-INI01-02** va siempre con su **nombre oficial** — catálogo en `HITO 1 - .../06_Mapa_Portafolio_Aplicaciones.md`. El prefijo **MS** significa *microservicio*; **MS-INI01-02** identifica el microservicio de inventario de la iniciativa **INI-01**, con ID propio distinto del catálogo **APP-01…APP-26**.  
+> **Términos técnicos:** siglas y palabras en inglés llevan entre paréntesis un significado breve — glosario: [`00_INDICE_COMITE.md`](00_INDICE_COMITE.md) §Glosario breve.
 
 ---
 
@@ -16,7 +18,7 @@ En este dossier no se usan abreviaturas informales («apps», «ML» sin nombre 
 
 | Tipo | ID | Rol en la documentación | En el MVP |
 |---|---|---|---|
-| **Iniciativa** | INI-01 … INI-06 | Programa de transformación del roadmap (capacidades de negocio). **No es una aplicación.** | El MVP implementa **INI-01**, **INI-02** e **INI-03** |
+| **Iniciativa** | INI-01 … INI-06 | Programa de transformación del roadmap (capacidades de negocio). **No es una aplicación.** | El MVP demuestra un **núcleo parcial** de **INI-01**, **INI-02** e **INI-03** — ver [`01b_TOBE_vs_MVP_Alternativa_A.md`](01b_TOBE_vs_MVP_Alternativa_A.md) |
 | **Aplicación** | APP-01 … APP-26 | Aplicación del portafolio empresarial Hito 1 | p. ej. **Orquestador de Pedidos (APP-02)**, **App de Conductores (APP-15)** |
 | **Plataforma** | PLT-01 … PLT-04 | Capacidad transversal (bus de eventos, identidad, observabilidad, infraestructura como código) | p. ej. **Bus de Eventos Central (PLT-03)** |
 | **Microservicio de iniciativa** | MS-INIxx-yy | Componente técnico **nuevo** de una iniciativa; desplegable en AKS o ECS; **sin** ID **APP-XX** | **Microservicio Inventario y Reservas (MS-INI01-02)** |
@@ -54,19 +56,21 @@ RutaExpress es operador logístico B2B/B2C con **14 centros de distribución**, 
 
 ### 1.2 Visión TO BE (Hito 1) vs qué hará el MVP (Hito 3)
 
-El Hito 1 definió **hacia dónde va** RutaExpress en 36 meses mediante **seis iniciativas INI-01 a INI-06**. Una **iniciativa (INI)** es un bloque de capacidades del roadmap; **no** es una aplicación: cada INI puede involucrar varias **APP-XX**, **PLT-XX** y microservicios **MS-INIxx-yy**. El MVP del Hito 3 **no implementa todo el roadmap**: implementa un **subconjunto demostrable** de **INI-01**, **INI-02** e **INI-03**, usando mocks donde el legado aún no se migra.
+El Hito 1 definió **hacia dónde va** RutaExpress en 36 meses mediante **seis iniciativas INI-01 a INI-06**. Una **iniciativa (INI)** es un bloque de capacidades del roadmap; **no** es una aplicación: cada INI puede involucrar varias **APP-XX**, **PLT-XX** y microservicios **MS-INIxx-yy**. El MVP del Hito 3 **no implementa todo el roadmap ni toda la Alternativa A**: implementa un **subconjunto demostrable** (**vertical slice** — corte end-to-end por capas) alineado con **INI-01**, **INI-02** e **INI-03**, usando mocks donde el legado aún no se migra.
+
+> **Marco de alcance TO BE vs MVP:** [`01b_TOBE_vs_MVP_Alternativa_A.md`](01b_TOBE_vs_MVP_Alternativa_A.md) — **plano** (Alternativa A) → **maqueta** (MVP) → **casa entera** (producción).
 
 #### A) Decisiones de arquitectura (válidas para roadmap y MVP)
 
-Estas decisiones vienen del Hito 1 + Hito 2 y **no cambian** en el MVP:
+Estas decisiones responden al **AS IS** (`01` §3), a los **dolores** (`01` §4) y al **perfil de carga** de cada dominio. El Hito 2 las formalizó en el diseño TO BE; aquí se **justifican por el caso**, no solo por el documento previo:
 
-| Decisión | Qué significa |
-|---|---|
-| **OMS centralizado = Orquestador de Pedidos (APP-02) evolucionado** | Orquestador de Pedidos (APP-02) gobierna el ciclo de vida completo de la orden como OMS centralizado. |
-| **Bus de Eventos Central (PLT-03) en Azure** | Bus de Eventos Central (PLT-03) con **Azure Event Hubs + Azure Service Bus** para eventos canónicos, colas, DLQ y replay. |
-| **GCP para analítica** | Lecturas, tableros y modelos de **ML / Optimización de Rutas (GCP) (APP-24)**; GCP no gobierna órdenes ni entregas en tiempo real. |
-| **App de Conductores (APP-15) y Almacenamiento Evidencias (S3) (APP-16) en AWS** | Última milla y evidencias siguen en AWS; Azure es el hub, no reemplaza la **App de Conductores (APP-15)**. |
-| **Hub central Azure** | Azure hub + AWS última milla + GCP analítica (detalle en §1.3). |
+| Decisión | Qué significa | Por qué (caso, no circular) |
+|---|---|---|
+| **OMS centralizado = Orquestador de Pedidos (APP-02) evolucionado** | Orquestador de Pedidos (APP-02) gobierna el ciclo de vida completo de la orden como OMS centralizado. | Punto único de verdad de orden; evita duplicados (32k) y estados inconsistentes entre sistemas. |
+| **Bus de Eventos Central (PLT-03) en Azure** | Bus de Eventos Central (PLT-03) con **Azure Event Hubs + Azure Service Bus** para eventos canónicos, colas, DLQ (cola de mensajes fallidos) y replay (reproceso auditado). | Integraciones hoy punto a punto; Cyber Days (240k en cola) exige stream + colas con DLQ/replay. |
+| **GCP para analítica** | Lecturas, tableros y modelos de **ML / Optimización de Rutas (GCP) (APP-24)**; GCP no gobierna órdenes ni entregas en tiempo real. | Analítica ya en GCP; tracking masivo no debe bloquear SQL transaccional del OMS (CQRS — separar escritura y lectura, E8). |
+| **App de Conductores (APP-15) y Almacenamiento Evidencias (S3) (APP-16) en AWS** | Última milla y evidencias siguen en AWS; Azure es el hub, no reemplaza la **App de Conductores (APP-15)**. | APP-15 y S3 ya en AWS; ACK (acuse de recibo) local y evidencias cerca del borde (1.200 firmas perdidas por red). |
+| **Hub central Azure** | Azure hub + AWS última milla + GCP analítica (detalle en §1.3). | Orquestador, APIM y TMS **ya en Azure**; concentra OLTP (transaccional), Saga (pasos compensables) y bus sin re-plataformar móvil ni BQ en el MVP. |
 
 #### B) Qué SÍ se hará en el MVP (implementación real)
 
@@ -74,13 +78,13 @@ Estas decisiones vienen del Hito 1 + Hito 2 y **no cambian** en el MVP:
 |---|---|---|
 | **OMS centralizado / Orquestador de Pedidos (APP-02)** | Sí — workload en AKS | Crear orden, idempotencia, deduplicación, estado canónico, Saga con inventario. Es **aplicación del catálogo** (evolución de aplicación existente). |
 | **Microservicio Inventario y Reservas (MS-INI01-02)** | Sí — workload en AKS | Reserva, liberación, consulta disponibilidad. Es **microservicio de INI-01** (ID **MS-INI01-02**); **no** tiene **APP-XX** ni es **Control de Inventario (APP-08)**. |
-| **Bus de Eventos Central (PLT-03)** | Sí — Event Hubs + Service Bus | Publicar/consumir eventos, DLQ, retry, replay, backpressure |
+| **Bus de Eventos Central (PLT-03)** | Sí — Event Hubs + Service Bus | Publicar/consumir eventos, DLQ (cola de fallidos), retry (reintento), replay (reproceso), backpressure (frenado de ingesta) |
 | **API Gateway + mocks** | Sí — Azure API Management (APP-01) | Entrada única; **simula** WMS Principal (On Premises) (APP-06), ERP Financiero (On Premises) (APP-25), Portal y TMS (Transportation Management) (APP-11) |
-| **Backend móvil — App de Conductores (APP-15)** | Sí — **ECS Fargate** en AWS | Entrega offline, store-and-forward, outbox DynamoDB, retry SQS en el mismo task |
-| **Almacenamiento Evidencias (S3) (APP-16)** | Sí — S3 + KMS | Firma/foto con hash SHA-256 |
-| **Proyección CQRS** | Sí — Cloud Run + BigQuery | Consulta de tracking vía **`mock-portal`** en Azure API Management (APP-01) |
-| **Observabilidad** | Sí — OpenTelemetry + Monitor/CloudWatch | Correlation ID end-to-end |
-| **IaC** | Sí — Terraform | 100% del despliegue MVP en las 3 nubes |
+| **Backend móvil — App de Conductores (APP-15)** | Sí — **ECS Fargate** (contenedores sin administrar servidores en AWS) | Entrega offline, store-and-forward (guardar y reenviar), outbox (cola de salida) DynamoDB, retry SQS en el mismo task (tarea de contenedor) |
+| **Almacenamiento Evidencias (S3) (APP-16)** | Sí — S3 + KMS (gestión de llaves de cifrado) | Firma/foto con hash SHA-256 (huella criptográfica) |
+| **Proyección CQRS** (separar escritura y lectura) | Sí — Cloud Run + BigQuery | Consulta de tracking vía **`mock-portal`** en Azure API Management (APP-01) |
+| **Observabilidad** | Sí — OpenTelemetry (trazas y métricas estándar) + Monitor/CloudWatch | Correlation ID (identificador de trazabilidad) end-to-end |
+| **IaC** (infraestructura como código) | Sí — Terraform | 100% del despliegue MVP en las 3 nubes |
 
 **Flujo que debe funcionar en la demo:** orden → reserva → evento → entrega offline → evidencia → consulta tracking.
 
@@ -94,46 +98,56 @@ Estas decisiones vienen del Hito 1 + Hito 2 y **no cambian** en el MVP:
 | **Rutas dinámicas / aprendizaje automático en producción** (INI-04, **Optimizador de Rutas (GCP batch) (APP-12)** / **ML / Optimización de Rutas (GCP) (APP-24)**) | Sí — F3 | **No** — GCP solo proyección analítica básica |
 | **Observabilidad/seguridad completa** (INI-05, **Plataforma de Observabilidad Unificada (PLT-01)** / **Plataforma de Identidad y Accesos (IAM) (PLT-02)** / **Plataforma IaC (PLT-04)** al 100%) | Sí — fundacional | **Parcial** — OTel + identidad básica, sin SIEM/MFA completo |
 | **Deprecar Bucket S3 Legado (APP-04), Control de Inventario (APP-08), Sistema Impresión Manifiestos (APP-14), Sistema de Liquidación (Excel) (APP-26)** | Sí — roadmap | **No** — fuera de alcance demo |
-| **Carga 180.000 órdenes/día** | Sí — diseño para campaña | **No** — smoke test con volumen bajo |
+| **Carga 180.000 órdenes/día** | Sí — diseño para campaña | **No** — smoke test (prueba mínima de arranque) con volumen bajo |
 | **Vertex AI entrenado** | Sí — predicción excepciones | **No** — solo preparación de dataset en BigQuery |
 
 #### D) Las 6 iniciativas del roadmap y el MVP
 
-Cada fila es una **iniciativa (INI)** — programa de transformación, no una aplicación. En la columna «¿En MVP?» se indica qué parte de esa iniciativa se demuestra en el prototipo.
+Cada fila es una **iniciativa (INI)** — programa de transformación, no una aplicación. La columna «En MVP v1» indica si el **prototipo** demuestra un **núcleo** de esa iniciativa (no el programa completo ni todos sus RF del Hito 2).
 
-| Iniciativa | Nombre | Componentes típicos (aplicaciones / microservicios / plataformas) | ¿En MVP? |
+| Iniciativa | Nombre | Componentes típicos (aplicaciones / microservicios / plataformas) | En MVP v1 |
 |:---:|---|---|:---:|
-| **INI-01** | Órdenes e inventario end-to-end | **Orquestador de Pedidos (APP-02)** + **Microservicio Inventario y Reservas (MS-INI01-02)** | **Sí** |
-| **INI-02** | Integración API-First y Event-Driven | **Azure API Management (APP-01)** + **Bus de Eventos Central (PLT-03)** | **Sí** |
-| **INI-03** | Última milla y excepciones | **App de Conductores (APP-15)** + **Almacenamiento Evidencias (S3) (APP-16)** + backend AWS | **Sí** |
+| **INI-01** | Órdenes e inventario end-to-end | **Orquestador de Pedidos (APP-02)** + **Microservicio Inventario y Reservas (MS-INI01-02)** | **Parcial** — núcleo demo (E1–E4) |
+| **INI-02** | Integración API-First y Event-Driven | **Azure API Management (APP-01)** + **Bus de Eventos Central (PLT-03)** | **Parcial** — núcleo demo (E5, E8; backpressure — frenado de ingesta en E4) |
+| **INI-03** | Última milla y excepciones | **App de Conductores (APP-15)** + **Almacenamiento Evidencias (S3) (APP-16)** + backend AWS | **Parcial** — núcleo demo (E6–E7) |
 | **INI-04** | Optimización dinámica de rutas | **Optimizador de Rutas (GCP batch) (APP-12)**, **ML / Optimización de Rutas (GCP) (APP-24)** | No |
 | **INI-05** | Observabilidad, seguridad y gobierno multinube | **Plataforma de Observabilidad Unificada (PLT-01)**, **Plataforma de Identidad y Accesos (IAM) (PLT-02)** | Parcial (solo base) |
 | **INI-06** | Liquidación automatizada | Reemplazo **Sistema de Liquidación (Excel) (APP-26)** | No |
 
 **Resumen en una frase:** el MVP prueba el **corazón operativo** (orden + bus + entrega + evidencia) en tres nubes; el **resto del TO BE** (WMS Cloud real, liquidación, optimización de rutas con **ML / Optimización de Rutas (GCP) (APP-24)**, seguridad plena) sigue planificado en el roadmap de 36 meses del Hito 1.
 
-### 1.3 Arquitectura de solución del MVP (Hito 2)
+### 1.3 Reparto multinube del MVP
 
-El Hito 2 definió la arquitectura TO BE sobre la que se construye este MVP: **hub central en Azure**, con dominios especializados en AWS (última milla) y GCP (analítica).
+El prototipo concentra **gobierno operativo** en Azure, **última milla** en AWS y **lectura analítica** en GCP — el mismo reparto que el caso ya tiene en producción (`01` §3), unificado por **eventos** en lugar de integraciones ad hoc:
 
 | Rol | Nube | Componentes principales |
 |---|---|---|
 | Gobierno API, OMS, inventario y reservas, bus de eventos | **Azure** | **Azure API Management (APP-01)**, **Orquestador de Pedidos (APP-02)** evolucionado a OMS, **Microservicio Inventario y Reservas (MS-INI01-02)**, **Bus de Eventos Central (PLT-03)**, Azure SQL, identidad y observabilidad base |
 | Última milla y evidencias | **AWS** | App de Conductores (APP-15), backend móvil, Almacenamiento Evidencias (S3) (APP-16) |
-| Analítica y proyección de lectura | **GCP** | Cloud Run, Pub/Sub, BigQuery |
+| Analítica y proyección de lectura | **GCP** | Cloud Run, BigQuery (proyector CQRS en MVP; Pub/Sub y rutas = TO BE) |
 
 **Por qué este reparto:** concentra en Azure el gobierno operativo (orden, eventos, colas, APIs) donde ya viven Orquestador de Pedidos (APP-02) y Azure API Management (APP-01); mantiene en AWS lo que el caso ya tiene en campo; usa GCP para consultas y analítica sin mezclar el plano transaccional.
 
-| Dominio | Nube | Servicios seleccionados (criterio: costo intermedio + alineamiento Hito 1) |
+| Dominio | Nube | Servicios seleccionados (criterio: costo intermedio + afinidad AS IS) |
 |---|---|---|
 | Gobierno API, OMS centralizado / Orquestador de Pedidos (APP-02), Microservicio Inventario y Reservas (MS-INI01-02), bus | **Azure** | API Management, AKS, Azure SQL, Event Hubs, Service Bus, Entra ID, Key Vault, Monitor |
 | Última milla, evidencias | **AWS** | ECS Fargate, DynamoDB, S3+KMS, SQS, EventBridge |
-| Analítica y eventos de rutas | **GCP** | Cloud Run, Pub/Sub, BigQuery, Vertex AI (mínimo en MVP) |
+| Analítica y eventos de rutas | **GCP** | Cloud Run, BigQuery (MVP); Pub/Sub, Vertex AI (TO BE / INI-04) |
 | Transversal | Multinube | OpenTelemetry, Terraform (Plataforma IaC (PLT-04)), correlation ID |
 
-**16 ADR aprobados** en Hito 2 — los más relevantes para MVP: ADR-001 (hub eventos), ADR-002 (OMS centralizado / Orquestador de Pedidos (APP-02)), ADR-003 (idempotencia), ADR-005 (Saga), ADR-006 (store-and-forward), ADR-008 (DLQ/replay), ADR-012 (IaC).
+**Patrones aplicados en el MVP** (referencia cruzada con ADR del Hito 2 — usar el **requisito del caso**, no el número ADR, ante el comité):
 
-> Detalle de arquitectura, C4 y ADR: `HITO 2 - .../ARQUITECTURA_SOLUCION_TO_BE/02_Alternativa_A.md`
+| Patrón | Qué resuelve en RutaExpress | Escenario demo |
+|---|---|---|
+| Hub de eventos (ADR-001) | Integraciones punto a punto → bus canónico | E5, E8 |
+| OMS centralizado (ADR-002) | Orden dispersa entre sistemas | E1–E4 |
+| Idempotencia (ADR-003) | Reintentos de red duplican órdenes | E1, E2 |
+| Saga compensable (ADR-005) | Reserva + WMS sin transacción distribuida | E3, E4 |
+| Store-and-forward (ADR-006) | Conductor sin red pierde evidencias | E6, E7 |
+| DLQ y replay (ADR-008) | Cyber Days — mensajes fallidos recuperables | E4, E5 |
+| IaC (ADR-012) | Requisito enunciado Hito 3 | Despliegue reproducible |
+
+> Diseño TO BE completo y ADR: `HITO 2 - .../ARQUITECTURA_SOLUCION_TO_BE/02_Alternativa_A.md`
 
 ---
 
@@ -147,7 +161,7 @@ Cliente B2B → Azure API Management (APP-01) — POST /api/v1/orders → OMS ce
     → Evento tracking/excepción → Bus de Eventos Central (PLT-03) → Consulta CQRS → mock-portal en **Azure API Management (APP-01)** / Tablero GCP
 ```
 
-**Canales del MVP (decisión cerrada — no es “una u otra”):**
+**Canales del MVP** (cada caso de uso tiene **un** canal en el prototipo; en producción pueden coexistir API y portal):
 
 | Interacción | Canal definido en el MVP | Tecnología | Nota |
 |---|---|---|---|
@@ -183,7 +197,8 @@ Esta **iniciativa** cubre dos dominios desplegados en AKS: **Orquestador de Pedi
 | Reserva | Consulta disponibilidad por SKU/almacén en Azure SQL, crea registro de reserva y publica evento `InventoryReserved`. |
 | Saga | **Saga** (secuencia coordinada de pasos **sin** una sola transacción de base de datos entre nubes) une: orden validada → reserva → llamada al **mock de WMS Principal (On Premises) (APP-06)**. |
 | Compensación | Si el mock WMS responde error o timeout, se ejecuta **`ReleaseInventory`** (libera stock reservado) y la orden pasa a `ON_HOLD` (en espera, no se pierde la orden). |
-| Demo escenario E3 | Inventario insuficiente → error de negocio sin confirmar reserva; mock WMS en fallo → compensación visible. |
+| Demo escenario E3 | Inventario insuficiente → error de negocio; sin evento `ReservationConfirmed`. |
+| Demo escenario E4 | Mock WMS 503/timeout → `ReleaseInventory` + orden `ON_HOLD`; circuit breaker (Saga INI-01) y backpressure (INI-02). |
 
 #### INI-02 — Integración API-First y Event-Driven
 
@@ -207,6 +222,7 @@ Iniciativa centrada en **Azure API Management (APP-01)** y **Bus de Eventos Cent
 | DLQ | Mensajes que agotan reintentos van a **DLQ** (Dead Letter Queue: cola de mensajes fallidos con payload y causa del error). |
 | Replay | **Replay Controller** permite reprocesar desde DLQ con rol autorizado (auditoría de quién relanzó qué mensaje). |
 | Backpressure | Si el mock **WMS Principal (On Premises) (APP-06)** está degradado, **Backpressure Controller** reduce la velocidad de ingesta (evita colapsar el **Orquestador de Pedidos (APP-02)** como en Cyber Days). |
+| Demo escenario E4 | Mock WMS 503/timeout: circuit breaker en Saga + backpressure activo; sin cola infinita (cruza INI-01 e INI-02). |
 | Demo escenario E5 | Enviar evento inválido → cae en DLQ; operaciones hace replay y se registra en auditoría. |
 
 #### INI-03 — Última milla y excepciones
@@ -283,8 +299,12 @@ Iniciativa materializada en las aplicaciones **App de Conductores (APP-15)** y *
 - Liquidación automática completa (INI-06).
 - Optimización dinámica de rutas en producción (INI-04).
 - Migración real WMS Cloud / deprecación **WMS Principal (On Premises) (APP-06)** / **WMS Satélite (On Premises local) (APP-07)**.
-- MFA/Zero Trust completo y SIEM corporativo.
+- MFA/Zero Trust completo, private endpoints y SIEM corporativo.
 - Carga de 180.000 órdenes/día (solo prueba de diseño y smoke test).
+- Validación de direcciones / geocoding y **ingesta CSV/S3** de clientes medianos (Fase 1 TO BE).
+- Colas Service Bus **por prioridad SLA** (express/estándar) y cuotas por cliente B2B más allá del rate limit genérico de APIM.
+- Confirmación WMS **asíncrona diferida** ante caída prolongada del legado on premises (modo degradado producción).
+- **Pub/Sub (GCP)** como entrada alternativa al proyector; el MVP usa **Event Hubs → Cloud Run** directo.
 
 ---
 
@@ -295,11 +315,11 @@ El enunciado exige mínimo 3; el MVP implementa **seis** de forma explícita:
 | Patrón | Dónde se aplica en el MVP | Por qué |
 |---|---|---|
 | **Microservicios** | OMS centralizado / Orquestador de Pedidos (APP-02), Microservicio Inventario y Reservas (MS-INI01-02), Integración eventos, Backend móvil, Consumidor analítico GCP | Dominios desacoplados; solo **Orquestador de Pedidos (APP-02)**, **App de Conductores (APP-15)** y **Almacenamiento Evidencias (S3) (APP-16)** son aplicaciones del catálogo |
-| **DDD** | Bounded contexts: Orden (**Orquestador de Pedidos (APP-02)**), Inventario (**Microservicio Inventario y Reservas (MS-INI01-02)**), Integración (**Bus de Eventos Central (PLT-03)**), Última milla (**App de Conductores (APP-15)**), Analítica | Evita reglas de negocio en canales; lenguaje ubicuo del caso |
-| **EDA** | Bus de Eventos Central (PLT-03) como backbone; eventos OrderCreated, InventoryReserved, DeliveryCompleted, ExceptionRaised | Desacopla Azure/AWS/GCP y reemplaza P2P |
-| **CQRS** | Escritura en Azure SQL (**Orquestador de Pedidos (APP-02)** + **Microservicio Inventario y Reservas (MS-INI01-02)**); lecturas en proyección BigQuery + API consulta tracking | Portales/tableros sin cargar transaccional |
+| **DDD** | Bounded contexts (límites de dominio): Orden (**Orquestador de Pedidos (APP-02)**), Inventario (**Microservicio Inventario y Reservas (MS-INI01-02)**), Integración (**Bus de Eventos Central (PLT-03)**), Última milla (**App de Conductores (APP-15)**), Analítica | Evita reglas de negocio en canales; lenguaje ubicuo del caso |
+| **EDA** (arquitectura orientada a eventos) | Bus de Eventos Central (PLT-03) como backbone; eventos OrderCreated, InventoryReserved, DeliveryCompleted, ExceptionRaised | Desacopla Azure/AWS/GCP y reemplaza P2P (punto a punto) |
+| **CQRS** (separar escritura y lectura) | Escritura en Azure SQL (**Orquestador de Pedidos (APP-02)** + **Microservicio Inventario y Reservas (MS-INI01-02)**); lecturas en proyección BigQuery + API consulta tracking | Portales/tableros sin cargar transaccional |
 | **Saga** | Orden → reserva → confirmación WMS Principal (On Premises) (APP-06) (mock) → despacho; compensación ReleaseInventory | No hay transacción distribuida única con on premises |
-| **Resiliencia** | Outbox, idempotencia, retry+jitter, circuit breaker hacia mocks, DLQ, backpressure, store-and-forward | Caso Cyber Days: colas, WMS Principal (On Premises) (APP-06) degradado, offline móvil |
+| **Resiliencia** | Outbox, idempotencia, retry+jitter (reintento con espera aleatoria), circuit breaker (corte ante fallos) hacia mocks, DLQ, backpressure, store-and-forward | Caso Cyber Days: colas, WMS Principal (On Premises) (APP-06) degradado, offline móvil |
 
 ---
 
@@ -313,11 +333,11 @@ El enunciado exige mínimo 3; el MVP implementa **seis** de forma explícita:
 │ Orquestador de Pedidos (APP-02)         │   │ Reservas (MS-INI01-02)           │   │ Central (PLT-03) Event Hubs + SB    │
 │ Azure AKS                               │──▶│ ID MS-INI01-02, no APP-XX        │──▶│                                     │
 └────────┬────────────────────────────────┘   └────────┬─────────────────────────┘   └──────────┬──────────────────────────┘
-         │ Saga                                        │ eventos                          │ fan-out
+         │ Saga                                        │ eventos                          │ fan-out (un evento a varios consumidores)
          ▼                                             ▼                                  ▼
 ┌─────────────────────────┐   ┌──────────────────────────────────┐   ┌─────────────────────────────────────┐
 │ Última milla            │   │ Evidencias                       │   │ Analítica (GCP)                      │
-│ App de Conductores      │   │ Almacenamiento Evidencias (S3)   │   │ BigQuery + Pub/Sub                   │
+│ App de Conductores      │   │ Almacenamiento Evidencias (S3)   │   │ Cloud Run + BigQuery (CQRS)          │
 │ (APP-15) AWS            │   │ (APP-16)                         │   │                                      │
 └─────────────────────────┘   └──────────────────────────────────┘   └─────────────────────────────────────┘
 ```
@@ -349,20 +369,20 @@ Los mocks permiten MVP sin VPN a on premises; contratos OpenAPI versionados en A
 
 ---
 
-## 5. Stack seleccionado por nube (decisión cerrada)
+## 5. Stack seleccionado por nube
 
-> Servicios **administrados de costo intermedio**, alineados al Hito 2.
+> Servicios **administrados de costo intermedio**, elegidos por **perfil de carga**, **dolores E1–E8** y **AS IS** del cliente. Comparativas (AKS vs Functions, Fargate vs Lambda): [`06_Preguntas_Argumentos_Comite.md`](06_Preguntas_Argumentos_Comite.md) §3–4.
 
 ### Azure (hub operativo)
 
 | Servicio | Rol en MVP | Justificación |
 |---|---|---|
-| Azure API Management (APP-01) (Developer/Standard) | Gateway, OAuth, rate limit, mocks | Gobierno API-first INI-02; entrada única **Azure API Management (APP-01)** |
-| AKS (2–3 nodos) | **Orquestador de Pedidos (APP-02)** (aplicación), **Microservicio Inventario y Reservas (MS-INI01-02)** (microservicio), workers outbox | Dos workloads en el mismo cluster AKS: aplicación **Orquestador de Pedidos (APP-02)** y microservicio **Microservicio Inventario y Reservas (MS-INI01-02)** |
+| Azure API Management (APP-01) (Developer/Standard) | Gateway, OAuth, rate limit, mocks | Entrada única; mocks sin VPN; OAuth y cuotas antes del backend |
+| AKS (2–3 nodos) | **Orquestador de Pedidos (APP-02)** (aplicación), **Microservicio Inventario y Reservas (MS-INI01-02)** (microservicio), workers outbox | API + Saga + workers de fondo (outbox, bus) en procesos de vida larga; dos dominios en un cluster |
 | Azure SQL (S1/S2) | Estado transaccional **Orquestador de Pedidos (APP-02)** + **Microservicio Inventario y Reservas (MS-INI01-02)** | Consistencia relacional Saga/outbox |
 | Event Hubs (Standard, 1 TU) | Ingesta eventos canónicos Bus de Eventos Central (PLT-03) | Throughput para campañas y flujos orden → inventario → tracking |
 | Service Bus (Standard) | Colas, DLQ, replay | Colas por consumidor, mensajes fallidos y reproceso auditado |
-| Azure Cache for Redis (Basic) | Catálogo SLA, dedup cache | Latencia validación sin cargar SQL |
+| Azure Cache for Redis (Basic) | Catálogo SLA, dedup (deduplicación) cache | Latencia validación sin cargar SQL |
 | Entra ID + Key Vault | Identidad y secretos Plataforma de Identidad y Accesos (IAM) (PLT-02) | Federación; sin secretos en código |
 | Azure Monitor + App Insights | Métricas y trazas Azure | Plataforma de Observabilidad Unificada (PLT-01) parcial; OpenTelemetry export |
 
@@ -370,7 +390,7 @@ Los mocks permiten MVP sin VPN a on premises; contratos OpenAPI versionados en A
 
 | Servicio | Rol en MVP | Por qué |
 |---|---|---|
-| ECS Fargate | API backend móvil + Retry Worker (mismo task) | **App de Conductores (APP-15)**: un solo servicio; polling SQS con jitter hacia el puente Azure |
+| ECS Fargate | API backend móvil + Retry Worker (mismo task) | **App de Conductores (APP-15)**: un solo servicio; polling (consulta periódica) de SQS con jitter (espera aleatoria entre reintentos) hacia el puente Azure |
 | DynamoDB on-demand | Outbox móvil, estado sync | Baja latencia offline; ya en caso |
 | S3 + KMS | Evidencias **Almacenamiento Evidencias (S3) (APP-16)** | Integridad, costo, escalabilidad |
 | SQS + EventBridge | Buffer y puente hacia Azure | Desacopla móvil del hub |
@@ -380,9 +400,9 @@ Los mocks permiten MVP sin VPN a on premises; contratos OpenAPI versionados en A
 
 | Servicio | Rol en MVP | Por qué |
 |---|---|---|
-| Cloud Run | Consumidor eventos analíticos | Escala a cero en MVP; costo bajo |
-| Pub/Sub | Suscripción eventos desde puente | Patrón GCP nativo |
+| Cloud Run | Proyector CQRS — consume eventos desde **Event Hubs** (puente Azure) | Escala a cero; camino MVP: EH → Cloud Run → BigQuery |
 | BigQuery (sandbox) | Proyección CQRS tracking/SLA | Alimenta `GET /mock/portal/v1/tracking/{id}` en **Azure API Management (APP-01)** |
+| Pub/Sub | *(post-MVP / TO BE)* | Patrón GCP nativo alternativo; **no** en v1 del prototipo |
 | Vertex AI | **Solo preparación** dataset excepciones | INI-03 futuro; no entrenamiento pesado en MVP |
 
 ---

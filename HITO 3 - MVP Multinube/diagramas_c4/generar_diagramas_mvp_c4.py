@@ -29,18 +29,17 @@ from diagrams.aws.network import ALB
 from diagrams.aws.security import KMS
 from diagrams.aws.storage import S3
 from diagrams.azure.analytics import EventHubs, LogAnalyticsWorkspaces
-from diagrams.azure.compute import AKS, FunctionApps
+from diagrams.azure.compute import AKS
 from diagrams.azure.database import CacheForRedis, SQLManagedInstances
 from diagrams.azure.security import KeyVaults
 from diagrams.azure.integration import APIManagement, ServiceBus
 from diagrams.azure.storage import StorageAccounts
-from diagrams.gcp.analytics import BigQuery, PubSub
+from diagrams.gcp.analytics import BigQuery
 from diagrams.gcp.compute import Run
 from diagrams.gcp.operations import Logging
 from diagrams.generic.blank import Blank
 from diagrams.generic.device import Mobile
 from diagrams.onprem.client import User, Users
-from diagrams.onprem.database import PostgreSQL
 from diagrams.saas import Saas
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -267,13 +266,6 @@ def n2_contenedores() -> None:
                     "lectura tracking",
                 )
             )
-            ps = PubSub(
-                lbl(
-                    "Pub/Sub",
-                    "Mensajeria analitica",
-                    "GCP",
-                )
-            )
             bq = BigQuery(
                 lbl(
                     "BigQuery",
@@ -343,19 +335,21 @@ def n2_contenedores() -> None:
         apim >> Edge(label="mock-erp") >> mock_erp
         oms >> redis
         oms >> Edge(label="eventos async") >> eh >> sb
+        oms >> Edge(label="HTTPS interno\nReleaseInventory") >> inv
         inv >> sql
         inv >> Edge(label="eventos async") >> eh
         sb >> Edge(label="eventos async\ncola MS-INI01-02") >> inv
         sb >> Edge(label="eventos async\nmock-tms") >> mock_tms
         conductor >> Edge(label="HTTPS movil") >> alb >> mob >> ddb
         mob >> s3
-        mob >> Edge(label="outbox relay +\nretry worker (mismo task)") >> sqs >> eb >> Edge(label="puente multinube") >> eh
+        mob >> Edge(label="outbox relay\nlee DDB → SQS") >> sqs
+        sqs >> Edge(label="retry worker poll\n(mismo task ECS)") >> eb >> Edge(label="puente multinube") >> eh
         eh >> Edge(label="eventos async") >> run >> bq
-        ps >> run
         oms >> mon
         mob >> cw
         run >> glog
-        kv >> apim
+        apim >> Edge(label="obtiene secretos") >> kv
+        oms >> Edge(label="obtiene secretos") >> kv
         ops >> Edge(label="HTTPS monitoreo\nDLQ / metricas") >> mon
 
 
@@ -396,37 +390,37 @@ def n3_plt03() -> None:
                 lbl(
                     "mock legado (APIM)",
                     "Adaptador CSV normalizado",
-                    "APP-01 mocks",
+                    "post-MVP opcional",
                 )
             )
 
         with Cluster("CONTENEDOR EN FOCO: Bus de Eventos Central (PLT-03)"):
             with Cluster("Entrada y validacion"):
-                ingest = FunctionApps(
-                    lbl("Azure Functions", "Event Ingestion API", "PLT-03")
+                ingest = AKS(
+                    lbl("AKS pod", "Event Ingestion API", "PLT-03")
                 )
-                schema = FunctionApps(
-                    lbl("Azure Functions", "Schema Validator", "PLT-03")
+                schema = AKS(
+                    lbl("AKS pod", "Schema Validator", "PLT-03")
                 )
             with Cluster("Nucleo EDA"):
-                router = FunctionApps(
-                    lbl("Azure Functions", "Event Router", "PLT-03")
+                router = AKS(
+                    lbl("AKS pod", "Event Router", "PLT-03")
                 )
-                ordering = FunctionApps(
-                    lbl("Azure Functions", "Ordering Guard", "PLT-03")
+                ordering = AKS(
+                    lbl("AKS pod", "Ordering Guard", "PLT-03")
                 )
             with Cluster("Resiliencia"):
-                retry = FunctionApps(
-                    lbl("Azure Functions", "Retry Scheduler", "PLT-03")
+                retry = AKS(
+                    lbl("AKS pod", "Retry Scheduler", "PLT-03")
                 )
                 dlq = ServiceBus(
                     lbl("Service Bus", "DLQ Manager", "PLT-03")
                 )
-                replay = FunctionApps(
-                    lbl("Azure Functions", "Replay Controller", "PLT-03")
+                replay = AKS(
+                    lbl("AKS pod", "Replay Controller", "PLT-03")
                 )
-                bp = FunctionApps(
-                    lbl("Azure Functions", "Backpressure Controller", "PLT-03")
+                bp = AKS(
+                    lbl("AKS pod", "Backpressure Controller", "PLT-03")
                 )
             with Cluster("Persistencia"):
                 eh = EventHubs(
@@ -442,7 +436,7 @@ def n3_plt03() -> None:
         with Cluster("Consumidores (contenedores externos)"):
             tms = Saas(
                 lbl(
-                    "mock TMS (APIM)",
+                    "mock-tms (Service Bus)",
                     "TMS (Transportation Management)",
                     "APP-11",
                 )
@@ -505,64 +499,71 @@ def n3_oms() -> None:
                 "APP-01",
             )
         )
+        wms = Saas(
+            lbl(
+                "mock WMS (APIM)",
+                "WMS Principal (On Premises)",
+                "APP-06",
+            )
+        )
 
         with Cluster("CONTENEDOR EN FOCO: Orquestador de Pedidos (APP-02) — AKS"):
             with Cluster("Capa API"):
-                order_api = FunctionApps(
+                order_api = AKS(
                     lbl("AKS pod", "Order API", "APP-02")
                 )
-                query_api = FunctionApps(
+                query_api = AKS(
                     lbl("AKS pod", "Query API", "APP-02")
                 )
             with Cluster("Dominio DDD"):
-                agg = FunctionApps(
+                agg = AKS(
                     lbl("AKS pod", "Order Aggregate", "APP-02")
                 )
-                sm = FunctionApps(
+                sm = AKS(
                     lbl("AKS pod", "State Machine", "APP-02")
                 )
-                dedup = FunctionApps(
+                dedup = AKS(
                     lbl("AKS pod", "Dedup Engine", "APP-02")
                 )
-                idem = FunctionApps(
+                idem = AKS(
                     lbl("AKS pod", "Idempotency Guard", "APP-02")
                 )
             with Cluster("Aplicacion"):
-                create = FunctionApps(
+                create = AKS(
                     lbl("AKS pod", "Create Order Handler", "APP-02")
                 )
-                saga = FunctionApps(
+                saga = AKS(
                     lbl("AKS pod", "Saga Orchestrator", "APP-02")
                 )
             with Cluster("Infraestructura"):
                 repo = SQLManagedInstances(
                     lbl("Azure SQL", "Order Repository", "APP-02")
                 )
-                outbox = PostgreSQL(
+                outbox = SQLManagedInstances(
                     lbl("Azure SQL", "Outbox Table", "APP-02")
                 )
-                pub = EventHubs(
-                    lbl("Event Hubs", "Event Publisher", "PLT-03")
+                pub = AKS(
+                    lbl("AKS pod", "Event Publisher", "APP-02")
                 )
             with Cluster("Integracion"):
-                wms = Saas(
-                    lbl(
-                        "mock WMS (APIM)",
-                        "WMS Principal (On Premises)",
-                        "APP-06",
-                    )
-                )
-                inv_client = FunctionApps(
+                inv_client = AKS(
                     lbl("AKS pod", "Inventory Client", "APP-02")
                 )
             with Cluster("Resiliencia"):
-                cb = FunctionApps(
+                cb = AKS(
                     lbl("AKS pod", "Circuit Breaker", "APP-02")
                 )
-                corr = FunctionApps(
+                corr = AKS(
                     lbl("AKS pod", "Correlation Middleware", "APP-02")
                 )
 
+        ops = Users(
+            lbl(
+                "Actor",
+                "Operaciones / Soporte",
+                "Persona",
+            )
+        )
         inv_svc = AKS(
             lbl(
                 "AKS",
@@ -578,14 +579,15 @@ def n3_oms() -> None:
             )
         )
 
-        apim >> Edge(label="HTTPS API") >> order_api >> corr >> create >> agg
+        apim >> Edge(label="HTTPS API\nPOST /api/v1/orders") >> order_api >> corr >> create >> agg
         create >> dedup >> idem
+        create >> saga
         agg >> sm >> repo
         create >> outbox >> pub >> Edge(label="eventos async") >> eh
         saga >> Edge(label="HTTPS mock sync") >> wms
         saga >> Edge(label="HTTPS interno\nReleaseInventory") >> inv_client >> inv_svc
         wms >> cb
-        apim >> Edge(label="HTTPS GET lectura") >> query_api >> repo
+        ops >> Edge(label="HTTPS GET lectura\nops / estado orden") >> query_api >> repo
 
 
 def n3_mobile() -> None:
@@ -701,7 +703,8 @@ def n3_mobile() -> None:
         )
 
         conductor >> Edge(label="offline: captura") >> local_outbox
-        conductor >> Edge(label="HTTPS movil: sync") >> alb >> api >> delivery
+        local_outbox >> Edge(label="Local Sync Agent\nstore-and-forward") >> alb
+        conductor >> Edge(label="HTTPS movil: sync lote") >> alb >> api >> delivery
         api >> tax
         delivery >> outbox
         delivery >> evid >> upload >> hashv >> manifest
@@ -743,41 +746,48 @@ def n3_inventario() -> None:
                 "PLT-03",
             )
         )
+        wms_evt = Saas(
+            lbl(
+                "eventos WMS (mock)",
+                "WMS Principal (On Premises)",
+                "APP-06",
+            )
+        )
 
         with Cluster(
             "CONTENEDOR EN FOCO: Microservicio Inventario y Reservas (MS-INI01-02) — AKS"
         ):
             with Cluster("Capa API"):
-                reserve_api = FunctionApps(
+                reserve_api = AKS(
                     lbl("AKS pod", "Reserve API", "MS-INI01-02")
                 )
-                release_api = FunctionApps(
+                release_api = AKS(
                     lbl("AKS pod", "Release API", "MS-INI01-02")
                 )
-                avail_api = FunctionApps(
+                avail_api = AKS(
                     lbl("AKS pod", "Availability Query API", "MS-INI01-02")
                 )
             with Cluster("Dominio DDD"):
-                agg = FunctionApps(
+                agg = AKS(
                     lbl("AKS pod", "Inventory Aggregate", "MS-INI01-02")
                 )
-                policy = FunctionApps(
+                policy = AKS(
                     lbl("AKS pod", "Reservation Policy", "MS-INI01-02")
                 )
-                conflict = FunctionApps(
+                conflict = AKS(
                     lbl("AKS pod", "Conflict Rules", "MS-INI01-02")
                 )
             with Cluster("Aplicacion"):
-                reserve = FunctionApps(
+                reserve = AKS(
                     lbl("AKS pod", "Reserve Handler", "MS-INI01-02")
                 )
-                release = FunctionApps(
+                release = AKS(
                     lbl("AKS pod", "Release Handler", "MS-INI01-02")
                 )
-                movement = FunctionApps(
+                movement = AKS(
                     lbl("AKS pod", "Movement Handler", "MS-INI01-02")
                 )
-                reconcile = FunctionApps(
+                reconcile = AKS(
                     lbl("AKS pod", "Reconciliation Handler", "MS-INI01-02")
                 )
             with Cluster("Infraestructura"):
@@ -787,28 +797,20 @@ def n3_inventario() -> None:
                 pos_repo = SQLManagedInstances(
                     lbl("Azure SQL", "Position Repository", "MS-INI01-02")
                 )
-                outbox = PostgreSQL(
+                outbox = SQLManagedInstances(
                     lbl("Azure SQL", "Outbox Table", "MS-INI01-02")
                 )
-                pub = EventHubs(
-                    lbl("Event Hubs", "Event Publisher", "PLT-03")
-                )
-            with Cluster("Integracion"):
-                wms_evt = Saas(
-                    lbl(
-                        "eventos WMS (mock)",
-                        "WMS Principal (On Premises)",
-                        "APP-06",
-                    )
+                pub = AKS(
+                    lbl("AKS pod", "Event Publisher", "MS-INI01-02")
                 )
             with Cluster("Resiliencia"):
-                idem = FunctionApps(
+                idem = AKS(
                     lbl("AKS pod", "Idempotency Guard", "MS-INI01-02")
                 )
-                opt_lock = FunctionApps(
+                opt_lock = AKS(
                     lbl("AKS pod", "Optimistic Lock", "MS-INI01-02")
                 )
-                backpressure = FunctionApps(
+                backpressure = AKS(
                     lbl("AKS pod", "Backpressure Gate", "MS-INI01-02")
                 )
 

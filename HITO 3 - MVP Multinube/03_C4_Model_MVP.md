@@ -5,7 +5,7 @@
 
 **Imágenes generadas:** ejecutar `python diagramas_c4/generar_diagramas_mvp_c4.py` → salida en `diagramas_c4/imagenes/`.
 
-> **Convención obligatoria (regla de oro):** en textos, tablas y diagramas de este documento cada identificador va **siempre** con su nombre oficial. Catálogo APP/PLT → `HITO 1 - .../06_Mapa_Portafolio_Aplicaciones.md`. **Término técnico en inglés o sigla:** la primera vez va con el significado breve entre paréntesis — p. ej. **ACK** (acuse de recibo), **outbox** (cola de salida de eventos), **DLQ** (cola de mensajes fallidos).
+> **Convención obligatoria (regla de oro):** en textos, tablas y diagramas de este documento cada identificador va **siempre** con su nombre oficial. Catálogo APP/PLT → `HITO 1 - .../06_Mapa_Portafolio_Aplicaciones.md`. **Término técnico en inglés o sigla:** la primera vez en cada sección va con el significado breve entre paréntesis — p. ej. **jitter** (espera aleatoria entre reintentos), **ACK** (acuse de recibo), **outbox** (cola de salida de eventos), **DLQ** (cola de mensajes fallidos). Glosario completo: §1.4 y [`00_INDICE_COMITE.md`](00_INDICE_COMITE.md) §Glosario breve.
 
 ### 0.1 Iniciativas (INI), aplicaciones (APP), plataformas (PLT), microservicios (MS) y servicios en la nube
 
@@ -25,7 +25,7 @@ Al leer los diagramas y flujos conviven **cuatro familias de ID** de negocio/arq
 | Concepto | Qué representa | ¿Se despliega? | Relación con los demás |
 |---|---|---|---|
 | **Aplicación (APP-XX)** | Capacidad de negocio del portafolio Hito 1 (qué hace RutaExpress para el usuario o la operación). | Sí — como uno o más **contenedores** (workloads) en AKS, ECS, SaaS, etc. | Una aplicación **puede** implementarse con uno o varios microservicios, pero conserva **un solo ID APP**. Ej.: **Orquestador de Pedidos (APP-02)** corre en AKS. |
-| **Microservicio (MS-INIxx-yy)** | Unidad técnica **acotada por dominio** (un bounded context), desplegable de forma independiente. Nace de una **iniciativa** cuando no existe aplicación en el catálogo. | Sí — típicamente un contenedor en **AKS** o **ECS Fargate**. | **No** agrupa varias aplicaciones APP dentro. **No** es un catálogo de APP-XX. Usa **servicios en la nube** (Azure SQL, Event Hubs, DynamoDB) como dependencias. |
+| **Microservicio (MS-INIxx-yy)** | Unidad técnica **acotada por dominio** (un bounded context — límite de dominio), desplegable de forma independiente. Nace de una **iniciativa** cuando no existe aplicación en el catálogo. | Sí — típicamente un contenedor en **AKS** (Kubernetes administrado) o **ECS Fargate** (contenedores sin administrar servidores). | **No** agrupa varias aplicaciones APP dentro. **No** es un catálogo de APP-XX. Usa **servicios en la nube** (Azure SQL, Event Hubs, DynamoDB) como dependencias. |
 | **Plataforma (PLT-XX)** | Capacidad compartida por muchas aplicaciones (bus, identidad, observabilidad). | Sí — como servicios administrados multinube. | Las aplicaciones y microservicios **publican/consumen** la plataforma; no la contienen. |
 | **Servicio en la nube** | Recurso del proveedor (Azure, AWS, GCP): **AKS**, **Azure SQL**, **Event Hubs**, **Amazon S3**, **BigQuery**. | Lo provisiona Terraform (**Plataforma IaC (PLT-04)**). | Es **infraestructura** donde corren aplicaciones y microservicios; **no** es una aplicación del portafolio ni un microservicio de negocio. |
 
@@ -42,6 +42,8 @@ El **C4 Model** (Simon Brown) documenta arquitectura de software en **cuatro niv
 | **1** | **Contexto** | ¿Quién usa el sistema y con qué sistemas externos se conecta? | Negocio, comité, gerencia |
 | **2** | **Contenedores** | ¿Qué aplicaciones/servicios/data stores componen la solución y en qué nube corren? | Arquitectos, líderes técnicos |
 | **3** | **Componentes** | ¿Qué piezas internas tiene **un** contenedor elegido? | Desarrollo, operaciones, seguridad |
+
+> **Nivel 4 (código):** clases, interfaces y archivos fuente — **no documentado** en Hito 3 (no hay implementación desplegada). El Nivel 3 muestra **módulos lógicos** (Order API, Saga Orchestrator…), no un pod de Kubernetes por caja. En el MVP, los componentes N3 de APP-02, MS-INI01-02, PLT-03 y backend móvil viven en **uno o pocos contenedores desplegables**; ver nota en **§4.0**.
 
 ### Reglas que seguimos (importante para el comité)
 
@@ -64,6 +66,8 @@ En los diagramas C4 del MVP aparecen **cinco tipos de conexión**. No son interc
 | **HTTPS mock sync** | Llamada **síncrona** del hub hacia un **legado simulado** en **Azure API Management (APP-01)** | REST sobre TLS | Orquestador de Pedidos (APP-02) / Saga → **mock-wms** o **mock-erp** en **Azure API Management (APP-01)** | Orquestador de Pedidos (APP-02) | Saga confirma reserva: `POST /mock/wms/v1/reservations/confirm`. Respuesta 200/503/timeout configurable. **No** es el WMS real on premises. |
 | **HTTPS GET lectura** | Consulta **solo lectura** (patrón **CQRS**) | REST GET sobre TLS | Cliente → **mock-portal** en **Azure API Management (APP-01)** | Cliente B2B | `GET /mock/portal/v1/tracking/{orderId}`. Lee proyección en BigQuery; **no** escribe en Azure SQL ni crea órdenes. |
 | **Eventos async** | Integración **asíncrona** vía bus de mensajes | Event Hubs + Service Bus (AMQP) | Productor → **Bus de Eventos Central (PLT-03)** → consumidor | Orquestador de Pedidos (APP-02), Microservicio Inventario y Reservas (MS-INI01-02), backend móvil | `OrderCreated`, `DeliveryCompleted` publicados a Event Hubs; **mock-tms** (simula **TMS (Transportation Management) (APP-11)**) y proyector GCP **consumen** sin bloquear al emisor. |
+
+**Sobre del evento canónico (MVP):** los brokers **no propagan** trazas solos. Cada payload lleva un envelope mínimo: `event_id`, `correlation_id` (y opcionalmente `traceparent` W3C), `schema_version`, `occurred_at`, `aggregate_id` y `sequence` por agregado. Los workers y el **Correlation Middleware** en APP-02 lo reenvían en cada salto (HTTP → outbox → Event Hubs → SQS → EventBridge).
 
 **Diferencias clave (lo que suele confundir):**
 
@@ -162,6 +166,8 @@ El caso documenta **1.200 firmas/evidencias perdidas** cuando la aplicación bor
 | Backend cae a mitad de sync | Se pierde evidencia | La copia local **permanece** hasta nuevo intento |
 | Backend confirma | — | ACK → borrado local seguro |
 
+**Limitación conocida (reinstalación):** si el conductor **desinstala o reinstala** la app, el outbox local cifrado **se pierde** (el almacenamiento no sobrevive al reinstall del SO). Mitigaciones MVP: (1) **sync oportunista** en cuanto hay red; (2) **UI de pendientes** que bloquea cierre con entregas sin ACK; (3) en producción, políticas **MDM** que impiden desinstalar con cola local no vacía.
+
 #### ACK en el bus de mensajes (PLT-03)
 
 En **Azure Service Bus** (colas del **Bus de Eventos Central (PLT-03)**) el consumidor también envía ACK al terminar de procesar un mensaje (operación `complete`). Si no lo hace, el mensaje **vuelve a la cola** para reintento — mismo concepto a nivel de mensajería asíncrona.
@@ -181,6 +187,30 @@ En **Azure Service Bus** (colas del **Bus de Eventos Central (PLT-03)**) el cons
 | **Outbox local** (dispositivo) | El conductor ve «pendiente de sync» hasta recibir ACK del backend AWS |
 | **Outbox backend** (DynamoDB) | El puente hacia Azure puede reintentar; el móvil ya recibió ACK de AWS |
 | **Service Bus** (PLT-03) | Cada consumidor ACK al procesar; si falla, DLQ o retry |
+
+### 1.4 Glosario rápido — términos técnicos frecuentes
+
+| Término | Significado breve |
+|---|---|
+| **backoff** | Espera creciente entre reintentos |
+| **backpressure** | Reducir velocidad de ingesta cuando un sistema downstream está degradado |
+| **circuit breaker** | Corte automático de llamadas a un sistema que falla repetidamente |
+| **cold start** | Demora al activar una función serverless tras inactividad |
+| **CQRS** | Separar escritura transaccional y lectura analítica |
+| **dedup** | Deduplicación — detectar y evitar duplicados |
+| **fan-out** | Un evento entregado a varios consumidores |
+| **idempotencia** | Misma petición repetida sin efectos duplicados |
+| **jitter** | Espera aleatoria entre reintentos para no saturar el sistema |
+| **payload** | Cuerpo o contenido de un mensaje |
+| **polling** | Consulta periódica de una cola hasta que haya mensajes |
+| **replay** | Reprocesamiento auditado de mensajes desde DLQ |
+| **Saga** | Secuencia coordinada de pasos con compensación si algo falla |
+| **store-and-forward** | Guardar en el dispositivo y reenviar cuando hay red |
+| **throttling** | Limitación de velocidad de procesamiento o llamadas |
+| **throughput** | Volumen de mensajes u operaciones por unidad de tiempo |
+| **TTL** | Tiempo de vida de un dato en caché antes de expirar |
+
+> Glosario ampliado del paquete: [`00_INDICE_COMITE.md`](00_INDICE_COMITE.md) §Glosario breve.
 
 ### Por qué C4 y no solo un diagrama de nube
 
@@ -212,6 +242,21 @@ Este diagrama responde: **¿quién interactúa con el MVP y qué sistemas extern
 
 **Qué NO muestra este nivel:** Azure SQL, Event Hubs, DynamoDB, BigQuery. Eso aparece en el Nivel 2.
 
+#### Catálogo — cada figurita del PNG (Nivel 1)
+
+| Línea 2 — nombre en el PNG | Tipo | Qué es / qué hace | Flecha principal |
+|---|---|---|---|
+| **Cliente B2B** | Actor | Empresa retail que crea órdenes y consulta tracking en la demo | → MVP: `HTTPS API` |
+| **App de Conductores** | Actor (APP-15) | Conductor en campo: entregas, evidencias, modo offline | → MVP: `HTTPS móvil` |
+| **Operaciones / Soporte** | Actor | Equipo interno: DLQ, replay, dashboards — no crea órdenes | → MVP: `HTTPS monitoreo` |
+| **Plataforma Logística MVP** | Sistema | **Todo** lo desplegado: hub Azure + backend AWS + proyector GCP | Caja central |
+| **WMS Principal (On Premises)** | Externo mock (APP-06/07) | Simula almacén legado; el MVP **llama** para confirmar reserva (Saga) | MVP → externo: `HTTPS mock sync` |
+| **ERP Financiero (On Premises)** | Externo mock (APP-25) | Simula valorización financiera (demo opcional) | MVP → externo: `HTTPS mock sync` |
+| **Portal B2B (Trazabilidad)** | Externo mock (APP-18/20) | Simula portal de tracking; **solo lectura** CQRS | MVP → externo: `HTTPS GET lectura` |
+| **TMS (Transportation Management)** | Externo mock (APP-11) | Simula TMS; **no** crea órdenes — consume eventos de despacho | MVP → externo: `Eventos async` |
+
+> **Físicamente:** WMS, ERP y portal son **rutas en APP-01**; TMS es **consumidor de cola** en PLT-03. En N1 se dibujan como cajas externas de negocio.
+
 ### 2.2 Elementos
 
 | Elemento | Tipo | Descripción |
@@ -227,7 +272,7 @@ Este diagrama responde: **¿quién interactúa con el MVP y qué sistemas extern
 
 ### 2.3 Mensaje para exposición
 
-> “El MVP no reemplaza todavía el WMS Principal (On Premises) (APP-06) real ni el ERP Financiero (On Premises) (APP-25); los simula con contratos API. El valor de la demo es probar OMS centralizado / Orquestador de Pedidos (APP-02), Bus de Eventos Central (PLT-03), última milla offline y trazabilidad entre tres nubes.”
+> “El MVP no reemplaza todavía el WMS Principal (On Premises) (APP-06) real ni el ERP Financiero (On Premises) (APP-25); los simula con contratos API. El valor de la demo es probar OMS centralizado / Orquestador de Pedidos (APP-02), Bus de Eventos Central (PLT-03), última milla offline y trazabilidad entre tres nubes. **Liquidación automática (INI-06)** queda fuera del alcance; el **registro de auditoría de eventos** (quién publicó/consumió qué y cuándo — requisito E5) y el **hash SHA-256 de evidencias (APP-16)** son la base probatoria para conciliación futura.”
 
 ---
 
@@ -251,14 +296,14 @@ En el MVP los mocks **no** son sistemas on premises reales ni SaaS desplegados a
 |---|---|---|
 | **Nivel 1 — Contexto** | Vista **negocio**: legados como sistemas **externos** al MVP | Flechas MVP → mock WMS / ERP / Portal / TMS |
 | **Nivel 2 — Contenedores** | Vista **integración**: mismos legados como cajas **SaaS externas** + tipo de flecha (HTTPS mock sync, HTTPS GET lectura, eventos async) | Cluster «Legados simulados»; OMS → APIM → mock-wms; Service Bus → mock-tms |
-| **Nivel 3 — Componentes** | Vista **implementación**: adaptador concreto dentro de un contenedor | **WMS Adapter** en diagrama OMS (APP-02); consumidor TMS en diagrama PLT-03 |
+| **Nivel 3 — Componentes** | Vista **implementación**: componente concreto dentro de un contenedor | **Saga Orchestrator** → **WMS Principal (On Premises)** mock en diagrama OMS (APP-02); consumidor TMS en diagrama PLT-03 |
 
 > **Implementación física:** `mock-wms`, `mock-erp` y `mock-portal` son endpoints en **APP-01**; `mock-tms` es suscriptor de cola en **PLT-03**. Las cajas externas del Nivel 2 representan el **contrato** que simulan (APP-06, APP-25, APP-18, APP-11), no un despliegue aparte.
 
 | Camino | Flechas en el diagrama | Flujo §3.3 | Escenario demo |
 |---|---|---|---|
 | **Alta de orden** | Cliente → APIM → AKS (Orquestador) → SQL / Event Hubs | Flujo A | E1–E3 |
-| **Saga → legado WMS** | AKS (Orquestador) → APIM → **mock-wms** (SaaS externo APP-06) | Flujo A pasos 7–9 | E3, E4 |
+| **Saga → legado WMS** | AKS (Orquestador) → APIM → **mock-wms** (SaaS externo APP-06) | Flujo A pasos 7–9 | **E4** |
 | **Valorización ERP** | AKS (Orquestador) → APIM → **mock-erp** (SaaS externo APP-25) | Opcional demo | — |
 | **Entrega offline** | Conductor → ALB → ECS → DynamoDB / S3 → puente → Event Hubs | Flujo B | E6–E7 |
 | **Despacho TMS** | Service Bus → **mock-tms** (SaaS externo APP-11) | Flujo B paso 8 | — |
@@ -271,6 +316,62 @@ En el MVP los mocks **no** son sistemas on premises reales ni SaaS desplegados a
 > **DLQ y replay (Flujo D):** en **N2** no se dibuja el camino interno «mensaje inválido → DLQ» — ocurre **dentro** del contenedor **Bus de Eventos Central (PLT-03)**. El zoom está en **§4.1** (DLQ Manager, Replay Controller). En **N2** sí aparece **Operaciones → Azure Monitor** (consulta métricas/DLQ); el **replay** disparado por operaciones se ve en **§4.1** (flecha Operaciones → Replay Controller).
 
 > **Convención de lectura:** cada caja = **servicio cloud** · **nombre oficial** · **ID** (`APP` / `MS` / `PLT`) · flecha = tipo de integración (HTTPS API, HTTPS GET lectura, HTTPS móvil, eventos async). Catálogo detallado → §3.2 y flujos → §3.3.
+
+#### Catálogo — cada caja del PNG (Nivel 2)
+
+*Actores*
+
+| Línea 2 | ID | Qué hace | Flecha hacia el MVP |
+|---|---|---|---|
+| **Cliente B2B** | Persona | Alta de órdenes y consulta tracking | `HTTPS API` → APIM |
+| **App de Conductores** | APP-15 | Entregas offline/online, evidencias | `HTTPS móvil` → ALB |
+| **Operaciones / Soporte** | Persona | Monitoreo DLQ, métricas, replay | `HTTPS monitoreo` → Azure Monitor |
+
+*Cluster Azure — Hub operativo*
+
+| Línea 2 | ID | Qué hace | Zoom N3 |
+|---|---|---|---|
+| **Azure API Management** | APP-01 | Puerta única REST; mocks de legados | §4.0.5 |
+| **Orquestador de Pedidos** | APP-02 | OMS: orden, dedup, Saga, outbox | §4.0.2 |
+| **Microservicio Inventario y Reservas** | MS-INI01-02 | Reserva/liberación de stock | §4.0.4 |
+| **Repositorio transaccional** | APP-02 + MS | Azure SQL: órdenes, reservas, outbox | — (datos) |
+| **Bus de Eventos Central** (Event Hubs) | PLT-03 | Stream canónico de eventos | §4.0.1 |
+| **Bus de Eventos Central** (Service Bus) | PLT-03 | Colas por consumidor + DLQ | §4.0.1 |
+| **Cache operativa OMS** | APP-02 | Redis: dedup, catálogos, TTL | — (caché) |
+| **Plataforma Identidad y Accesos** | PLT-02 | Key Vault: secretos, connection strings | — (secretos) |
+
+*Cluster AWS — Última milla*
+
+| Línea 2 | ID | Qué hace | Zoom N3 |
+|---|---|---|---|
+| **Entrada backend móvil** | soporta APP-15 | ALB: TLS y balanceo hacia Fargate | §4.0.3 |
+| **Backend móvil última milla** | soporta APP-15 | ECS Fargate: API + handlers + Retry Worker | §4.0.3 |
+| **Outbox backend + Ack Tracker** | backend APP-15 | DynamoDB: cola hacia Azure + registro de ACKs | §4.0.3 |
+| **Almacenamiento Evidencias** | APP-16 | S3: fotos, firmas, manifiesto | §4.0.3 |
+| **Buffer puente móvil** | hacia PLT-03 | SQS: absorbe picos antes del puente | §4.0.3 |
+| **Publicador puente AWS** | hacia PLT-03 | EventBridge: publica hacia Event Hubs Azure | §4.0.3 |
+
+*Cluster GCP — Analítica CQRS*
+
+| Línea 2 | ID | Qué hace | Zoom N3 |
+|---|---|---|---|
+| **Proyector CQRS** | lectura tracking | Cloud Run: eventos → filas BigQuery | §4.0.6 |
+| **Almacén consultas CQRS** | mock-portal APP-18 | BigQuery: lectura tracking (E8) | — (datos) |
+
+*Cluster Observabilidad*
+
+| Línea 2 | ID | Qué hace |
+|---|---|---|
+| **Plataforma Observabilidad Unificada** | PLT-01 | Azure Monitor, CloudWatch, Cloud Logging — métricas y trazas |
+
+*Cluster Legados simulados (SaaS externo en el PNG)*
+
+| Línea 2 | ID | Qué simula | Cómo se integra |
+|---|---|---|---|
+| **WMS Principal (On Premises)** | APP-06 | WMS on premises | OMS → APIM → mock-wms (`HTTPS mock sync`) |
+| **ERP Financiero (On Premises)** | APP-25 | ERP financiero | OMS → APIM → mock-erp (opcional) |
+| **Portal B2B (Trazabilidad)** | APP-18 | Portal cliente | APIM mock-portal → BigQuery (`HTTPS GET lectura`) |
+| **TMS (Transportation Mgmt)** | APP-11 | TMS despacho | Service Bus → mock-tms (`eventos async`) |
 
 #### ¿Cómo saber qué cajas tienen cosas **dentro** (Nivel 3)?
 
@@ -288,7 +389,7 @@ En C4 **no todas** las cajas del Nivel 2 son iguales. Hay **tres tipos**:
 
 | Caja en N2 | Contenedor lógico | ID | Diagrama N3 | Qué hay dentro (resumen) |
 |---|---|---|---|---|
-| **AKS — Orquestador** | **Orquestador de Pedidos (APP-02)** | APP-02 | **§4.2 Vista B** (PNG) | Order API, Saga, Dedup, Outbox, WMS Adapter… |
+| **AKS — Orquestador** | **Orquestador de Pedidos (APP-02)** | APP-02 | **§4.2 Vista B** (PNG) | Order API, Saga Orchestrator, Dedup Engine, Outbox Table, Event Publisher… |
 | **AKS — Inventario** | **Microservicio Inventario y Reservas (MS-INI01-02)** | MS-INI01-02 | **§4.4 Vista D** (PNG) | Reserve API, dominio reserva, outbox, conciliación… |
 | **ECS Fargate** (+ ALB) | Backend móvil última milla | soporta APP-15 | **§4.3 Vista C** (PNG) | Delivery Handler, Outbox backend, Evidence, puente a Azure… |
 | **Event Hubs + Service Bus** (+ workers) | **Bus de Eventos Central (PLT-03)** | PLT-03 | **§4.1 Vista A** (PNG) | Ingestion, Schema Validator, DLQ, Replay… |
@@ -304,7 +405,7 @@ En C4 **no todas** las cajas del Nivel 2 son iguales. Hay **tres tipos**:
 
 **Cajas que no son contenedores de aplicación (solo infraestructura en N2):**
 
-Azure SQL, Redis, DynamoDB, S3, BigQuery, SQS, EventBridge, Pub/Sub, Key Vault, Azure Monitor / CloudWatch / Cloud Logging, y las cajas **SaaS externas** del cluster «Legados simulados» (contrato simulado, no código interno del MVP).
+Azure SQL, Redis, DynamoDB, S3, BigQuery, SQS, EventBridge, Key Vault, Azure Monitor / CloudWatch / Cloud Logging, y las cajas **SaaS externas** del cluster «Legados simulados» (contrato simulado, no código interno del MVP). **Pub/Sub (GCP)** no participa en el camino activo del MVP — ver nota en §3.2.
 
 > **Un AKS, dos contenedores:** en el cluster **AKS** corren **dos** workloads distintos — **Orquestador de Pedidos (APP-02)** y **Microservicio Inventario y Reservas (MS-INI01-02)** — por eso hay **dos cajas** en N2 con el mismo servicio cloud «AKS» pero IDs diferentes. Cada uno tiene su propio Nivel 3: §4.2 (APP-02) y §4.4 (MS-INI01-02).
 
@@ -326,11 +427,11 @@ Azure SQL, Redis, DynamoDB, S3, BigQuery, SQS, EventBridge, Pub/Sub, Key Vault, 
 | **Amazon S3** | AWS | **Almacenamiento Evidencias (S3) (APP-16)** | — | **Almacenamiento de objetos** administrado: archivos (fotos, PDFs), alta durabilidad, versionado y cifrado en reposo. | Fotos, firmas, manifiesto; hash SHA-256 + cifrado KMS. |
 | **Amazon SQS** | AWS | Buffer del puente móvil | — | **Cola de mensajes** administrada: buffer asíncrono entre componentes, absorbe picos y entrega at-least-once. | Desacopla picos de **App de Conductores (APP-15)** del hub Azure. |
 | **EventBridge** | AWS | Publicador hacia Azure | — | **Bus de eventos** serverless de AWS: enruta eventos entre servicios AWS, reglas por patrón y destinos externos (incl. integración cross-cloud). | Enruta eventos móviles al **Event Hubs** (integración multinube). |
-| **Pub/Sub** | GCP | Mensajería analítica | — | Mensajería **asíncrona administrada** de GCP: topics y suscripciones, entrega escalable en modo push o pull. | Entrada de eventos replicados hacia el consumidor GCP. |
+| **Pub/Sub** | GCP | *(no desplegado en MVP v1)* | — | Mensajería **asíncrona administrada** de GCP: topics y suscripciones. | **TO BE / opcional:** patrón nativo GCP si el proyector migrara a pull Pub/Sub. **MVP:** **Event Hubs → Cloud Run** directo (§4.6); sin flecha activa en N2. |
 | **Cloud Run** | GCP | Proyector CQRS | **§4.6** (mock) | Plataforma **serverless** para contenedores HTTP: escala a cero, pago por invocación; ideal para handlers ligeros sin cluster. | Handler mínimo: eventos → filas BigQuery para `mock-portal`. **No** es el motor analítico de producción. |
 | **BigQuery** | GCP | Almacén de consultas CQRS | — | **Almacén de datos analítico** serverless: consultas SQL sobre datasets masivos, separado del transaccional (patrón CQRS lectura). | Tablas de lectura para `mock-portal` — sin consultar SQL transaccional. |
 | **Azure Monitor** / **CloudWatch** / **Cloud Logging** | Multinube | **Plataforma de Observabilidad Unificada (PLT-01)** (parcial) | — | Servicios de **observabilidad** de cada nube: métricas, logs, alertas y (parcialmente) trazas distribuidas de apps e infraestructura. | Trazas/métricas con **correlation-id** end-to-end. |
-| **mock-wms** (caja SaaS externa) | Simulado en **APP-01** | **WMS Principal (On Premises) (APP-06)** | — | **No es un servicio cloud**: contrato **simulado** en APIM que imita un WMS on premises (respuestas HTTP configurables). | Saga confirma reserva — **HTTPS mock sync** desde OMS vía APIM (Flujo A, E3–E4). |
+| **mock-wms** (caja SaaS externa) | Simulado en **APP-01** | **WMS Principal (On Premises) (APP-06)** | — | **No es un servicio cloud**: contrato **simulado** en APIM que imita un WMS on premises (respuestas HTTP configurables). | Saga confirma reserva — **HTTPS mock sync** desde OMS vía APIM (Flujo A, **E4**). |
 | **mock-erp** (caja SaaS externa) | Simulado en **APP-01** | **ERP Financiero (On Premises) (APP-25)** | — | **No es un servicio cloud**: contrato **simulado** en APIM que imita un ERP on premises. | Valorización async — **HTTPS mock sync** (demo opcional). |
 | **mock-portal** (caja SaaS externa) | Simulado en **APP-01** + lectura **BigQuery** | **Portal B2B (Trazabilidad) (APP-18)** | — | **No es un servicio cloud**: endpoint **simulado** en APIM; los datos de lectura vienen de **BigQuery** (CQRS). | Tracking **HTTPS GET lectura** — CQRS (Flujo C, E8). |
 | **mock-tms** (caja SaaS externa) | Consumidor en **PLT-03** | **TMS (Transportation Management) (APP-11)** | — (consumidor en §4.1) | **No es un servicio cloud**: **consumidor simulado** en Service Bus que imita un TMS externo suscrito a eventos de despacho. | Recibe despacho — **eventos async** desde Service Bus (Flujo B). |
@@ -373,7 +474,7 @@ Cada ejemplo recorre **servicios del diagrama** en orden, incluidas las cajas **
 8. Azure API Management (APP-01) ← enruta a política mock-wms
       │  mock-wms
       ▼
-9. mock-wms (SaaS externo)       ← simula WMS Principal (APP-06); respuesta 200 / 503 / timeout (E3–E4)
+9. mock-wms (SaaS externo)       ← simula WMS Principal (APP-06); respuesta 200 / 503 / timeout (**E4**)
 ```
 
 **Qué demuestra:** orden no duplicada (Redis + idempotencia), reserva consistente (SQL), eventos desacoplados (Event Hubs → Service Bus → **MS-INI01-02**), confirmación WMS **síncrona en la Saga** (pasos 7–9). La compensación `ReleaseInventory` (mock-wms 503) va por **HTTPS interno** OMS → MS-INI01-02.
@@ -420,10 +521,13 @@ Cada ejemplo recorre **servicios del diagrama** en orden, incluidas las cajas **
 **Fase 3 — Puente hacia Azure (puede fallar aunque Fase 2 haya terminado)**
 
 ```text
-7. Amazon SQS → EventBridge                  ← buffer + enrutamiento
+7. Outbox Relay (mismo task ECS)          ← lee filas PENDING en DynamoDB; **no** escribe SQS en el Handler
+      │  publica mensaje
+      ▼
+8. Amazon SQS → Retry Worker (poll) → EventBridge   ← buffer + reintento con jitter (espera aleatoria entre reintentos)
       │  eventos async (puente multinube)
       ▼
-8. Event Hubs (Azure)                        ← DeliveryCompleted entra al PLT-03
+9. Event Hubs (Azure)                        ← DeliveryCompleted entra al PLT-03
       ├──────────────► Service Bus           ← mock TMS (APP-11), otros consumidores
       └──────────────► Cloud Run → BigQuery  ← actualiza proyección CQRS
 ```
@@ -527,8 +631,7 @@ Valida patrones de resiliencia del **Bus de Eventos Central (PLT-03)** (platafor
 | Puente móvil | AWS | SQS + EventBridge | Buffer hacia Azure Event Hubs |
 | Consumidor analítico | GCP | Cloud Run | Proyección eventos a BigQuery |
 | Almacén consultas | GCP | BigQuery | Modelo lectura CQRS tracking/SLA |
-| Mensajería analítica | GCP | Pub/Sub | Entrada eventos desde puente |
-| Observabilidad | Multinube | OpenTelemetry + Monitor/CloudWatch/Logging | Correlation ID end-to-end |
+| Observabilidad | Multinube | OpenTelemetry + Monitor/CloudWatch/Logging | Correlation ID end-to-end (envelope en §1.1) |
 | Identidad y secretos | Azure/AWS/GCP | Entra ID, Key Vault, IAM, Secret Manager | **Plataforma de Identidad y Accesos (IAM) (PLT-02)** federado |
 
 ### 3.6 Vista resumen (una línea)
@@ -554,9 +657,13 @@ En el nivel 3 hacemos **zoom en un contenedor**. Presentamos **cuatro vistas con
 
 ### 4.0 Guía detallada — cómo leer los diagramas de Nivel 3
 
-Esta sección es la **guía maestra** del Nivel 3 para el comité. Incluye **seis explicaciones detalladas** — una por diagrama — en **§4.0.1 a §4.0.6**. Las secciones **§4.1 a §4.6** conservan tablas técnicas y referencia formal; **empiece por §4.0** para entender cada PNG antes del detalle.
+Esta sección es la **guía maestra** del Nivel 3 para el comité. Incluye **seis explicaciones detalladas** — una por diagrama — en **§4.0.1 a §4.0.6**, más el **banco de respuestas** **§4.0.7**. Las secciones **§4.1 a §4.6** conservan tablas técnicas y referencia formal; **empiece por §4.0** (o §2–§3 para N1/N2) para entender cada PNG antes del detalle.
+
+**Lectura rápida para defensa:** §2.1 (N1) → §3.1 catálogo (N2) → §4.0.2 (OMS) → §4.0.1 (bus) → §4.0.4 (inventario) → §4.0.3 (móvil) → §4.0.7 (FAQ).
 
 Cada vista profundiza **un solo contenedor** del Nivel 2; las cajas **fuera del recuadro en foco** son **vecinos** (otros contenedores o actores), no componentes internos.
+
+> **Catálogo por diagrama:** en cada vista formal **§4.1 a §4.6** hay una subsección **«Catálogo detallado — qué hace cada elemento del diagrama»** con tabla por servicio vecino y componente interno (qué hace, protocolo, escenario).
 
 #### ¿Qué es el Nivel 3 en este MVP?
 
@@ -567,6 +674,15 @@ Cada vista profundiza **un solo contenedor** del Nivel 2; las cajas **fuera del 
 | **Cajas externas (arriba/abajo/lados)** | Contenedores **vecinos** con los que se integra — APIM, Event Hubs, OMS, SQL, conductor |
 | **Zonas internas** | Agrupación lógica (API, Dominio DDD, Aplicación, Infraestructura…) — no son servicios cloud distintos |
 | **PNG vs texto** | PNG = dominio transaccional completo; texto = mock o proyector mínimo (§4.5–§4.6) |
+
+#### ¿Qué significa «AKS pod» o «ECS Fargate» en la línea 1 de una caja N3?
+
+| Pregunta | Respuesta |
+|---|---|
+| ¿Cada caja N3 es un pod o contenedor distinto? | **No** en el MVP. Son **módulos lógicos** dentro del **mismo despliegue** (un contenedor Docker por workload). |
+| ¿Entonces es Nivel 4? | **No.** Nivel 4 serían clases (`OrderController`, `SqlRepository`…). Nivel 3 = responsabilidades de software. |
+| ¿Cuántos despliegues reales hay? | **AKS:** APP-02 + MS-INI01-02 + workers PLT-03 (≥3 imágenes). **AWS:** 1 task ECS Fargate. **GCP:** 1 servicio Cloud Run. |
+| ¿Las flechas internas son HTTP entre pods? | **No.** Son llamadas **dentro del mismo proceso/servicio** (o al datastore vecino). |
 
 #### Catálogo de las seis vistas
 
@@ -645,31 +761,71 @@ Cliente B2B ────────┤
 ![Guía N3 — Bus PLT-03](diagramas_c4/imagenes/mvp_c4_n3_plt03_componentes.png)
 
 **Qué es este diagrama**  
-Zoom **dentro** de la plataforma **Bus de Eventos Central (PLT-03)**. En N2 solo ves dos cajas («Event Hubs» y «Service Bus»); aquí se abre el **código** que valida, enruta, reintenta y entrega mensajes.
+Zoom **dentro** del recuadro **CONTENEDOR EN FOCO: Bus de Eventos Central (PLT-03)**. En N2 solo ves «Event Hubs» y «Service Bus»; aquí se abre el **código** que valida, enruta, reintenta y entrega mensajes.
 
-**Cajas FUERA del recuadro (vecinos — no son parte del bus)**
+**Regla de nombres:** línea 2 del PNG = nombre oficial del componente.
 
-| Vecino | Posición típica en el PNG | Rol |
-|---|---|---|
-| **Orquestador de Pedidos (APP-02)** | Arriba — productor | Publica `OrderValidated`, `ReservationConfirmed`, etc. |
-| **Microservicio Inventario y Reservas (MS-INI01-02)** | Arriba — productor y consumidor | Publica `InventoryReserved`; **consume** cola `OrderValidated` |
-| **Backend móvil AWS** | Arriba — productor | Publica `DeliveryCompleted` tras el puente SQS→EventBridge |
-| Adaptador CSV / mocks | Arriba — productor opcional | Eventos normalizados de legado simulado |
-| **mock TMS (APP-11)** | Abajo — consumidor | Recibe despacho por cola Service Bus |
-| **Proyector GCP (Cloud Run)** | Abajo — consumidor | Lee stream Event Hubs → BigQuery |
-| **Azure Monitor (PLT-01)** | Abajo — observabilidad | Auditoría de eventos y DLQ |
-| **Operaciones / Soporte** | Lateral — actor | Dispara **replay auditado** al Replay Controller |
+---
 
-**Recorrido del diagrama — leer en este orden**
+**Catálogo — qué hace cada caja**
 
-1. **Productores → Event Ingestion API** (flecha «publica»): varios sistemas envían eventos **sin conocer** quién consume — patrón EDA.
-2. **Schema Validator**: si el JSON no cumple contrato **AsyncAPI**, el mensaje **no** sigue al stream — va a DLQ (Flujo D, escenario E5).
-3. **Event Router + Ordering Guard**: enruta por dominio/SLA y mantiene **orden por agregado** (misma `order_id` en la misma partición) — crítico para entregas móviles fuera de secuencia.
-4. **Event Hubs** (stream): copia canónica de alto volumen — alimenta analítica y replay.
-5. **Retry Scheduler → Service Bus** (colas): entrega **por consumidor** con reintentos y **ACK**; aquí sale la flecha **cola MS-INI01-02** hacia inventario (Flujo A pasos 5–6).
-6. **DLQ Manager**: mensajes que agotan reintentos — **no se pierden** (caso Cyber Days 240k mensajes).
-7. **Replay Controller**: **Operaciones** lo activa por **HTTPS monitoreo**; reprocesa desde DLQ con auditoría (Flujo D).
-8. **Backpressure Controller**: si mock **WMS Principal (APP-06)** está degradado, **ralentiza** ingesta para no tumbar el OMS.
+*Productores (arriba del recuadro — vecinos)*
+
+| Línea 2 | ID | Qué hace | Flecha |
+|---|---|---|---|
+| **Orquestador de Pedidos** | APP-02 | Publica `OrderValidated`, compensaciones, etc. | `publica` → Ingestion API |
+| **Microservicio Inventario y Reservas** | MS-INI01-02 | Publica `InventoryReserved`; también **consume** cola | `publica` → Ingestion API |
+| **Backend móvil última milla** | soporta APP-15 | Publica `DeliveryCompleted` tras puente AWS | `publica` → Ingestion API |
+| **Adaptador CSV normalizado** | post-MVP | Carga masiva legado simulado — **no** en E1–E8 | `publica` (opcional) |
+
+*Dentro del recuadro — por zona*
+
+| Zona | Línea 2 | Qué hace | Si falla… |
+|---|---|---|---|
+| Entrada y validación | **Event Ingestion API** | Puerta única HTTP/SDK; normaliza sobre del evento | Nadie publica al hub |
+| Entrada y validación | **Schema Validator** | Valida contrato AsyncAPI; rechaza JSON inválido | Mensaje → DLQ (E5) |
+| Núcleo EDA | **Event Router** | Enruta por tipo (`order.*`, `inventory.*`, `delivery.*`) | Eventos mal dirigidos |
+| Núcleo EDA | **Ordering Guard** | Orden por `order_id` en misma partición | Estados incoherentes |
+| Persistencia | **Stream canónico** (Event Hubs) | Copia alto volumen; alimenta GCP y replay | Sin CQRS ni auditoría masiva |
+| Persistencia | **Colas por consumidor** (Service Bus) | Colas con ACK: inventario, TMS mock | Inventario no reserva |
+| Persistencia | **Registro auditoría eventos** (Azure Storage) | Bitácora de rechazos y movimientos DLQ | Sin evidencia forense |
+| Resiliencia | **Retry Scheduler** | Backoff (espera creciente) + jitter (espera aleatoria) antes de entregar a SB | Pérdida prematura o saturación |
+| Resiliencia | **DLQ Manager** | Aísla mensajes agotados (caso 240k Cyber Days) | Pérdida silenciosa |
+| Resiliencia | **Replay Controller** | Reprocesa DLQ con auditoría (E5) | Solo reproceso manual peligroso |
+| Resiliencia | **Backpressure Controller** | Ralentiza ingesta si WMS mock degradado (E4) | Colapso del OMS |
+
+*Consumidores (abajo del recuadro — vecinos)*
+
+| Línea 2 | ID | Qué hace | Flecha |
+|---|---|---|---|
+| **TMS (Transportation Management)** | APP-11 | Simula manifiesto/despacho | SB → `eventos async` |
+| **Proyector CQRS** | BigQuery / APP-18 | Proyecta eventos a BigQuery (E8) | EH → `eventos async` |
+| **Plataforma Observabilidad Unificada** | PLT-01 | Métricas y logs del bus | Auditoría ← Registro |
+| **Operaciones / Soporte** | Persona | Dispara replay auditado | `HTTPS monitoreo` → Replay |
+
+---
+
+**Recorrido del diagrama — seguir las flechas**
+
+| Paso | De → A | Qué ocurre |
+|:---:|---|---|
+| 1 | Productores → **Event Ingestion API** | Varios sistemas publican sin conocer consumidores (EDA). |
+| 2 | Ingestion → **Schema Validator** | JSON válido sigue; inválido → DLQ + auditoría. |
+| 3 | Validator → **Event Router** → **Ordering Guard** | Enrutamiento + secuencia por agregado. |
+| 4 | Ordering Guard → **Stream canónico** | Copia en Event Hubs (analítica, GCP). |
+| 5 | Ordering Guard → **Retry Scheduler** → **Colas por consumidor** | Entrega por consumidor con reintentos. |
+| 6 | Colas → **Microservicio Inventario** / **mock-tms** | Reserva async (Flujo A 5–6) o despacho TMS. |
+| 7 | **DLQ Manager** → **Replay Controller** → Router | Recuperación auditada (Flujo D, E5). |
+| 8 | **Backpressure Controller** → Router | Ralentiza si downstream degradado (E4). |
+| 9 | **Registro auditoría** → **Azure Monitor** | Trazabilidad de rechazos y DLQ. |
+
+**Preguntas típicas del comité**
+
+| Pregunta | Respuesta corta |
+|---|---|
+| ¿El bus reemplaza la Saga al WMS? | **No.** Saga es síncrona (APP-02 §4.0.2); el bus **desacopla** inventario, móvil, TMS y GCP. |
+| ¿Dónde está el DLQ en N2? | Dentro de PLT-03; el zoom es este diagrama. Operaciones consulta métricas en PLT-01. |
+| ¿Por qué Event Hubs **y** Service Bus? | Hubs = stream/replay/CQRS; Service Bus = colas con ACK por consumidor. |
 
 **Zonas internas del recuadro**
 
@@ -693,43 +849,98 @@ Zoom **dentro** de la plataforma **Bus de Eventos Central (PLT-03)**. En N2 solo
 ![Guía N3 — OMS APP-02](diagramas_c4/imagenes/mvp_c4_n3_oms_componentes.png)
 
 **Qué es este diagrama**  
-Zoom **dentro** del contenedor **Orquestador de Pedidos (APP-02)** — dominio **Orden** (OMS centralizado). Es el **corazón transaccional** del MVP en Azure: alta de órdenes, deduplicación, Saga y publicación de eventos.
+Zoom **dentro** del recuadro **CONTENEDOR EN FOCO: Orquestador de Pedidos (APP-02) — AKS**. Todo lo que está **dentro** del borde grueso es software **implementado** en pods AKS (mismo despliegue del OMS). Lo de **fuera** son actores o servicios vecinos.
 
-**Cajas FUERA del recuadro**
+**Regla de nombres (igual que en el PNG)**  
+Cada caja tiene **tres líneas**: (1) servicio cloud o tipo; (2) **nombre del componente** — usar este en la lectura; (3) ID `APP-02`, `APP-01`, `MS-INI01-02`, `PLT-03`, etc.
 
-| Vecino | Rol en el diagrama |
-|---|---|
-| **Azure API Management (APP-01)** | Entrada `POST /api/v1/orders` y consultas Query API |
-| **Azure SQL** | Persistencia de órdenes y tabla **outbox** |
-| **Event Hubs (PLT-03)** | Destino de eventos publicados tras commit SQL |
-| **mock WMS (APP-06)** | Destino **HTTPS mock sync** de la Saga |
-| **Microservicio Inventario (MS-INI01-02)** | Solo **ReleaseInventory** por HTTPS (compensación) |
+---
 
-**Recorrido del diagrama — leer en este orden**
+**Catálogo — qué hace cada caja (nombre exacto del diagrama)**
 
-1. **APIM → Order API** (`HTTPS API`): llega la orden del cliente B2B con `Idempotency-Key`.
-2. **Correlation Middleware**: propaga `correlation_id` para trazas end-to-end (PLT-01).
-3. **Create Order Handler → Dedup Engine + Idempotency Guard**: evita los **32.000 duplicados** del caso AS IS (hash logístico + clave de idempotencia).
-4. **Order Aggregate + State Machine → Order Repository → SQL**: estado canónico `CREATED` → `VALIDATED` → …
-5. **Outbox Table → Event Publisher → Event Hubs**: patrón **outbox** — el evento `OrderValidated` solo se publica si el commit SQL fue exitoso (§1.2).
-6. **Saga Orchestrator → WMS Adapter → mock-wms** (`HTTPS mock sync`): paso **síncrono** obligatorio — confirmar reserva en WMS simulado (Flujo A pasos 7–9). Si responde 503 → compensación.
-7. **Saga → Inventory Client → MS-INI01-02** (`HTTPS interno`, **solo** `ReleaseInventory`): **no** es la reserva happy path; la reserva va por **Service Bus** (§4.0.1 / §4.0.4).
-8. **Query API → Repository**: lecturas operativas ligeras — **distinto** del `mock-portal` CQRS en BigQuery.
+*Fuera del recuadro (vecinos)*
 
-**Zonas internas**
+| Línea 1 (servicio) | **Línea 2 — nombre en el PNG** | Línea 3 (ID) | Qué hace en este diagrama | ¿Implementado MVP? |
+|---|---|---|---|---|
+| Azure API Management | **Azure API Management** | APP-01 | Puerta de entrada del cliente B2B: reenvía `POST /api/v1/orders` hacia **Order API** | Sí (APIM + políticas mock) |
+| mock WMS (APIM) | **WMS Principal (On Premises)** | APP-06 | Simula el WMS legado: la **Saga Orchestrator** le pide confirmación física (200 / 503 / timeout) | Sí (política mock en APIM) |
+| Actor | **Operaciones / Soporte** | Persona | Soporte interno: consulta estado de orden vía **Query API** (no es el tracking del portal E8) | Actor (no es software) |
+| AKS | **Microservicio Inventario y Reservas** | MS-INI01-02 | Recibe **solo** `ReleaseInventory` cuando la Saga compensa; la reserva happy path va por el bus (§4.0.4) | Sí (otro pod AKS — zoom en §4.4) |
+| Event Hubs | **Bus de Eventos Central** | PLT-03 | Recibe eventos publicados tras el commit SQL (p. ej. `OrderValidated`) | Sí (Event Hubs — zoom en §4.1) |
 
-| Zona | Componentes clave | Patrón MVP |
+*Dentro del recuadro — por zona del PNG*
+
+| Zona en el PNG | Línea 1 | **Línea 2 — nombre** | Qué hace | ¿Implementado? |
+|---|---|---|---|---|
+| Capa API | AKS pod | **Order API** | REST de escritura: recibe la orden, valida JWT e `Idempotency-Key`, delega al handler | Sí |
+| Capa API | AKS pod | **Query API** | REST de lectura operativa: `GET` estado de orden en SQL para soporte | Sí |
+| Dominio DDD | AKS pod | **Order Aggregate** | Raíz DDD: invariantes de negocio (SKU, dirección, SLA) | Sí |
+| Dominio DDD | AKS pod | **State Machine** | Transiciones de estado: `CREATED` → `VALIDATED` → `ON_HOLD` → … | Sí |
+| Dominio DDD | AKS pod | **Dedup Engine** | Hash logístico para detectar duplicados aunque cambie la `Idempotency-Key` (E2) | Sí |
+| Dominio DDD | AKS pod | **Idempotency Guard** | Si repite la misma `Idempotency-Key`, devuelve la respuesta ya guardada (E1) | Sí |
+| Aplicacion | AKS pod | **Create Order Handler** | Caso de uso «crear orden»: orquesta dedup, persistencia, outbox y Saga | Sí |
+| Aplicacion | AKS pod | **Saga Orchestrator** | Coordina confirmación WMS síncrona y compensación; **no** es una TX distribuida única | Sí |
+| Infraestructura | Azure SQL | **Order Repository** | Tablas transaccionales de la orden en Azure SQL | Sí |
+| Infraestructura | Azure SQL | **Outbox Table** | Misma transacción SQL: fila de evento pendiente de publicar (patrón outbox §1.2) | Sí |
+| Infraestructura | AKS pod | **Event Publisher** | Lee **Outbox Table** y publica a **Bus de Eventos Central** tras commit OK | Sí |
+| Integracion | AKS pod | **Inventory Client** | Cliente HTTP hacia **Microservicio Inventario y Reservas** solo para `ReleaseInventory` | Sí |
+| Resiliencia | AKS pod | **Circuit Breaker** | Protege llamadas a **WMS Principal (On Premises)** mock tras N fallos 503 (E4) | Sí |
+| Resiliencia | AKS pod | **Correlation Middleware** | Propaga `correlation_id` en logs y eventos (trazas PLT-01) | Sí |
+
+> **Tracking del cliente (E8):** no pasa por **Query API**. Va **mock-portal (APP-01) → BigQuery** (Flujo C, §4.0.6). **Query API** es solo para **Operaciones / Soporte**.
+
+---
+
+**Recorrido del diagrama — seguir las flechas en este orden**
+
+*Rama principal — alta de orden (Flujo A, E1–E4)*
+
+| Paso | Flecha en el PNG | De → A | Qué ocurre |
+|:---:|---|---|---|
+| 1 | `HTTPS API` `POST /api/v1/orders` | **Azure API Management** → **Order API** | Entra la orden del cliente B2B con cabeceras de seguridad e idempotencia. |
+| 2 | (interna) | **Order API** → **Correlation Middleware** | Se asigna/propaga `correlation_id` para trazabilidad end-to-end. |
+| 3 | (interna) | **Correlation Middleware** → **Create Order Handler** | Arranca el caso de uso de creación. |
+| 4 | (interna) | **Create Order Handler** → **Order Aggregate** | Se aplican reglas de dominio sobre la orden nueva. |
+| 5 | (interna) | **Create Order Handler** → **Dedup Engine** → **Idempotency Guard** | Anti-duplicados: hash logístico (E2) + clave de idempotencia (E1). |
+| 6 | (interna) | **Order Aggregate** → **State Machine** → **Order Repository** | Persistencia del estado canónico en **Azure SQL** (`CREATED` → `VALIDATED` → …). |
+| 7 | (interna) | **Create Order Handler** → **Outbox Table** → **Event Publisher** | En la misma TX: fila outbox + orden; el publisher envía solo si el commit fue exitoso. |
+| 8 | `eventos async` | **Event Publisher** → **Bus de Eventos Central** | Publica p. ej. `OrderValidated` hacia Event Hubs (desde ahí Service Bus → inventario, §4.0.1). |
+| 9 | (interna) | **Create Order Handler** → **Saga Orchestrator** | La Saga continúa los pasos que exigen respuesta síncrona o compensación. |
+| 10 | `HTTPS mock sync` | **Saga Orchestrator** → **WMS Principal (On Premises)** | Confirmación física simulada en almacén (Flujo A pasos 7–9). Si 503 → compensación. |
+| 11 | (interna) | **WMS Principal (On Premises)** → **Circuit Breaker** | El breaker registra fallos y evita saturar el OMS si el mock está degradado (E4). |
+| 12 | `HTTPS interno` `ReleaseInventory` | **Saga Orchestrator** → **Inventory Client** → **Microservicio Inventario y Reservas** | **Solo compensación** si el WMS mock falla. La reserva happy path **no** usa esta flecha (va por el bus). |
+
+*Rama aparte — consulta operativa (no es Flujo C / E8)*
+
+| Paso | Flecha en el PNG | De → A | Qué ocurre |
+|:---:|---|---|---|
+| A | `HTTPS GET lectura` `ops / estado orden` | **Operaciones / Soporte** → **Query API** | Soporte consulta estado en SQL sin pasar por BigQuery. |
+| B | (interna) | **Query API** → **Order Repository** | Lectura ligera sobre las mismas tablas transaccionales. |
+
+---
+
+**Zonas internas del recuadro (nombres del PNG)**
+
+| Zona en el PNG | Componentes (línea 2) | Patrón MVP |
 |---|---|---|
-| Capa API | Order API, Query API | API REST INI-02 |
-| Dominio DDD | Order Aggregate, Dedup, Idempotency | **DDD** |
-| Aplicación | Create Handler, **Saga Orchestrator** | **Saga** |
-| Infraestructura | Repository, Outbox, Event Publisher | **Outbox** + **EDA** |
-| Integración | WMS Adapter, Inventory Client | Solo donde Saga exige sync |
-| Resiliencia | Circuit Breaker | Hacia mock-wms degradado (E4) |
+| Capa API | Order API, Query API | API REST |
+| Dominio DDD | Order Aggregate, State Machine, Dedup Engine, Idempotency Guard | **DDD** |
+| Aplicacion | Create Order Handler, Saga Orchestrator | **Saga** |
+| Infraestructura | Order Repository, Outbox Table, Event Publisher | **Outbox** + **EDA** |
+| Integracion | Inventory Client | Solo compensación HTTPS |
+| Resiliencia | Circuit Breaker, Correlation Middleware | E4 + trazas |
 
-**Mensaje para el comité:** aquí viven **idempotencia, dedup y Saga** — INI-01. Una orden entra una sola vez y la Saga coordina pasos **sin** una transacción distribuida única.
+**Mensaje para el comité:** una orden entra por **Order API**, se valida y persiste una sola vez (**Dedup Engine**, **Idempotency Guard**), se notifica al hub por **Outbox Table** + **Event Publisher**, y la **Saga Orchestrator** confirma el WMS mock de forma síncrona — sin una transacción distribuida única.
 
-**Enlace N2:** caja **AKS — Orquestador**; flechas hacia SQL, Redis, Event Hubs, APIM (mock-wms).
+**Preguntas típicas del comité**
+
+| Pregunta | Respuesta corta |
+|---|---|
+| ¿Query API es el tracking del cliente (E8)? | **No.** E8 = mock-portal → BigQuery. Query API = soporte interno. |
+| ¿Por qué dos rutas al inventario (bus y HTTPS)? | Bus = reserva happy path. HTTPS = **solo** `ReleaseInventory` en compensación. |
+| ¿Cada caja es un pod? | **No.** Módulos lógicos en **un despliegue** APP-02 (ver §4.0). |
+
+**Enlace N2:** caja **Orquestador de Pedidos (APP-02)**; flechas hacia Azure SQL, Event Hubs, APIM (mock WMS) y MS-INI01-02.
 
 ---
 
@@ -742,36 +953,74 @@ Zoom **dentro** del contenedor **Orquestador de Pedidos (APP-02)** — dominio *
 **Qué es este diagrama**  
 Zoom **dentro** del **backend móvil en AWS**. La **App de Conductores (APP-15)** no publica eventos directo a Azure: habla **HTTPS móvil** con este backend, y el backend **traduce** a eventos y evidencias.
 
-**Decisión MVP:** un solo **task ECS Fargate** — Delivery Handler, Evidence, **Retry Worker** en el mismo despliegue (sin Lambda aparte).
+**Decisión MVP:** un solo **task ECS Fargate** — todos los componentes internos comparten el **mismo contenedor** (sin Lambda aparte).
 
-**Cajas FUERA del recuadro**
+**Regla de nombres:** línea 2 del PNG = nombre oficial.
 
-| Vecino | Rol |
+---
+
+**Catálogo — qué hace cada caja**
+
+*Fuera del recuadro (vecinos)*
+
+| Línea 2 | ID / rol | Qué hace |
+|---|---|---|
+| **App de Conductores** | APP-15 | Captura entregas; sincroniza lotes; borra local tras ACK |
+| **Outbox local dispositivo** | APP-15 offline | SQLite cifrado en el **teléfono** — no es AWS |
+| **Almacenamiento Evidencias** | APP-16 | S3: fotos y firmas |
+| **Outbox backend** / **Ack Tracker** | DynamoDB | Cola hacia Azure + registro de ACKs al móvil |
+| **Outbox Relay** / **Publisher puente** | SQS + EventBridge | Buffer y publicación multinube |
+| **Bus de Eventos Central** | PLT-03 | Destino final en Azure |
+| **Plataforma Observabilidad Unificada** | PLT-01 | CloudWatch: trazas del backend |
+
+*Dentro del recuadro — por zona*
+
+| Zona | Línea 2 | Qué hace | Escenario |
+|---|---|---|---|
+| Canal | **Mobile API** (ALB) | Termina TLS; balancea HTTPS del móvil | Entrada campo |
+| Canal | **Delivery API** | REST: recibe lotes store-and-forward; responde ACK | E6, RF-03 |
+| Dominio entrega | **Delivery Handler** | Procesa entrega: valida, escribe outbox, orquesta evidencias | E6 |
+| Dominio entrega | **Exception Taxonomy Validator** | Solo excepciones de lista cerrada (no texto libre) | RF-06, RF-07 |
+| Dominio entrega | **Evidence Orchestrator** | Coordina subida S3 + hash antes de cerrar entrega | E7 |
+| Evidencias | **Hash Verifier SHA-256** | Verifica integridad del archivo | E7 |
+| Evidencias | **Manifest auditoria** | JSON de auditoría en S3 | Conciliación futura |
+| Evidencias | **Cifrado evidencias** (KMS) | Claves de cifrado administradas | Seguridad APP-16 |
+| Persistencia backend AWS | **Outbox backend** | Filas PENDING hacia Azure en DynamoDB | Outbox §1.2 |
+| Persistencia backend AWS | **Ack Tracker** | Qué `event_id` ya recibió ACK del backend | RF-04 |
+| Integración Azure | **Outbox Relay** (SQS) | Lee DynamoDB PENDING → publica a SQS | Desacople |
+| Integración Azure | **Publisher puente** (EventBridge) | Envía eventos hacia Event Hubs | Puente multinube |
+| Resiliencia | **Retry Worker (mismo task)** | Poll (consulta periódica) SQS con jitter (espera aleatoria entre reintentos); reintenta puente | INI-03 |
+| Observabilidad | **Plataforma Observabilidad Unificada** | Sidecar/colector hacia CloudWatch | PLT-01 |
+
+*En el dispositivo (arriba del recuadro, no es AWS)*
+
+| Componente | Qué hace |
 |---|---|
-| **App de Conductores (APP-15)** | Actor conductor — dispositivo móvil |
-| **Outbox local cifrado** (SQLite en teléfono) | Fase offline — **no** es AWS; es el dispositivo |
-| **Amazon S3 (APP-16)** | Evidencias (foto, firma) |
-| **DynamoDB** | Outbox **del backend** + Ack Tracker |
-| **SQS + EventBridge** | Buffer y publicador del puente a Azure |
-| **Event Hubs (PLT-03)** | Destino final en el hub Azure |
-| **CloudWatch (PLT-01)** | Trazas del backend |
+| **Local Sync Agent** | Detecta red y envía lote acumulado del outbox local |
 
-**Recorrido del diagrama — tres fases**
+---
 
-**Fase offline (solo dispositivo — arriba del recuadro)**  
-1. Conductor captura entrega **sin red** → **outbox local cifrado** en el teléfono (INI-03 RF-02).  
-2. La UI confirma al conductor; los datos **persisten en el móvil**.
+**Recorrido del diagrama — tres fases (tabla de flechas)**
 
-**Fase sync hacia AWS (entra al recuadro)**  
-3. Con red → **ALB → Delivery API** (`HTTPS móvil`, lote store-and-forward).  
-4. **Delivery Handler** valida excepciones con **Exception Taxonomy Validator** (lista cerrada, no texto libre).  
-5. Escribe en **Outbox DynamoDB** (estado PENDING hacia Azure).  
-6. **Evidence Orchestrator → S3 + Hash Verifier SHA-256**: integridad de evidencias (caso 1.200 firmas perdidas).  
-7. **Delivery API → móvil (ACK)**: el teléfono **borra** la copia local solo tras ACK del backend (INI-03 RF-04) — ver **Ack Tracker**.
+| Paso | Fase | De → A | Qué ocurre |
+|:---:|---|---|---|
+| 1 | Offline | Conductor → **Outbox local** | Captura sin red (RF-02). |
+| 2 | Offline | UI confirma al conductor | Datos persisten en el móvil. |
+| 3 | Sync | **Local Sync Agent** / Conductor → **Mobile API** → **Delivery API** | Lote `HTTPS móvil`. |
+| 4 | Sync | **Delivery API** → **Delivery Handler** → **Exception Taxonomy Validator** | Validación de negocio. |
+| 5 | Sync | **Delivery Handler** → **Outbox backend** (DynamoDB) | Evento PENDING hacia Azure. |
+| 6 | Sync | **Delivery Handler** → **Evidence Orchestrator** → S3 + **Hash Verifier** + **Manifest** | Evidencias E7. |
+| 7 | Sync | **Delivery API** → **Ack Tracker** → móvil | ACK; el teléfono borra local (RF-04). |
+| 8 | Puente | **Outbox backend** → **Outbox Relay** → **Retry Worker** | Relay no lo hace el Handler directo. |
+| 9 | Puente | **Retry Worker** → **Publisher puente** → **Bus de Eventos Central** | Puente multinube. |
 
-**Fase puente a Azure (sale del recuadro)**  
-8. **SQS Outbox Relay → Retry Worker** (mismo task ECS, polling con jitter) → **EventBridge → Event Hubs**.  
-9. Si el puente falla, el Retry Worker reintenta sin perder el evento en DynamoDB.
+**Preguntas típicas del comité**
+
+| Pregunta | Respuesta corta |
+|---|---|
+| ¿El móvil publica a Event Hubs? | **No.** REST al backend AWS; el backend publica después. |
+| ¿Qué pasa si falla el puente a Azure? | El evento queda en **Outbox backend**; Retry Worker reintenta. El conductor **ya** recibió ACK. |
+| ¿Dónde está el modo offline? | En el **teléfono** (outbox local), no en DynamoDB. |
 
 **Zonas internas**
 
@@ -796,37 +1045,77 @@ Zoom **dentro** del **backend móvil en AWS**. La **App de Conductores (APP-15)*
 ![Guía N3 — Inventario MS-INI01-02](diagramas_c4/imagenes/mvp_c4_n3_inventario_componentes.png)
 
 **Qué es este diagrama**  
-Zoom **dentro** del microservicio de **dominio Inventario** — reservas, liberaciones, conciliación. **No** es **Control de Inventario (APP-08)** legado ni **WMS Principal (APP-06)**.
+Zoom **dentro** del recuadro **CONTENEDOR EN FOCO: Microservicio Inventario y Reservas (MS-INI01-02) — AKS**. Dominio **Inventario** — reservas, liberaciones, conciliación. **No** es **Control de Inventario (APP-08)** legado ni **WMS Principal (APP-06)**.
 
-**Cajas FUERA del recuadro**
+**Regla de nombres:** línea 2 del PNG = nombre oficial.
 
-| Vecino | Rol |
+---
+
+**Catálogo — qué hace cada caja**
+
+*Fuera del recuadro (vecinos)*
+
+| Línea 2 | ID | Qué hace | Protocolo |
+|---|---|---|---|
+| **Orquestador de Pedidos** | APP-02 | Llama **Release API** solo en compensación Saga | `HTTPS interno` |
+| **Bus de Eventos Central** (Service Bus) | PLT-03 | Entrega `OrderValidated` al Reserve Handler | `eventos async` |
+| **Bus de Eventos Central** (Event Hubs) | PLT-03 | Recibe `InventoryReserved` / `InventoryInsufficient` | `eventos async` |
+| **WMS Principal (On Premises)** | APP-06 (eventos mock) | Alimenta **Movement Handler** con movimientos simulados | `eventos async` |
+
+*Dentro del recuadro — por zona*
+
+| Zona | Línea 2 | Qué hace | Escenario |
+|---|---|---|---|
+| Capa API | **Reserve API** | HTTP alternativo para reserva manual/pruebas | F-INV-01 |
+| Capa API | **Release API** | Expone `ReleaseInventory` — compensación Saga | E3, E4 |
+| Capa API | **Availability Query API** | Consulta stock por SKU, almacén, lote | RF-06 |
+| Dominio DDD | **Inventory Aggregate** | Invariantes de cantidad y estado | RF-06…RF-09 |
+| Dominio DDD | **Reservation Policy** | No reservar sin disponibilidad; lotes y bloqueos | RF-06 |
+| Dominio DDD | **Conflict Rules** | Resolución WMS local vs canónico | RF-09 |
+| Aplicacion | **Reserve Handler** | **Trigger principal:** consume `OrderValidated` del bus | Flujo A 5–6 |
+| Aplicacion | **Release Handler** | Libera reservas; publica compensación | E3, E4 |
+| Aplicacion | **Movement Handler** | Movimientos auditables de stock | F-INV-02 |
+| Aplicacion | **Reconciliation Handler** | Conciliación snapshots WMS | F-INV-03 |
+| Infraestructura | **Position Repository** | Tabla `inventory_position` | SQL |
+| Infraestructura | **Reservation Repository** | Tabla `inventory_reservation` | SQL |
+| Infraestructura | **Outbox Table** | Evento en misma TX SQL | Outbox §1.2 |
+| Infraestructura | **Event Publisher** | Publica outbox → Event Hubs | EDA |
+| Resiliencia | **Idempotency Guard** | Evita doble reserva por reintento del bus | Idempotencia |
+| Resiliencia | **Optimistic Lock** | Versión en `inventory_position` (Cyber Days) | RNF |
+| Resiliencia | **Backpressure Gate** | Pausa si WMS degradado | E4 |
+
+---
+
+**Recorrido del diagrama — seguir las flechas**
+
+| Paso | Flecha | De → A | Qué ocurre |
+|:---:|---|---|---|
+| 1 | `eventos async` `OrderValidated` | **Colas por consumidor** → **Reserve Handler** | Happy path de reserva (Flujo A 5–6). |
+| 2 | (interna) | Reserve → **Idempotency Guard** → **Inventory Aggregate** → **Reservation Policy** | Reglas de dominio RF-06…RF-09. |
+| 3 | (interna) | Reserve → **Position Repository** + **Reservation Repository** + **Optimistic Lock** | Persistencia con control de versión. |
+| 4 | (interna) | Reserve → **Outbox Table** → **Event Publisher** → **Stream canónico** | `InventoryReserved` o rechazo. |
+| 5 | `HTTPS interno` | **Orquestador** → **Release API** → **Release Handler** | Solo compensación si mock-wms falla. |
+| 6 | `eventos async` | **WMS Principal** → **Movement Handler** | Movimientos auditables F-INV-02. |
+| 7 | (interna) | WMS → **Backpressure Gate** → **Reconciliation Handler** → **Conflict Rules** | Conciliación F-INV-03. |
+| 8 | (consulta) | **Availability Query API** → **Position Repository** | Lectura de disponibilidad. |
+
+**Preguntas típicas del comité**
+
+| Pregunta | Respuesta corta |
 |---|---|
-| **Service Bus (PLT-03)** | Entrega `OrderValidated` → **Reserve Handler** (happy path) |
-| **Orquestador de Pedidos (APP-02)** | Llama **Release API** solo para compensación |
-| **Azure SQL** | Tablas `inventory_position`, `inventory_reservation`, outbox |
-| **Event Hubs (PLT-03)** | Publica `InventoryReserved` / `InventoryInsufficient` |
-| Eventos WMS (mock) | Entrada a Movement Handler (F-INV-02) |
-
-**Recorrido del diagrama — leer en este orden**
-
-1. **Service Bus → Reserve Handler** (`eventos async`): trigger principal de reserva — Flujo A pasos 5–6.  
-2. **Idempotency Guard + Inventory Aggregate + Reservation Policy**: reglas RF-06 a RF-09; no reservar sin disponibilidad.  
-3. **Position Repository + Reservation Repository → SQL** con **Optimistic Lock**: control de versión en picos Cyber Days.  
-4. **Outbox → Event Publisher → Event Hubs**: `InventoryReserved` o rechazo — misma transacción SQL (outbox).  
-5. **Release API ← APP-02** (`HTTPS interno`): `ReleaseInventory` si mock-wms falla en la Saga.  
-6. **Movement Handler**: movimientos auditables (F-INV-02).  
-7. **Reconciliation Handler + Conflict Rules**: conciliación WMS local vs canónico (F-INV-03); **Backpressure Gate** si WMS degradado.
+| ¿El OMS reserva inventario por HTTPS? | **No** en happy path. Va **Service Bus → Reserve Handler**. HTTPS solo `ReleaseInventory`. |
+| ¿Es el WMS legado? | **No.** Es dominio nuevo MS-INI01-02; el WMS real se **simula** en la Saga (APP-02). |
+| ¿Comparte base de datos con el OMS? | Misma **instancia** Azure SQL, **esquemas separados** en MVP (sin joins cross-esquema). |
 
 **Zonas internas**
 
-| Zona | Componentes |
+| Zona | Componentes (línea 2) |
 |---|---|
 | API | Reserve API, Release API, Availability Query API |
 | Dominio DDD | Inventory Aggregate, Reservation Policy, Conflict Rules |
-| Aplicación | Reserve / Release / Movement / Reconciliation Handlers |
-| Infraestructura | Repositories, Outbox, Event Publisher |
-| Resiliencia | Idempotency, Optimistic Lock, Backpressure |
+| Aplicacion | Reserve / Release / Movement / Reconciliation Handlers |
+| Infraestructura | Position + Reservation Repository, Outbox Table, Event Publisher |
+| Resiliencia | Idempotency Guard, Optimistic Lock, Backpressure Gate |
 
 **Mensaje para el comité:** inventario es un **microservicio hermano** del OMS en el mismo cluster AKS, pero con **ID propio MS-INI01-02**. La reserva **entra por el bus**, no por HTTPS desde el OMS.
 
@@ -841,25 +1130,49 @@ Zoom **dentro** del microservicio de **dominio Inventario** — reservas, libera
 **Qué es esta vista**  
 Zoom **dentro** de **Azure API Management (APP-01)**. En el MVP **no** se despliegan WMS, ERP ni portal reales: las rutas `mock-wms`, `mock-erp`, `mock-portal` son **políticas dentro del mismo APP-01**.
 
-**Estructura lógica (leer como diagrama mental)**
+> **No hay PNG:** los «componentes» son **políticas XML y rutas OpenAPI**, no pods AKS.
 
-```text
-                    ┌─ Global policies (JWT, rate limit, correlation-id)
-Cliente B2B ────────┤
-                    ├─ POST /api/v1/orders ──────────► AKS Orquestador (APP-02)     [HTTPS API]
-                    ├─ mock-wms  ◄── Saga APP-02 ────► política 200/503/timeout    [HTTPS mock sync]
-                    ├─ mock-erp  ◄── opcional ───────► 202 Accepted               [HTTPS mock sync]
-                    └─ mock-portal GET tracking ─────► consulta BigQuery          [HTTPS GET lectura]
-```
+---
 
-**Recorrido por ruta**
+**Catálogo — cada elemento (políticas y backends)**
 
-| Ruta | Quién llama | Qué demuestra |
+| Elemento / ruta | Qué hace | Quién lo usa | Protocolo | Escenario |
+|---|---|---|---|---|
+| **Políticas globales** | JWT/OAuth, rate limit, CORS, inyección `correlation-id` | Todas las peticiones | HTTPS | INI-02 gobierno API |
+| **`POST /api/v1/orders`** | Enruta escritura al **Orquestador de Pedidos** en AKS | Cliente B2B | `HTTPS API` | E1, E2 |
+| **`mock-wms`** | Simula APP-06: respuesta 200 / 503 / timeout configurable | **Saga Orchestrator** vía APIM | `HTTPS mock sync` | E3, E4 |
+| **`mock-erp`** | Simula APP-25: valorización async | OMS (opcional) | `HTTPS mock sync` | Demo opcional |
+| **`mock-portal` + GET tracking** | Simula APP-18: consulta estado en **BigQuery** | Cliente B2B | `HTTPS GET lectura` | E8 — CQRS |
+| **Circuit breaker policy (mock-wms)** | Mantiene 503 prolongado tras N fallos | Saga → mock-wms | `HTTPS mock sync` | E4 |
+| **Backend real AKS APP-02** | Destino de `POST /orders` tras validación APIM | APIM interno | REST interno | Flujo A |
+| **Backend BigQuery** | Destino de lectura del mock-portal | Policy APIM | SQL analítico | Flujo C |
+| **OpenAPI + Terraform** | Contratos en `apis/mock/`; despliegue IaC | Equipo DevOps | IaC | PLT-04 |
+
+**Backends vecinos (fuera de APP-01)**
+
+| Línea 2 | ID | Rol en esta vista |
 |---|---|---|
-| `POST /api/v1/orders` | Cliente B2B | Única entrada de **escritura** de órdenes (Flujo A paso 2) |
-| `mock-wms` | Saga APP-02 vía APIM | Confirmación WMS simulada — E3/E4 circuit breaker |
-| `mock-erp` | OMS (opcional) | Valorización async |
-| `mock-portal` | Cliente B2B | Tracking CQRS desde BigQuery — Flujo C, E8 |
+| **Orquestador de Pedidos** | APP-02 | Backend real de escritura |
+| **Almacén consultas CQRS** | BigQuery / APP-18 | Fuente de lectura del portal mock |
+
+---
+
+**Recorrido por ruta (tabla de flechas)**
+
+| Paso | Ruta | De → A | Qué demuestra |
+|:---:|---|---|---|
+| 1 | Alta orden | Cliente → Políticas globales → `POST /orders` → APP-02 | Única escritura transaccional |
+| 2 | Saga WMS | APP-02 → APIM → `mock-wms` | Confirmación síncrona simulada |
+| 3 | ERP opcional | APP-02 → APIM → `mock-erp` | Valorización async |
+| 4 | Tracking | Cliente → `mock-portal` → BigQuery | CQRS — **no** golpea SQL ni OMS |
+
+**Preguntas típicas del comité**
+
+| Pregunta | Respuesta corta |
+|---|---|
+| ¿Los mocks son sistemas aparte? | **No.** Son **políticas en el mismo APP-01** (sin VPN on premises). |
+| ¿El portal escribe órdenes? | **No.** Solo `GET` sobre BigQuery. Las órdenes se crean con `POST /orders`. |
+| ¿mock-tms está aquí? | **No.** TMS mock es **consumidor de Service Bus** (§4.0.1). |
 
 **Zonas internas (configuración, no pods)**
 
@@ -884,20 +1197,50 @@ Cliente B2B ────────┤
 **Qué es esta vista**  
 Zoom **dentro** del consumidor **GCP** que alimenta **BigQuery** para lecturas. Separa **escritura** (Azure SQL vía OMS) de **consulta** (BigQuery vía `mock-portal`).
 
-**Recorrido lógico**
+> **Decisión MVP:** proyector **mínimo** — un handler que mapea eventos fijos → filas BigQuery. Sin Pub/Sub activo en v1.
 
-1. **Event Hubs (PLT-03)** entrega eventos (`OrderCreated`, `DeliveryCompleted`, …) al **Event Subscriber** en Cloud Run.  
-2. **Schema mapper** (validación ligera): traduce JSON → fila de proyección.  
-3. **BigQuery writer**: `INSERT` / merge idempotente por `order_id` en `tracking_projection`.  
-4. **Azure API Management (APP-01)** `mock-portal` hace `GET /mock/portal/v1/tracking/{id}` sobre BigQuery — el cliente **no** interroga el OMS.
+---
 
-**Componentes internos (MVP mínimo)**
+**Catálogo — qué hace cada elemento**
 
-| Componente | Rol | ¿Complejo en MVP? |
-|---|---|:---:|
-| Event Subscriber | Lee lotes del bus | No — handler único |
-| Projection mapper | Mapping fijo evento→fila | Sí — simplificado a propósito |
-| BigQuery writer | Persiste proyección | No — tabla real en sandbox |
+*Vecinos*
+
+| Línea 2 | ID | Qué hace | Protocolo |
+|---|---|---|---|
+| **Bus de Eventos Central** | PLT-03 | Entrega lotes de eventos al suscriptor | `eventos async` |
+| **Almacén consultas CQRS** | BigQuery / APP-18 | Tablas `tracking_projection`, `sla_projection` | SQL analítico |
+| **Azure API Management** (mock-portal) | APP-01 | `GET /mock/portal/v1/tracking/{id}` sobre BigQuery | `HTTPS GET lectura` |
+
+*Dentro de Cloud Run (componentes lógicos)*
+
+| Componente | Qué hace | Detalle MVP | Escenario |
+|---|---|---|---|
+| **HTTP / Event trigger** | Arranca Cloud Run (min instances = 0) | Escala a cero fuera de demo | FinOps |
+| **Event Subscriber** | Lee mensajes/lotes del bus | Handler único; sin cola propia GCP | Flujo C |
+| **Schema mapper (ligero)** | Valida campos mínimos del JSON | No replica Schema Validator completo de PLT-03 | Calidad |
+| **Projection mapper** | JSON evento → fila de proyección | Mapping fijo en código | CQRS |
+| **BigQuery writer** | `INSERT` / `MERGE` idempotente por `order_id` | Evita duplicar filas al reprocesar | E8 |
+| **Dead letter local (log)** | Eventos no mapeables → Cloud Logging | En producción iría a DLQ dedicada | Observabilidad |
+
+---
+
+**Recorrido del diagrama — seguir las flechas**
+
+| Paso | De → A | Qué ocurre |
+|:---:|---|---|
+| 1 | **Stream canónico** → **Event Subscriber** | Llegan `OrderCreated`, `DeliveryCompleted`, etc. |
+| 2 | Subscriber → **Schema mapper** | Rechaza payload corrupto (log). |
+| 3 | Schema mapper → **Projection mapper** | Traduce a fila `tracking_projection`. |
+| 4 | Mapper → **BigQuery writer** | Persiste en BigQuery (escritura analítica). |
+| 5 | Cliente → **mock-portal** (APP-01) → **BigQuery** | Lectura E8 — **sin** consultar OMS ni SQL transaccional. |
+
+**Preguntas típicas del comité**
+
+| Pregunta | Respuesta corta |
+|---|---|
+| ¿Por qué no leer directo de Azure SQL? | **CQRS:** la lectura masiva no bloquea el transaccional. |
+| ¿Pub/Sub en GCP? | **No en MVP v1.** Camino activo: Event Hubs → Cloud Run → BigQuery. |
+| ¿Es el motor analítico de producción? | **No.** Es proyector mínimo para demostrar E8. |
 
 **Mensaje para el comité:** demuestra **CQRS** sin motor analítico completo — basta para escenario **E8** (consulta tracking).
 
@@ -905,12 +1248,29 @@ Zoom **dentro** del consumidor **GCP** que alimenta **BigQuery** para lecturas. 
 
 ---
 
+#### 4.0.7 Banco de respuestas — preguntas frecuentes (todos los diagramas)
+
+| Pregunta del comité | Dónde mirar | Respuesta en una línea |
+|---|---|---|
+| ¿Qué es cada caja del contexto (N1)? | §2.1 catálogo | Actores + MVP + legados **simulados** como externos de negocio. |
+| ¿Qué caja tiene zoom interno (N2)? | §3.1 tabla «¿Cómo saber…?» | Solo workloads con código: APP-02, MS-INI01-02, PLT-03, backend móvil, APP-01 y Cloud Run (texto). |
+| ¿SQL/Redis/S3 son componentes N3? | §4.0 «Qué no tiene N3» | **No** — son servicios administrados del proveedor. |
+| ¿Cada caja N3 es un microservicio? | §4.0 tabla AKS pod | **No** — módulos lógicos; pocos contenedores desplegables. |
+| ¿Cómo entra la orden? | §4.0.2 pasos 1–8 | Cliente → APIM → Order API → SQL + outbox → bus. |
+| ¿Cómo se reserva stock? | §4.0.4 paso 1 | Service Bus → Reserve Handler (no HTTPS desde OMS). |
+| ¿Cómo confirma el WMS? | §4.0.2 paso 10 + §4.0.5 | Saga → mock-wms en APIM (síncrono). |
+| ¿Cómo funciona offline el conductor? | §4.0.3 pasos 1–2 | Outbox **en el teléfono**; DynamoDB solo con red a AWS. |
+| ¿Cómo consulto tracking (E8)? | §4.0.6 paso 5 | mock-portal → BigQuery; eventos previos vía Cloud Run. |
+| ¿Qué pasa si un evento es inválido? | §4.0.1 paso 2 | Schema Validator → DLQ; replay auditado (E5). |
+| ¿Por qué multinube? | §3.3 Flujos A–C | Azure transaccional, AWS última milla, GCP lectura CQRS. |
+| ¿Dónde está INI-01/02/03? | §4.0 catálogo vistas | INI-01: §4.0.2+4.0.4; INI-02: §4.0.1+4.0.5+4.0.6; INI-03: §4.0.3. |
+
 #### Qué **no** tiene diagrama N3 propio (y por qué)
 
 | Caja N2 | Motivo |
 |---|---|
 | Azure SQL, Redis, DynamoDB, S3, BigQuery | Persistencia administrada del proveedor — sin código de dominio propio |
-| ALB, Key Vault, Pub/Sub | Infraestructura de red o mensajería pura |
+| ALB, Key Vault | Infraestructura de red o secretos (lectura iniciada por workloads, no al revés) |
 | Azure Monitor (PLT-01) | Observabilidad transversal — actor Operaciones en N1/N2 |
 
 #### Orden sugerido para presentar al comité (10 min — Nivel 3)
@@ -955,7 +1315,7 @@ Zoom **dentro de un solo contenedor**: el **Bus de Eventos Central (PLT-03)**. L
 | **Entrada** | Event Ingestion API, Schema Validator | Recibir y validar contratos AsyncAPI, correlation ID, idempotency key |
 | **Núcleo EDA** | Event Router, Ordering Guard, Partition Manager | Enrutar por dominio/SLA; secuencia por agregado (orden, entrega) |
 | **Resiliencia** | Retry Scheduler, DLQ Manager, Replay Controller, Backpressure Controller | Patrones INI-02: reintento, cola fallidos, replay auditado, protección mock de WMS Principal (On Premises) (APP-06) |
-| **Persistencia eventos** | Event Hubs (stream), Service Bus (colas), Registro de auditoría (SQL/Storage) | Trazabilidad e historial de intercambio (ADR-016) |
+| **Persistencia eventos** | Event Hubs (stream), Service Bus (colas), Registro de auditoría (SQL/Storage) | Trazabilidad e historial de intercambio (replay auditado E5) |
 | **Salida** | Subscription Dispatchers | Entrega a Microservicio Inventario y Reservas (MS-INI01-02), mock de TMS (Transportation Management) (APP-11), puente AWS, GCP |
 
 #### Por qué cada componente interno
@@ -967,6 +1327,37 @@ Zoom **dentro de un solo contenedor**: el **Bus de Eventos Central (PLT-03)**. L
 | DLQ Manager | 240k mensajes en cola Cyber Days sin remediación | Pérdida silenciosa de eventos |
 | Replay Controller | Auditoría y recuperación controlada | Reprocesos manuales peligrosos |
 | Backpressure Controller | mock de WMS Principal (On Premises) (APP-06) degradado no debe tumbar OMS centralizado / Orquestador de Pedidos (APP-02) | Efecto dominó en campaña |
+
+#### Catálogo detallado — qué hace cada elemento del diagrama
+
+**Servicios y actores fuera del contenedor (vecinos)**
+
+| Elemento | Servicio cloud / tipo | Qué hace en este diagrama | Protocolo |
+|---|---|---|---|
+| **Orquestador de Pedidos (APP-02)** | AKS pod | Publica eventos de dominio orden (`OrderValidated`, `ReservationConfirmed`, compensaciones) tras commit en SQL | Eventos async → Ingestion API |
+| **Microservicio Inventario (MS-INI01-02)** | AKS pod | Publica `InventoryReserved` / `InventoryInsufficient`; **consume** cola `OrderValidated` desde Service Bus | Publica y consume |
+| **Backend móvil AWS** | ECS Fargate | Publica `DeliveryCompleted`, excepciones y evidencias tras el puente SQS→EventBridge | Eventos async → Ingestion API |
+| **Adaptador CSV (post-MVP)** | Mock en APIM | Normalizaría cargas masivas de legado; **no** participa en E1–E8 | Eventos async (opcional) |
+| **mock-tms (APP-11)** | Consumidor lógico | Recibe eventos de despacho por cola Service Bus y simula actualización de manifiesto TMS | Eventos async desde SB |
+| **Proyector CQRS (Cloud Run)** | Cloud Run GCP | Lee el stream Event Hubs y proyecta filas en BigQuery para tracking (E8) | Eventos async desde EH |
+| **Azure Monitor (PLT-01)** | Log Analytics | Recibe métricas y registros de auditoría del bus y DLQ para operaciones | Telemetría |
+| **Operaciones / Soporte** | Persona | Dispara replay auditado desde DLQ vía consola/API de monitoreo (E5) | HTTPS monitoreo |
+
+**Componentes internos del Bus (PLT-03)**
+
+| Componente | Dónde corre | Qué hace | Resultado si falla |
+|---|---|---|---|
+| **Event Ingestion API** | AKS pod | Punta de entrada HTTP/SDK para todos los productores; normaliza envelope (correlation-id, versión schema) | Productores no pueden publicar |
+| **Schema Validator** | AKS pod | Valida payload contra contrato **AsyncAPI**; rechaza campos faltantes o tipos incorrectos | Mensaje a DLQ (E5) |
+| **Event Router** | AKS pod | Enruta por tipo de evento y dominio (`order.*`, `inventory.*`, `delivery.*`) hacia stream o cola | Eventos mal enrutados o perdidos |
+| **Ordering Guard** | AKS pod | Garantiza orden por agregado (`order_id`) en la misma partición — crítico para entregas móviles fuera de secuencia | Estados incoherentes en consumidores |
+| **Retry Scheduler** | AKS pod | Aplica reintentos con backoff (espera creciente) + jitter (espera aleatoria entre reintentos) antes de entregar a Service Bus | Saturación o pérdida prematura |
+| **Event Hubs (stream canónico)** | Servicio Azure | Copia de alto volumen para analítica, replay histórico y proyector GCP | Sin stream no hay CQRS ni auditoría masiva |
+| **Service Bus (colas)** | Servicio Azure | Colas **por consumidor** con ACK; entrega `OrderValidated` a inventario, despacho a mock-tms | Inventario no reserva; TMS no notificado |
+| **DLQ Manager** | Lógica en SB | Aísla mensajes que agotaron reintentos con causa y payload intacto (caso 240k Cyber Days) | Pérdida silenciosa de eventos |
+| **Replay Controller** | AKS pod | Reprocesa mensajes desde DLQ con rol autorizado y registro de auditoría (E5) | Solo reproceso manual peligroso |
+| **Backpressure Controller** | AKS pod | Reduce velocidad de ingesta cuando mock-WMS o consumidores están degradados (E4) | Colapso del OMS en campaña |
+| **Registro auditoría eventos** | Azure Storage | Persiste rechazos de schema y movimientos DLQ para trazabilidad forense | Sin evidencia para conciliación |
 
 ---
 
@@ -980,41 +1371,67 @@ Zoom **dentro de un solo contenedor**: el **Bus de Eventos Central (PLT-03)**. L
 
 #### Cómo leer este diagrama (Nivel 3 — OMS)
 
-Zoom dentro del **Orquestador de Pedidos (APP-02)** en AKS. **Azure API Management (APP-01)** queda **fuera** como entrada; **Microservicio Inventario y Reservas (MS-INI01-02)** y Event Hubs como **vecinos**.
+Zoom dentro del recuadro **CONTENEDOR EN FOCO: Orquestador de Pedidos (APP-02) — AKS**. Los nombres de las tablas siguen **la línea 2 de cada caja del PNG** (ver catálogo completo en **§4.0.2**).
 
-| Flujo | De → A | Tipo | Qué demuestra |
-|---|---|---|---|
-| 1 | **Azure API Management (APP-01)** → Order API | HTTPS API | `POST /api/v1/orders` entra al dominio orden. |
-| 2 | Create Handler → Dedup / Idempotency | Lógica interna | Caso 32.000 duplicados: hash + `Idempotency-Key`. |
-| 3 | Aggregate → Repository → SQL | Persistencia | Estado canónico `CREATED` → `VALIDATED` → … |
-| 4 | Outbox → Event Publisher → Event Hubs | Eventos async | Publicación confiable: evento solo si commit SQL OK. |
-| 5 | Saga → WMS Adapter → mock-wms | HTTPS mock sync | Paso síncrono obligatorio de la Saga (confirmar reserva en WMS simulado). |
-| 6 | Saga → Inventory Client → **Microservicio Inventario y Reservas (MS-INI01-02)** | HTTPS interno | **Solo compensación:** `ReleaseInventory` si mock-wms falla (E3). La reserva **happy path** va por Service Bus → MS-INI01-02 (Flujo A). |
-| 7 | Query API → Repository | HTTPS lectura ligera | Consultas operativas sin pasar por BigQuery (distinto del mock-portal CQRS). |
+| Paso | Flecha en el PNG | De → A | Qué demuestra |
+|:---:|---|---|---|
+| 1 | `HTTPS API` `POST /api/v1/orders` | **Azure API Management** → **Order API** | Alta de orden del cliente B2B (E1). |
+| 2 | (interna) | **Order API** → **Correlation Middleware** → **Create Order Handler** | Trazas + inicio del caso de uso. |
+| 3 | (interna) | **Create Order Handler** → **Dedup Engine** → **Idempotency Guard** | Anti-duplicados: hash + `Idempotency-Key` (E1, E2). |
+| 4 | (interna) | **Create Order Handler** → **Order Aggregate** → **State Machine** → **Order Repository** | Persistencia del estado en Azure SQL. |
+| 5 | (interna) | **Create Order Handler** → **Outbox Table** → **Event Publisher** | Patrón outbox: evento solo si commit SQL OK. |
+| 6 | `eventos async` | **Event Publisher** → **Bus de Eventos Central** | `OrderValidated` hacia el hub (reserva async en §4.1). |
+| 7 | (interna) | **Create Order Handler** → **Saga Orchestrator** | Coordinación de pasos síncronos y compensación. |
+| 8 | `HTTPS mock sync` | **Saga Orchestrator** → **WMS Principal (On Premises)** | Confirmación WMS simulada (E3/E4). |
+| 9 | (interna) | **WMS Principal (On Premises)** → **Circuit Breaker** | Resiliencia ante mock degradado (E4). |
+| 10 | `HTTPS interno` `ReleaseInventory` | **Saga Orchestrator** → **Inventory Client** → **Microservicio Inventario y Reservas** | Solo compensación; reserva happy path por bus. |
+| A | `HTTPS GET lectura` | **Operaciones / Soporte** → **Query API** → **Order Repository** | Lectura operativa — **no** es tracking portal (E8). |
 
-**Mensaje para el comité:** aquí viven **idempotencia, dedup y Saga** — el corazón de INI-01.
+**Mensaje para el comité:** aquí viven **Dedup Engine**, **Idempotency Guard** y **Saga Orchestrator** — el corazón de INI-01.
 
-#### Zonas del cuadro
+#### Zonas del cuadro (nombres exactos del PNG)
 
-| Zona | Componentes | Función |
+| Zona | Componentes (línea 2) | Función |
 |---|---|---|
-| **API** | Order API, Query API (CQRS lectura ligera) | REST desde Azure API Management (APP-01); consultas sin cargar escritura |
-| **Dominio (DDD)** | Order Aggregate, Order State Machine, Dedup Engine, Idempotency Guard | Reglas RF-01 a RF-05 INI-01 |
-| **Aplicación** | Create Order Handler, Transition Status Handler, Saga Orchestrator | Casos de uso y coordinación Saga |
-| **Infraestructura** | Order Repository, Outbox Publisher, Event Publisher | Persistencia + publicación confiable |
-| **Integración** | WMS Adapter (mock), Inventory Client | Llamadas sincrónicas solo donde Saga lo exige |
-| **Transversal** | Correlation Middleware, Circuit Breaker (Polly) | OBS-01, resiliencia hacia mocks |
+| **Capa API** | Order API, Query API | Entrada REST escritura y lectura operativa |
+| **Dominio (DDD)** | Order Aggregate, State Machine, Dedup Engine, Idempotency Guard | Reglas RF-01 a RF-05 INI-01 |
+| **Aplicacion** | Create Order Handler, Saga Orchestrator | Casos de uso y coordinación Saga |
+| **Infraestructura** | Order Repository, Outbox Table, Event Publisher | Azure SQL + publicación confiable |
+| **Integracion** | Inventory Client | HTTP solo para `ReleaseInventory` |
+| **Resiliencia** | Circuit Breaker, Correlation Middleware | Protección mock WMS + trazas |
 
-#### Por qué cada componente interno
+#### Catálogo detallado — qué hace cada elemento del diagrama
 
-| Componente | Por qué existe |
-|---|---|
-| Order Aggregate | Raíz DDD; invariantes de orden (SKU, dirección, SLA) |
-| Dedup Engine | Caso 32.000 duplicados; hash + ventana temporal |
-| Idempotency Guard | Reintentos de clientes API no duplican órdenes |
-| Outbox Publisher | Garantiza que SQL y evento no divergen (patrón Outbox) |
-| Saga Orchestrator | Reserva inventario y confirmación WMS Principal (On Premises) (APP-06) no son una sola TX |
-| Query API | CQRS: consultas frecuentes sin bloquear escritura |
+> **Misma nomenclatura que §4.0.2.** Línea 2 del PNG = nombre oficial del componente.
+
+**Servicios y actores fuera del recuadro (vecinos)**
+
+| Línea 2 (nombre PNG) | ID | Qué hace en este diagrama | Protocolo |
+|---|---|---|---|
+| **Azure API Management** | APP-01 | Entrada `POST /api/v1/orders` → **Order API** | `HTTPS API` |
+| **WMS Principal (On Premises)** | APP-06 | Mock en APIM: confirmación física 200/503/timeout | `HTTPS mock sync` |
+| **Operaciones / Soporte** | Persona | Consulta estado vía **Query API** (distinto de E8) | `HTTPS GET lectura` |
+| **Microservicio Inventario y Reservas** | MS-INI01-02 | Solo `ReleaseInventory` en compensación Saga | `HTTPS interno` |
+| **Bus de Eventos Central** | PLT-03 | Destino de eventos tras **Outbox Table** | `eventos async` |
+
+**Componentes internos del OMS (APP-02)**
+
+| Línea 2 (nombre PNG) | Zona | Qué hace | Escenario / RF |
+|---|---|---|---|
+| **Order API** | Capa API | REST escritura; valida JWT e `Idempotency-Key` | E1 |
+| **Query API** | Capa API | REST lectura operativa sobre **Order Repository** | Soporte |
+| **Correlation Middleware** | Resiliencia | Propaga `correlation_id` (PLT-01) | Todos |
+| **Create Order Handler** | Aplicacion | Orquesta crear orden: dedup, SQL, outbox, Saga | E1, E2 |
+| **Order Aggregate** | Dominio DDD | Invariantes de negocio de la orden | RF-01…RF-05 |
+| **State Machine** | Dominio DDD | Transiciones de estado de la orden | Saga |
+| **Dedup Engine** | Dominio DDD | Hash logístico; ventana temporal anti-duplicados | E2 — RF-03 |
+| **Idempotency Guard** | Dominio DDD | Respuesta cacheada si repite `Idempotency-Key` | E1 |
+| **Saga Orchestrator** | Aplicacion | WMS síncrono + compensación inventario | E3, E4 |
+| **Order Repository** | Infraestructura | Persistencia transaccional (Azure SQL) | Transaccional |
+| **Outbox Table** | Infraestructura | Evento pendiente en la misma TX SQL | Outbox §1.2 |
+| **Event Publisher** | Infraestructura | Publica outbox → **Bus de Eventos Central** | EDA |
+| **Inventory Client** | Integracion | Cliente HTTP `ReleaseInventory` → MS-INI01-02 | E3, E4 |
+| **Circuit Breaker** | Resiliencia | Corta llamadas al mock WMS tras N fallos | E4 |
 
 ---
 
@@ -1024,7 +1441,7 @@ Zoom dentro del **Orquestador de Pedidos (APP-02)** en AKS. **Azure API Manageme
 
 **Contenedor en foco:** Backend móvil (soporte **App de Conductores (APP-15)**).
 
-> **Decisión MVP:** un solo servicio **ECS Fargate**. Todos los componentes internos (Delivery Handler, Evidence, **Retry Worker**) corren en el **mismo task**. El **Retry Worker** hace **polling de SQS con jitter** y publica al puente EventBridge → Event Hubs — cumple INI-03 (reintento del puente) sin desplegar **Lambda** aparte.
+> **Decisión MVP:** un solo servicio **ECS Fargate** (contenedores sin administrar servidores). Todos los componentes internos (Delivery Handler, Evidence, **Retry Worker**) corren en el **mismo task** (tarea de contenedor). El **Retry Worker** hace **polling (consulta periódica) de SQS con jitter (espera aleatoria entre reintentos)** y publica al puente EventBridge → Event Hubs — cumple INI-03 (reintento del puente) sin desplegar **Lambda** (función serverless) aparte.
 
 ![C4 N3 Mobile Componentes](diagramas_c4/imagenes/mvp_c4_n3_mobile_componentes.png)
 
@@ -1040,7 +1457,7 @@ Zoom dentro del **backend móvil en AWS** (soporte a **App de Conductores (APP-1
 | 3 | Evidence → S3 + Hash Verifier | HTTPS / SDK | Evidencia con integridad (caso 1.200 firmas perdidas). |
 | 4 | Outbox → SQS Relay → EventBridge → Event Hubs | Eventos async | Sincronización al hub Azure cuando hay conectividad multinube. |
 | 5 | Delivery API → **App de Conductores (APP-15)** (ACK) | HTTPS móvil | El móvil borra copia local **solo** tras confirmación del backend (INI-03 RF-04). |
-| 6 | Retry Worker (mismo task ECS) → SQS | Reintento interno | Polling con jitter ante picos o throttling del puente a Azure. |
+| 6 | Retry Worker (mismo task ECS) → SQS | Reintento interno | Polling (consulta periódica) con jitter (espera aleatoria) ante picos o throttling (limitación de velocidad) del puente a Azure. |
 
 **Mensaje para el comité:** **App de Conductores (APP-15)** **no habla directo** con Event Hubs; usa REST al backend AWS, y el backend **traduce** a eventos — por eso en Nivel 1 la flecha del conductor dice **HTTPS móvil**, no “eventos”.
 
@@ -1049,11 +1466,11 @@ Zoom dentro del **backend móvil en AWS** (soporte a **App de Conductores (APP-1
 | Zona | Componentes | Función |
 |---|---|---|
 | **Canal** | Mobile API (ALB + Fargate) | HTTPS desde **App de Conductores (APP-15)** |
-| **Offline (dispositivo)** | Local Sync Agent, outbox cifrado en teléfono, Encryption Service | Store-and-forward ADR-006 — RF-02: sin red, todo queda en el móvil |
+| **Offline (dispositivo)** | Local Sync Agent, outbox cifrado en teléfono, Encryption Service | Store-and-forward — sin red, el lote queda en el móvil hasta sync (E6; caso: firmas perdidas) |
 | **Dominio entrega** | Delivery Handler, Exception Taxonomy Validator, Evidence Orchestrator | INI-03 RF-01, RF-06, RF-07 |
 | **Evidencias** | S3 Upload Service, Hash Verifier, Manifest Writer | SHA-256, KMS, **Almacenamiento Evidencias (S3) (APP-16)** |
 | **Integración** | SQS Outbox Relay, EventBridge Publisher | Puente asíncrono hacia Azure |
-| **Resiliencia** | Retry Worker (mismo task ECS), Ack Tracker | Acks por evento; polling SQS con jitter y reintento del puente a Azure |
+| **Resiliencia** | Retry Worker (mismo task ECS), Ack Tracker | Acks por evento; polling SQS con jitter (espera aleatoria entre reintentos) y reintento del puente a Azure |
 | **Observabilidad** | OTel Collector sidecar | Trazas a X-Ray / federación |
 
 #### Por qué cada componente interno
@@ -1065,7 +1482,40 @@ Zoom dentro del **backend móvil en AWS** (soporte a **App de Conductores (APP-1
 | Exception Taxonomy Validator | Texto libre impedía **ML / Optimización de Rutas (GCP) (APP-24)** y conciliación (F5) |
 | Hash Verifier | Evidencias corruptas generaron disputas financieras |
 | SQS Outbox Relay | Desacopla pico móvil del hub Azure |
-| Retry Worker (mismo task ECS) | INI-03: polling SQS con jitter y reintento del puente; un solo despliegue Fargate |
+| Retry Worker (mismo task ECS) | INI-03: polling SQS con jitter (espera aleatoria entre reintentos) y reintento del puente; un solo despliegue Fargate |
+
+#### Catálogo detallado — qué hace cada elemento del diagrama
+
+**Servicios y actores fuera del contenedor (vecinos)**
+
+| Elemento | Servicio cloud / tipo | Qué hace en este diagrama | Protocolo |
+|---|---|---|---|
+| **App de Conductores (APP-15)** | Dispositivo móvil | Captura entregas offline; sincroniza lotes cuando hay red; borra copia local solo tras ACK | HTTPS móvil / outbox local |
+| **Outbox local cifrado** | SQLite en teléfono | Persiste firma, foto, GPS y evento mientras no hay conectividad (store-and-forward) | Almacenamiento local |
+| **Amazon S3 (APP-16)** | S3 + KMS | Almacena evidencias inmutables (fotos, firmas) con cifrado y manifiesto de auditoría | SDK AWS |
+| **Event Hubs (PLT-03)** | Event Hubs Azure | Destino final de eventos de entrega y excepción tras el puente multinube | Eventos async |
+| **CloudWatch (PLT-01)** | CloudWatch | Trazas, métricas y logs del backend móvil federados con OTel | Telemetría |
+
+**Componentes internos del backend móvil AWS**
+
+| Componente | Zona | Qué hace | Escenario / RF |
+|---|---|---|---|
+| **Application Load Balancer** | Canal | Termina TLS; distribuye tráfico HTTPS del móvil hacia ECS; health checks | Entrada campo |
+| **Delivery API** | Canal | API REST que recibe lotes store-and-forward del conductor; responde ACK por evento | E6 — RF-03 |
+| **Delivery Handler** | Dominio entrega | Procesa cada entrega del lote: valida estado, escribe outbox backend, orquesta evidencias | E6 |
+| **Exception Taxonomy Validator** | Dominio entrega | Rechaza excepciones fuera de lista cerrada (no texto libre); normaliza códigos INI-03 | RF-06, RF-07 |
+| **Evidence Orchestrator** | Dominio entrega | Coordina subida a S3, cálculo de hash y registro de manifiesto antes de marcar entrega completa | E7 |
+| **Hash Verifier SHA-256** | Evidencias | Verifica integridad de archivo antes de aceptar evidencia; rechaza hash inválido | E7 — APP-16 |
+| **Almacenamiento Evidencias (S3)** | Evidencias | Bucket con SSE-KMS para fotos y firmas; lifecycle 90 días en MVP | APP-16 |
+| **Manifest auditoria (S3)** | Evidencias | JSON con hash, timestamp y metadatos para conciliación futura (INI-06 TO BE) | Auditoría |
+| **AWS KMS** | Evidencias | Claves de cifrado de evidencias; rotación administrada | Seguridad |
+| **Outbox backend (DynamoDB)** | Persistencia | Cola de eventos PENDING hacia Azure; sobrevive a caídas del puente | Outbox §1.2 |
+| **Ack Tracker (DynamoDB)** | Persistencia | Registra qué `event_id` ya recibió ACK del backend al móvil | RF-04 — E6 |
+| **Outbox Relay** | Integración | Lee filas PENDING en DynamoDB y las publica a SQS (no lo hace el Handler directamente) | Desacople |
+| **Amazon SQS** | Integración | Buffer entre relay y Retry Worker; absorbe picos del móvil | Resiliencia |
+| **Retry Worker** | Resiliencia | Mismo task ECS: polling SQS con jitter (espera aleatoria entre reintentos) y publica a EventBridge hacia Azure | Puente multinube |
+| **EventBridge Publisher** | Integración | Reglas de publicación hacia Event Hubs (connection string en Key Vault) | Puente Azure |
+| **Local Sync Agent** | Offline | En el dispositivo: envía lote acumulado en outbox local cuando detecta red | RF-02 |
 
 ---
 
@@ -1098,7 +1548,7 @@ Zoom **dentro de MS-INI01-02**. **Orquestador de Pedidos (APP-02)** y **Bus de E
 | 3 | Reserve Handler → Reservation Repository → **Azure SQL** | Persistencia | Tablas `inventory_position`, `inventory_reservation`; control optimista de versión. |
 | 4 | Reserve Handler → Outbox → Event Publisher → **Event Hubs** | Eventos async | `InventoryReserved` o `InventoryInsufficient` — patrón outbox (§1.2). |
 | 5 | Evento WMS / movimiento → Movement Handler | Eventos async (entrada) | Registro auditable de movimientos (F-INV-02). |
-| 6 | Reconciler → Conflict Repository | Lógica dominio | Conciliación WMS local vs canónico (F-INV-03); backpressure si WMS degradado. |
+| 6 | Reconciler → Conflict Repository | Lógica dominio | Conciliación WMS local vs canónico (F-INV-03); backpressure (frenado de ingesta) si WMS degradado. |
 | 7 | Fallo stock o WMS → **Orquestador de Pedidos (APP-02)** | HTTPS / evento compensación | `ReleaseInventory` si Saga falla en mock-wms (Flujo A, E3). |
 
 **Mensaje para el comité:** inventario **no** es **Control de Inventario (APP-08)** legado ni **WMS Principal (APP-06)** — es el **dominio de reservas** nuevo de INI-01, desplegado como microservicio hermano del OMS en el mismo **AKS**.
@@ -1124,7 +1574,40 @@ Zoom **dentro de MS-INI01-02**. **Orquestador de Pedidos (APP-02)** y **Bus de E
 | Reconciliation Handler | RF-09/RF-12: inventario fragmentado entre WMS y ERP en el caso AS IS |
 | Backpressure Gate | Protege mock/real **WMS Principal (APP-06)** cuando está caído 6 h (Cyber Days) |
 
-#### Modelo de datos (MVP)
+#### Catálogo detallado — qué hace cada elemento del diagrama
+
+**Servicios y actores fuera del contenedor (vecinos)**
+
+| Elemento | Servicio cloud / tipo | Qué hace en este diagrama | Protocolo |
+|---|---|---|---|
+| **Service Bus (PLT-03)** | Service Bus | Entrega mensaje `OrderValidated` al Reserve Handler — **trigger principal** de reserva | Eventos async |
+| **Orquestador de Pedidos (APP-02)** | AKS pod vecino | Llama Release API solo en compensación Saga (`ReleaseInventory`) | HTTPS interno |
+| **Event Hubs (PLT-03)** | Event Hubs | Recibe `InventoryReserved`, `InventoryInsufficient` publicados tras outbox | Eventos async |
+| **eventos WMS (mock)** | Simulado | Alimenta Movement Handler con movimientos de stock simulados (F-INV-02) | Eventos async |
+
+**Componentes internos del microservicio Inventario (MS-INI01-02)**
+
+| Componente | Capa | Qué hace | Escenario / RF |
+|---|---|---|---|
+| **Reserve API** | API | Contrato HTTP alternativo para reserva manual o pruebas; en MVP el trigger principal es el handler por bus | F-INV-01 |
+| **Release API** | API | Expone `ReleaseInventory` invocado por OMS en compensación Saga | E3, E4 |
+| **Availability Query API** | API | Consulta stock disponible por SKU, almacén, lote y estado | RF-06 |
+| **Reserve Handler** | Aplicación | Consume `OrderValidated`; ejecuta reserva o rechazo; escribe SQL y outbox | E3 — Flujo A pasos 5–6 |
+| **Release Handler** | Aplicación | Libera cantidades reservadas y publica evento de compensación | E3, E4 |
+| **Movement Handler** | Aplicación | Registra movimientos auditables de stock (entrada/salida/ajuste) | F-INV-02 |
+| **Reconciliation Handler** | Aplicación | Compara snapshot WMS local vs canónico; aplica Conflict Rules | F-INV-03 |
+| **Inventory Aggregate** | Dominio DDD | Raíz de agregado inventario; invariantes de cantidad y estado | RF-06…RF-09 |
+| **Reservation Policy** | Dominio DDD | Reglas: no reservar sin disponibilidad, respetar lotes y estados bloqueados | RF-06 |
+| **Conflict Rules** | Dominio DDD | Define resolución cuando WMS local y canónico difieren | RF-09 |
+| **Position Repository** | Infraestructura | CRUD sobre `inventory_position` (stock por SKU/ubicación) | SQL |
+| **Reservation Repository** | Infraestructura | CRUD sobre `inventory_reservation` ligadas a `order_id` | SQL |
+| **Outbox Table** | Infraestructura | Misma transacción SQL + evento pendiente (`InventoryReserved`, etc.) | Outbox §1.2 |
+| **Event Publisher** | Infraestructura | Publica eventos de inventario a Event Hubs tras leer outbox | EDA |
+| **Idempotency Guard** | Resiliencia | Evita doble reserva si el mismo comando llega dos veces por el bus | Idempotencia |
+| **Optimistic Lock** | Resiliencia | Control de versión en `inventory_position` ante picos concurrentes (Cyber Days) | RNF |
+| **Backpressure Gate** | Resiliencia | Pausa consumo o ralentiza reservas si WMS mock/real está degradado | E4 |
+
+---
 
 Tablas principales en **Azure SQL** (compartidas con **Orquestador de Pedidos (APP-02)** en el mismo cluster, esquemas separados):
 
@@ -1135,6 +1618,8 @@ Tablas principales en **Azure SQL** (compartidas con **Orquestador de Pedidos (A
 | `inventory_conflict` | Diferencias WMS local vs canónico; estado y regla de resolución |
 | `inventory_event_log` | Movimientos auditables (F-INV-02) |
 | `outbox` | Cola local SQL: `InventoryReserved`, `InventoryInsufficient`, compensaciones |
+
+**Trade-off MVP — SQL compartida:** una sola instancia Azure SQL con **esquemas y logins separados** (sin joins cross-esquema; integración solo por PLT-03 o HTTPS `ReleaseInventory`). **Plan de salida TO BE:** instancias independientes u elastic pool con aislamiento de recursos; los repositorios ya están desacoplados por dominio.
 
 Funcionalidades del microservicio en el MVP:
 
@@ -1189,6 +1674,27 @@ Zoom **dentro de APP-01**. **Orquestador de Pedidos (APP-02)** en AKS y **BigQue
 
 **Mensaje para el comité:** **APP-01 sí tiene zoom N3**, pero el contenido interno son **políticas y rutas mock**, no un dominio DDD con pods. Por eso va en **texto** (§4.5) y no en un PNG de microservicio.
 
+#### Catálogo detallado — qué hace cada elemento (políticas y rutas)
+
+**Servicios vecinos (backends enrutados)**
+
+| Elemento | Tipo | Qué hace | Protocolo |
+|---|---|---|---|
+| **AKS — Orquestador de Pedidos (APP-02)** | Backend real | Recibe órdenes validadas para persistencia y Saga | HTTPS API desde APIM |
+| **BigQuery** | Almacén GCP | Fuente de lectura para `mock-portal` (proyección CQRS) | Consulta desde policy APIM |
+
+**Componentes internos de APP-01 (configuración, no pods)**
+
+| Componente / ruta | Qué hace | Comportamiento en demo | Escenario |
+|---|---|---|---|
+| **Políticas globales** | JWT/OAuth, rate limit por suscripción, inyección de `correlation-id`, CORS | Toda petición pasa por aquí antes de enrutar | INI-02 gobierno API |
+| **`POST /api/v1/orders`** | Enruta escritura de órdenes al OMS en AKS; reenvía `Idempotency-Key` | Única entrada de alta de orden en MVP | E1, E2 |
+| **`mock-wms`** | Política return-xml/mock: simula APP-06 on premises | Configurable 200 / 503 / timeout; activa circuit breaker en OMS | E4 |
+| **`mock-erp`** | Simula APP-25 valorización financiera | Responde 202 Accepted async (demo opcional) | Integración legado |
+| **`mock-portal` + `GET .../tracking/{id}`** | Simula APP-18 portal B2B | Policy consulta BigQuery; **no** escribe en Azure SQL | E8 — CQRS |
+| **Circuit breaker policy (mock-wms)** | Cuenta fallos y devuelve 503 prolongado | Demuestra resiliencia sin WMS real | E4 |
+| **OpenAPI + Terraform** | Contratos versionados en repo `apis/mock/`; despliegue IaC | Garantiza reproducibilidad de mocks en cada ambiente | PLT-04 |
+
 ---
 
 ### 4.6 Vista F — Contenedor: **Proyector CQRS** en **Cloud Run** (GCP)
@@ -1219,6 +1725,27 @@ Zoom **dentro de APP-01**. **Orquestador de Pedidos (APP-02)** en AKS y **BigQue
 
 **Mensaje para el comité:** **Cloud Run sí merece zoom conceptual**, pero en el MVP es **deliberadamente simple** para no duplicar la complejidad del bus (§4.1) ni del OMS (§4.2).
 
+#### Catálogo detallado — qué hace cada elemento del proyector
+
+**Servicios vecinos**
+
+| Elemento | Servicio cloud | Qué hace | Protocolo |
+|---|---|---|---|
+| **Event Hubs (PLT-03)** | Event Hubs Azure | Entrega lotes de eventos canónicos al suscriptor en Cloud Run | Eventos async (push/pull según implementación) |
+| **BigQuery** | BigQuery GCP | Almacena tablas `tracking_projection` / `sla_projection` para lecturas | SQL analítico |
+| **Azure API Management — mock-portal** | APIM | Ejecuta `GET` de tracking contra BigQuery sin pasar por OMS | HTTPS GET lectura |
+
+**Componentes internos (Cloud Run — MVP mínimo)**
+
+| Componente | Qué hace | Detalle de implementación MVP | Escenario |
+|---|---|---|---|
+| **HTTP / Event trigger** | Arranca instancia Cloud Run (min=0) al recibir lote de eventos | Escala a cero fuera de demo para ahorrar costo | FinOps |
+| **Event Subscriber** | Lee mensajes del bus (vía puente desde Event Hubs) | Un solo handler; sin cola propia en GCP (sin Pub/Sub v1) | Flujo C |
+| **Projection mapper** | Transforma JSON de evento (`order_id`, estado, timestamp, versión) en fila de proyección | Mapping fijo en código; sin motor de reglas | CQRS |
+| **Schema mapper (ligero)** | Valida campos mínimos antes de escribir; descarta payload corrupto | No replica Schema Validator completo de PLT-03 | Calidad datos |
+| **BigQuery writer** | `INSERT` o `MERGE` idempotente por `order_id` | Evita duplicar filas si el evento se reprocesa | E8 |
+| **Dead letter local (log)** | Registra eventos no mapeables en Cloud Logging | En producción iría a DLQ; en MVP basta log | Observabilidad |
+
 ---
 
 ## 5. Tabla resumen — servicio por servicio (las tres nubes)
@@ -1237,8 +1764,9 @@ Zoom **dentro de APP-01**. **Orquestador de Pedidos (APP-02)** en AKS y **BigQue
 | SQS/EventBridge | 2–3 | Puente AWS | Integración asíncrona multinube |
 | Cloud Run | 2–3 | Consumidor GCP (proyector mock) | CQRS lectura; handler mínimo eventos → BigQuery (§4.6) |
 | BigQuery | 2 | CQRS lectura | Portal tracking sin golpear OMS centralizado / Orquestador de Pedidos (APP-02) |
-| Pub/Sub | 2 | Mensajería GCP | Patrón nativo GCP |
 | Terraform | Transversal | Plataforma IaC (PLT-04) | 100% IaC exigido |
+
+**FinOps multinube:** el costo de **egreso** inter-nube (AWS→Azure en el puente móvil, Azure→GCP hacia Cloud Run) está absorbido en la estimación ~USD 449/mes del doc [`04_IaC_Costos_Despliegue.md`](04_IaC_Costos_Despliegue.md); estrategia MVP: **batching**, compresión de payloads y publicación por lotes en el puente SQS/EventBridge.
 
 ---
 
@@ -1285,6 +1813,7 @@ C4Context
 ```mermaid
 flowchart LR
     CLI["Cliente B2B<br/>Actor<br/>Persona"]
+    CON["App de Conductores<br/>APP-15<br/>Persona"]
     OPS["Operaciones / Soporte<br/>Actor<br/>Persona"]
     subgraph Azure["Azure"]
         APIM["Azure API Management<br/>Azure API Management<br/>APP-01"]
@@ -1294,6 +1823,7 @@ flowchart LR
         EH["Event Hubs<br/>Bus de Eventos Central<br/>PLT-03"]
         SB["Service Bus<br/>Bus de Eventos Central<br/>PLT-03"]
         REDIS["Azure Cache for Redis<br/>Cache operativa OMS<br/>APP-02"]
+        KV["Key Vault<br/>Plataforma Identidad<br/>PLT-02"]
         MON["Azure Monitor<br/>Plataforma Observabilidad<br/>PLT-01"]
     end
     subgraph AWS["AWS"]
@@ -1307,7 +1837,6 @@ flowchart LR
     subgraph GCP["GCP"]
         CR["Cloud Run<br/>Proyector CQRS<br/>lectura tracking"]
         BQ[("BigQuery<br/>Almacen consultas CQRS<br/>mock-portal APP-18")]
-        PS["Pub/Sub<br/>Mensajeria analitica<br/>GCP"]
     end
     subgraph EXT["Legados simulados (SaaS externo)"]
         MWMS["mock-wms en APIM<br/>WMS Principal (On Premises)<br/>APP-06"]
@@ -1322,16 +1851,19 @@ flowchart LR
     APIM -->|mock-wms| MWMS
     APIM -->|mock-erp| MERP
     OMS --> REDIS
+    OMS -->|HTTPS interno ReleaseInventory| INV
     OMS --> EH --> SB
     SB -->|eventos async: cola MS-INI01-02| INV
     SB -->|eventos async| MTMS
     INV --> SQL
     INV --> EH
-    ALB --> ECS --> DDB
+    CON -->|HTTPS movil: entrega / evidencias E6-E7| ALB --> ECS --> DDB
     ECS --> S3
-    ECS --> SQS --> EB --> EH
+    ECS -->|outbox relay DDB→SQS| SQS
+    SQS -->|retry worker poll| EB --> EH
     EH --> CR --> BQ
-    PS --> CR
+    APIM -->|obtiene secretos| KV
+    OMS -->|obtiene secretos| KV
     OPS -->|HTTPS monitoreo: DLQ / metricas| MON
     OMS --> MON
 ```

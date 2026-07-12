@@ -2,7 +2,9 @@
 ## RutaExpress Fulfillment & Transporte
 
 > **Estado:** Diseño de infraestructura — sin `terraform apply` ejecutado aún.  
-> **Principio:** 100% del despliegue MVP vía **Terraform** (Plataforma IaC (PLT-04)). Sin consola manual salvo bootstrap de estado remoto.
+> **Principio:** 100% del despliegue MVP vía **Terraform** (herramienta IaC — infraestructura como código) (**Plataforma IaC (PLT-04)**). Sin consola manual salvo bootstrap de estado remoto.
+
+> **Términos técnicos:** glosario del paquete en [`00_INDICE_COMITE.md`](00_INDICE_COMITE.md) §Glosario breve.
 
 ---
 
@@ -12,13 +14,13 @@
 
 | Herramienta | Rol | Por qué |
 |---|---|---|
-| **Terraform** ≥ 1.6 | IaC multinube | Un lenguaje, providers Azure/AWS/GCP oficiales, estado remoto |
+| **Terraform** ≥ 1.6 | IaC (infraestructura como código) multinube | Un lenguaje, providers Azure/AWS/GCP oficiales, estado remoto |
 | **Azure Storage** | Backend estado TF Azure | Blob container con lock |
 | **S3 + DynamoDB** | Backend estado TF AWS | Patrón estándar locking |
 | **GCS** | Backend estado TF GCP | Bucket versionado |
 | **GitHub Actions** (o Azure DevOps) | CI/CD plan/apply | Aprobación manual en `mvp` |
-| **Helm** | Despliegue AKS | Charts **Orquestador de Pedidos (APP-02)** (aplicación del catálogo) y **Microservicio Inventario y Reservas (MS-INI01-02)** (microservicio INI-01, ID **MS-INI01-02**), más workers del **Bus de Eventos Central (PLT-03)** |
-| **OpenTelemetry Collector** | Helm chart transversal | Trazas unificadas |
+| **Helm** | Despliegue AKS (Kubernetes administrado) | Charts (paquetes de manifiestos) **Orquestador de Pedidos (APP-02)** (aplicación del catálogo) y **Microservicio Inventario y Reservas (MS-INI01-02)** (microservicio INI-01, ID **MS-INI01-02**), más workers del **Bus de Eventos Central (PLT-03)** |
+| **OpenTelemetry Collector** | Helm chart transversal | Trazas unificadas (estándar OTel) |
 
 ### 1.2 Estructura de carpetas (a crear en implementación)
 
@@ -50,8 +52,8 @@ HITO 3 - MVP Multinube/
         iam/
       gcp/
         cloudrun/
-        pubsub/
         bigquery/
+        # pubsub/ — post-MVP; MVP v1 usa Event Hubs → Cloud Run directo
       shared/
         otel/
         naming/
@@ -64,22 +66,22 @@ HITO 3 - MVP Multinube/
 1. Bootstrap backends (Azure Storage, S3+DynamoDB, GCS)
 2. Azure: RG → Key Vault → SQL → AKS → Event Hubs → Service Bus → Azure API Management (APP-01) → Redis → Monitor
 3. AWS: IAM → DynamoDB → S3 → SQS → EventBridge → ECS Fargate
-4. GCP: Pub/Sub → BigQuery → Cloud Run
+4. GCP: BigQuery → Cloud Run (suscripción push desde Event Hubs vía puente)
 5. Puente: reglas EventBridge → Event Hubs (connection string en Key Vault)
 6. Helm: **Orquestador de Pedidos (APP-02)**, **Microservicio Inventario y Reservas (MS-INI01-02)**, workers **Bus de Eventos Central (PLT-03)**, OTel
 7. Azure API Management (APP-01): import OpenAPI mocks + políticas
-8. Smoke tests E1–E8
+8. Smoke tests (pruebas mínimas de arranque) E1–E8
 ```
 
 ### 1.4 Variables de entorno MVP
 
 | Variable | Ejemplo | Uso |
 |---|---|---|
-| `environment` | `mvp` | Tags FinOps |
+| `environment` | `mvp` | Tags FinOps (gestión financiera de la nube) |
 | `azure_region` | `eastus` | Co-localizar con AWS us-east-1 |
 | `aws_region` | `us-east-1` | Última milla |
 | `gcp_region` | `us-east1` | Analítica |
-| `eventhub_throughput_units` | `1` | Costo controlado |
+| `eventhub_throughput_units` | `1` | Throughput (volumen de mensajes) — costo controlado |
 | `aks_node_count` | `2` | MVP sin HA multi-AZ completo |
 | `apim_sku` | `Developer` o `Standard_1` | Mocks + rate limit |
 
@@ -114,9 +116,9 @@ HITO 3 - MVP Multinube/
 | Recurso Terraform | Servicio | Config MVP |
 |---|---|---|
 | `aws_ecs_cluster` + `service` | ECS Fargate | 0.25 vCPU / 512 MB — API + Retry Worker en el mismo task |
-| `aws_dynamodb_table` | DynamoDB | On-demand, outbox GSI |
-| `aws_s3_bucket` + `kms_key` | S3 evidencias | SSE-KMS, lifecycle 90d |
-| `aws_sqs_queue` + `dlq` | SQS | Puente + DLQ móvil |
+| `aws_dynamodb_table` | DynamoDB | On-demand (pago por uso), outbox (cola de salida) GSI (índice secundario) |
+| `aws_s3_bucket` + `kms_key` | S3 evidencias | SSE-KMS (cifrado con llaves gestionadas), lifecycle 90d |
+| `aws_sqs_queue` + `dlq` | SQS | Puente + DLQ (cola de mensajes fallidos) móvil |
 | `aws_cloudwatch_event_bus` | EventBridge | Reglas hacia Azure |
 | `aws_iam_role` | IAM | Least privilege por servicio |
 
@@ -124,10 +126,9 @@ HITO 3 - MVP Multinube/
 
 | Recurso Terraform | Servicio | Config MVP |
 |---|---|---|
-| `google_pubsub_topic` + `subscription` | Pub/Sub | 1 topic analytics |
 | `google_bigquery_dataset` + `table` | BigQuery | tracking_projection |
-| `google_cloud_run_service` | Cloud Run | 1 vCPU, min 0 |
-| `google_service_account` | IAM | Solo Pub/Sub + BQ |
+| `google_cloud_run_service` | Cloud Run | 1 vCPU, min 0; trigger desde Event Hubs |
+| `google_service_account` | IAM | Solo Cloud Run + BQ |
 | `google_secret_manager_secret` | Secretos | Puente credentials |
 
 ---
@@ -148,7 +149,7 @@ Merge a main → plan mvp → aprobación manual → apply secuencial:
 | `apply-azure` | Aprobación arquitecto |
 | `apply-aws-gcp` | Tras outputs Azure (Event Hubs connection) |
 | `deploy-workloads` | Helm: despliegue de aplicaciones y microservicios en AKS + imágenes en container registry |
-| `smoke` | Escenarios E1–E8 automatizados |
+| `smoke` | Escenarios E1–E8 automatizados (smoke test — prueba mínima end-to-end) |
 
 ---
 
@@ -182,15 +183,14 @@ Merge a main → plan mvp → aprobación manual → apply secuencial:
 | S3 + KMS | 50 GB, 10k PUT | **8** |
 | SQS + EventBridge | 1M requests | **5** |
 | CloudWatch + X-Ray | 5 GB logs | **12** |
-| Data transfer → Azure | 20 GB egress | **18** |
+| Data transfer → Azure | 20 GB egress (tráfico de salida entre nubes) | **18** |
 | **Subtotal AWS** | | **~93** |
 
 ### 4.3 GCP
 
 | Componente | SKU / cantidad | USD/mes estimado |
 |---|---|---:|
-| Cloud Run | min 0, ~50k req | **20** |
-| Pub/Sub | 1M mensajes | **5** |
+| Cloud Run | min 0, ~50k req + push Event Hubs | **25** |
 | BigQuery | 100 GB storage + queries | **25** |
 | Secret Manager | 5 secretos | **2** |
 | Cloud Logging | 5 GB | **8** |
@@ -202,7 +202,7 @@ Merge a main → plan mvp → aprobación manual → apply secuencial:
 |---|---:|---:|---|
 | **Azure** | ~296 | 65% | Hub operativo (mayor peso justificado) |
 | **AWS** | ~93 | 21% | Última milla |
-| **GCP** | ~60 | 14% | Analítica/CQRS |
+| **GCP** | ~60 | 14% | Analítica/CQRS (separar escritura y lectura) |
 | **TOTAL** | **~449** | 100% | Ambiente demo único |
 
 **Notas:**
@@ -216,7 +216,7 @@ Merge a main → plan mvp → aprobación manual → apply secuencial:
 
 | Mock API | Ruta | Política |
 |---|---|---|
-| WMS Principal (On Premises) (APP-06) | `/mock/wms/v1/*` | Circuit breaker si latency > 2s |
+| WMS Principal (On Premises) (APP-06) | `/mock/wms/v1/*` | Circuit breaker (corte ante fallos) si latency > 2s |
 | ERP Financiero (On Premises) (APP-25) | `/mock/erp/v1/*` | Async 202 + callback opcional |
 | Portal | `/mock/portal/v1/tracking/{id}` | Lee BigQuery vía función |
 | TMS (Transportation Management) (APP-11) | `/mock/tms/v1/manifests` | Valida schema despacho |
