@@ -1,0 +1,18 @@
+openapi: 3.0.3
+info:
+  title: Mock Portal B2B tracking (APP-18)
+  version: 1.0.0
+paths:
+  /v1/tracking/{id}:
+    get:
+      summary: Consulta tracking CQRS (BigQuery)
+      operationId: getTracking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Proyección de tracking

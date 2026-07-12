@@ -1,0 +1,20 @@
+openapi: 3.0.3
+info:
+  title: Mock WMS Principal (APP-06)
+  version: 1.0.0
+paths:
+  /v1/reservations/confirm:
+    post:
+      summary: Confirmar reserva en almacén
+      operationId: confirmReservation
+      responses:
+        "200":
+          description: Reserva confirmada
+        "503":
+          description: WMS degradado (E4 circuit breaker)
+  /v1/health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK

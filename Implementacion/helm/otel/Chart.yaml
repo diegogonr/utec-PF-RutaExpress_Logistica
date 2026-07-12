@@ -1,0 +1,5 @@
+apiVersion: v2
+name: otel
+description: OpenTelemetry Collector — trazas unificadas multinube
+type: application
+version: 0.1.0

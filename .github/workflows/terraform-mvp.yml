@@ -1,0 +1,46 @@
+name: Terraform MVP — RutaExpress
+
+on:
+  pull_request:
+    paths:
+      - "Implementacion/terraform/**"
+  push:
+    branches: [main]
+    paths:
+      - "Implementacion/terraform/**"
+
+defaults:
+  run:
+    working-directory: Implementacion/terraform/environments/mvp
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive ../..
+      - name: Terraform init
+        run: terraform init -backend=false
+      - name: Terraform validate
+        run: terraform validate
+
+  plan:
+    if: github.event_name == 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform init
+        run: terraform init -backend=false
+      - name: Terraform plan
+        run: terraform plan -input=false
+        env:
+          TF_VAR_azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          TF_VAR_azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          TF_VAR_gcp_project_id: ${{ secrets.GCP_PROJECT_ID }}
+          TF_VAR_sql_admin_password: ${{ secrets.SQL_ADMIN_PASSWORD }}

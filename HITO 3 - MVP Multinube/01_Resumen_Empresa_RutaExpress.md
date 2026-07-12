@@ -84,8 +84,9 @@ El MVP **no reemplaza** todavía el WMS real ni la liquidación completa; demues
 | 2 | **Este resumen** ✓ |
 | 3 | [`01b_TOBE_vs_MVP_Alternativa_A.md`](01b_TOBE_vs_MVP_Alternativa_A.md) — marco plano / maqueta / casa entera |
 | 4 | [`02_Dossier_MVP_Alternativa_A.md`](02_Dossier_MVP_Alternativa_A.md) — alcance, patrones y decisiones del MVP |
-| 5 | [`03_C4_Model_MVP.md`](03_C4_Model_MVP.md) — diagramas C4 |
-| 6 | [`04_IaC_Costos_Despliegue.md`](04_IaC_Costos_Despliegue.md) — Terraform y costos |
+| 5 | [`05_Servicios_por_Nube_MVP.md`](05_Servicios_por_Nube_MVP.md) — catálogo unificado (por nube + explicación de cada servicio) |
+| 6 | [`03_C4_Model_MVP.md`](03_C4_Model_MVP.md) — diagramas C4 |
+| 7 | [`04_IaC_Costos_Despliegue.md`](04_IaC_Costos_Despliegue.md) — Terraform y costos |
 | — | [`06_Preguntas_Argumentos_Comite.md`](06_Preguntas_Argumentos_Comite.md) — *(opcional)* preguntas y argumentos para la defensa oral |
 
 ---

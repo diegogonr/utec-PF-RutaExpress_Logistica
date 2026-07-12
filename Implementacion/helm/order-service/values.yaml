@@ -1,0 +1,22 @@
+replicaCount: 1
+
+image:
+  repository: mcr.microsoft.com/azuredocs/containerapps-helloworld
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+env:
+  appId: APP-02
+  serviceName: order-service
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi

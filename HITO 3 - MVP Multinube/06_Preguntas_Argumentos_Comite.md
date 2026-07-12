@@ -106,7 +106,33 @@ La columna **Evidencia** apunta al paquete solo para **ampliar** si preguntan; l
 
 **Respuesta oral:** «El backend móvil es **una API REST con ACK inmediato al conductor**, evidencias S3 y **retry del puente en el mismo servicio**. Lambda obligaría a trocear eso y complicaría el patrón offline sin ganancia clara en la demo.»
 
-### 4.2 Otras preguntas AWS
+### 4.2 ¿Por qué ECS Fargate y no EKS (Kubernetes en AWS)?
+
+> **Aclaración de nombres:** **Fargate** es el cómputo sin servidores; puede usarse con **ECS** o con **EKS**. La pregunta del comité suele ser: ¿por qué no **EKS** (aunque sea EKS on Fargate) si ya hay **AKS** en Azure?
+
+| Criterio | **ECS Fargate** | **EKS** (incl. EKS on Fargate) |
+|---|---|---|
+| **Carga en AWS** | **Una** aplicación: backend **App de Conductores (APP-15)** — API + Retry Worker en el **mismo task** | Pensado para **varios** workloads, namespaces, Ingress, Helm… |
+| **Kubernetes en el MVP** | **AKS (Azure)** ya concentra el hub: APP-02, MS-INI01-02, workers PLT-03, OTel | Segundo cluster K8s solo para la última milla = **simetría artificial** |
+| **Control plane** | No hay cluster EKS; solo pagas el task Fargate (~USD 38/mes demo) | Control plane EKS ~**USD 73/mes** además del cómputo |
+| **Operación** | Task + Service + ALB — Terraform directo | Cluster, RBAC, CNI, add-ons, posible segundo Helm chart |
+| **Patrón GCP** | Mismo criterio que **Cloud Run vs GKE**: runtime **mínimo** por perfil de carga | GKE tampoco se usa en GCP para el proyector CQRS |
+
+```text
+Azure (hub)     AWS (última milla)    GCP (lectura)
+    AKS      →   ECS Fargate      →   Cloud Run
+  varios pods      1 task móvil         1 handler CQRS
+```
+
+| Pregunta frecuente | Respuesta |
+|---|---|
+| ¿EKS on Fargate no evita administrar nodos? | Sí, pero **sigue** el costo y la complejidad del **control plane EKS**; para **un** servicio HTTP, ECS es más simple |
+| ¿No es mejor K8s en las 3 nubes? | Solo el **dominio transaccional** lo justifica; ver también **§10** («¿K8s en las 3 nubes?») |
+| ¿ECS Fargate es «AWS Fargate» suelto? | **No.** Fargate es el motor; **ECS** es quien orquesta tasks y servicios |
+
+**Respuesta oral:** «Kubernetes ya está donde hace falta: **AKS** con OMS, inventario y bus. En AWS solo va el **backend móvil**, un contenedor con API y retry. **ECS Fargate** es el runtime mínimo; **EKS** añadiría un segundo cluster y costo sin beneficio en E6–E7. En GCP hicimos lo mismo: **Cloud Run**, no GKE.»
+
+### 4.3 Otras preguntas AWS
 
 | Pregunta | Argumento | Evidencia |
 |---|---|---|
@@ -174,7 +200,7 @@ La columna **Evidencia** apunta al paquete solo para **ampliar** si preguntan; l
 | Pregunta | Argumento | Evidencia |
 |---|---|---|
 | ¿Todo en Azure? | Ignora AS IS (APP-15, S3, analítica GCP); obliga a **migrar antes de probar** el bus; no demuestra integración multinube del caso. | `01` §3 |
-| ¿K8s en las 3 nubes? | Solo el **dominio transaccional** justifica cluster; móvil y proyector son **cargas acotadas** → Fargate y Cloud Run reducen operación sin perder funcionalidad. | `02` §5 |
+| ¿K8s en las 3 nubes? | Solo el **dominio transaccional** justifica cluster (**AKS** en Azure); móvil → **ECS Fargate**; proyector → **Cloud Run**. Detalle ECS vs EKS: **§4.2**. | `02` §5; `05` §9 |
 | ¿Microservicios overkill? | El caso ya tiene **dominios separados** (orden vs inventario vs móvil); el MVP usa **tres workloads**, no decenas. | `01` §2 cadena valor |
 
 ---

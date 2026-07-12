@@ -1,0 +1,18 @@
+# Copiar a terraform.tfvars y completar valores reales.
+# NUNCA commitear terraform.tfvars con secretos.
+
+project              = "rutaexpress"
+environment          = "mvp"
+azure_subscription_id = "00000000-0000-0000-0000-000000000000"
+azure_tenant_id       = "00000000-0000-0000-0000-000000000000"
+azure_region          = "eastus"
+aws_region            = "us-east-1"
+aws_account_suffix    = "mvp01"   # único globalmente para S3
+gcp_project_id        = "rutaexpress-mvp"
+gcp_region            = "us-east1"
+sql_admin_login       = "sqladmin"
+sql_admin_password    = "CAMBIAR-POR-SECRETO-FUERTE"
+aks_node_count        = 2
+eventhub_throughput_units = 1
+apim_sku              = "Developer_1"
+apim_publisher_email  = "tu-email@ejemplo.com"

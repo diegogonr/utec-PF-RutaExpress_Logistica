@@ -51,20 +51,25 @@
 
 ---
 
+## Lectura recomendada (40–50 minutos)
+
 | Orden | Documento | Para qué sirve | Tiempo |
 |:---:|---|---|:---:|
 | 1 | **Este índice** | Orientación y mensajes clave | 3 min |
 | 2 | [`01_Resumen_Empresa_RutaExpress.md`](01_Resumen_Empresa_RutaExpress.md) | Contexto de negocio — dolores, cadena de valor | 5 min |
 | 3 | [`01b_TOBE_vs_MVP_Alternativa_A.md`](01b_TOBE_vs_MVP_Alternativa_A.md) | Marco TO BE vs MVP, hitos, INI parciales, E1–E8 | 8 min |
 | 4 | [`02_Dossier_MVP_Alternativa_A.md`](02_Dossier_MVP_Alternativa_A.md) | Alcance, patrones, mocks, escenarios E1–E8 | 15 min |
-| 5 | [`03_C4_Model_MVP.md`](03_C4_Model_MVP.md) | **C4 central** — N1–N3, flujos A–D, guía §4.0 (catálogo por figurita) + §4.0.7 FAQ | 15 min |
-| 6 | [`04_IaC_Costos_Despliegue.md`](04_IaC_Costos_Despliegue.md) | Terraform, pipeline, costos (~USD 449/mes) | 8 min |
+| 5 | [`05_Servicios_por_Nube_MVP.md`](05_Servicios_por_Nube_MVP.md) | **Catálogo unificado** — Parte I: por nube y E1–E8 (~5 min); Parte II: qué hace cada servicio (🟢/🟡/🔴) | 5–20 min |
+| 6 | [`03_C4_Model_MVP.md`](03_C4_Model_MVP.md) | **C4 central** — N1–N3, flujos A–D, guía §4.0 + §4.0.7 FAQ | 15 min |
+| 7 | [`04_IaC_Costos_Despliegue.md`](04_IaC_Costos_Despliegue.md) | Terraform, pipeline, costos (~USD 449/mes) | 8 min |
 
-**Antes de la defensa oral:** [`06_Preguntas_Argumentos_Comite.md`](06_Preguntas_Argumentos_Comite.md) — preguntas frecuentes, argumentos (p. ej. Fargate vs Lambda, multinube §2.1) y guion de 5 min.
+**Antes de la defensa oral:** [`06_Preguntas_Argumentos_Comite.md`](06_Preguntas_Argumentos_Comite.md) — preguntas frecuentes, argumentos (p. ej. ECS Fargate vs Lambda §4.1, ECS vs EKS §4.2, multinube §2.1) y guion de 5 min.
 
 **Soporte para defensa oral:** [`06_Preguntas_Argumentos_Comite.md`](06_Preguntas_Argumentos_Comite.md) — incluye reglas para **no** argumentar solo con «porque el Hito 2 / Alternativa A lo dice».
 
 **Diagramas:** `diagramas_c4/imagenes/` — regenerar con `python diagramas_c4/generar_diagramas_mvp_c4.py`.
+
+**Implementación IaC (código):** [`../Implementacion/`](../Implementacion/) — Terraform multinube, Helm, mocks OpenAPI y CI/CD.
 
 ---
 

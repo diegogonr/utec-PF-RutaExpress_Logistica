@@ -1,0 +1,33 @@
+openapi: 3.0.3
+info:
+  title: Orders API — Orquestador de Pedidos (APP-02)
+  version: 1.0.0
+paths:
+  /v1/orders:
+    post:
+      summary: Crear orden con idempotencia
+      operationId: createOrder
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customerId:
+                  type: string
+                items:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        "201":
+          description: Orden creada
+        "409":
+          description: Duplicado detectado (E2)

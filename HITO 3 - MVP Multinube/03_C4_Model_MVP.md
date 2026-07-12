@@ -7,6 +7,8 @@
 
 > **Convención obligatoria (regla de oro):** en textos, tablas y diagramas de este documento cada identificador va **siempre** con su nombre oficial. Catálogo APP/PLT → `HITO 1 - .../06_Mapa_Portafolio_Aplicaciones.md`. **Término técnico en inglés o sigla:** la primera vez en cada sección va con el significado breve entre paréntesis — p. ej. **jitter** (espera aleatoria entre reintentos), **ACK** (acuse de recibo), **outbox** (cola de salida de eventos), **DLQ** (cola de mensajes fallidos). Glosario completo: §1.4 y [`00_INDICE_COMITE.md`](00_INDICE_COMITE.md) §Glosario breve.
 
+> **¿Qué hace cada servicio, herramienta o componente (APP/PLT/MS vs AKS vs Helm vs OTel)?** Ver catálogo unificado: [`05_Servicios_por_Nube_MVP.md`](05_Servicios_por_Nube_MVP.md) (Parte I = tablas por nube; Parte II = explicación de cada pieza). Este documento (`03`) se centra en **diagramas C4 y flujos**.
+
 ### 0.1 Iniciativas (INI), aplicaciones (APP), plataformas (PLT), microservicios (MS) y servicios en la nube
 
 En este documento no se usan abreviaturas informales («apps», «ML» sin nombre de aplicación, «MS inventario»). Cada identificador va con su **nombre oficial** completo.

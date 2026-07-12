@@ -1,0 +1,11 @@
+openapi: 3.0.3
+info:
+  title: Mock ERP Financiero (APP-25)
+  version: 1.0.0
+paths:
+  /v1/invoices/sync:
+    post:
+      summary: Sincronizar facturación
+      responses:
+        "202":
+          description: Aceptado async

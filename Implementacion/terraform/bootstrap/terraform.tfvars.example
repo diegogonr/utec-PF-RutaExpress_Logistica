@@ -1,0 +1,4 @@
+gcp_project_id             = "rutaexpress-mvp"
+azure_storage_account_name = "strutaexpresstf001"
+aws_tfstate_bucket         = "rutaexpress-tfstate-mvp-001"
+gcp_tfstate_bucket         = "rutaexpress-tfstate-mvp-001"

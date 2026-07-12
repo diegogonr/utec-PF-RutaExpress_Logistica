@@ -1,0 +1,11 @@
+openapi: 3.0.3
+info:
+  title: Mock TMS (APP-11)
+  version: 1.0.0
+paths:
+  /v1/manifests:
+    post:
+      summary: Actualizar manifiesto de despacho
+      responses:
+        "200":
+          description: Manifiesto actualizado

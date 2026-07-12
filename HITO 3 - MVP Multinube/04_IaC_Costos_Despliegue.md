@@ -1,7 +1,7 @@
 # IaC, Despliegue y Costos — MVP Multinube
 ## RutaExpress Fulfillment & Transporte
 
-> **Estado:** Diseño de infraestructura — sin `terraform apply` ejecutado aún.  
+> **Estado:** Código IaC en [`../Implementacion/`](../Implementacion/) — listo para `terraform plan/apply` con credenciales cloud. Sin `apply` ejecutado en este entorno de documentación.  
 > **Principio:** 100% del despliegue MVP vía **Terraform** (herramienta IaC — infraestructura como código) (**Plataforma IaC (PLT-04)**). Sin consola manual salvo bootstrap de estado remoto.
 
 > **Términos técnicos:** glosario del paquete en [`00_INDICE_COMITE.md`](00_INDICE_COMITE.md) §Glosario breve.

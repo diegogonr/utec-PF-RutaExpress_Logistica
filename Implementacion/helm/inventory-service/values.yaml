@@ -1,0 +1,8 @@
+replicaCount: 1
+image:
+  repository: mcr.microsoft.com/azuredocs/containerapps-helloworld
+  tag: latest
+service:
+  port: 8081
+env:
+  microserviceId: MS-INI01-02

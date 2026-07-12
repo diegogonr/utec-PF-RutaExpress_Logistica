@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-bus-workers
+  labels:
+    app.kubernetes.io/name: bus-workers
+    app.kubernetes.io/component: PLT-03
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: bus-workers
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: bus-workers
+    spec:
+      containers:
+        - name: outbox-publisher
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          env:
+            - name: ROLE
+              value: outbox-publisher
+        - name: dlq-replay
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          env:
+            - name: ROLE
+              value: dlq-replay-controller
