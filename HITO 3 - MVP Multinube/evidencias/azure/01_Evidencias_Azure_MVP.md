@@ -1,6 +1,5 @@
 # Evidencias de despliegue — Azure (MVP)
 
-> **Fuente:** IaC en `Implementacion/terraform/modules/azure/` + naming `modules/shared/naming/`.  
 > **Resource Group del despliegue:** todo el stack Azure del MVP vive en **`rg_Diego_Gonzales`**.  
 > **Convención de nombres:** `project=rutaexpress`, `environment=mvp` → prefijo `rutaexpress-mvp`.  
 
