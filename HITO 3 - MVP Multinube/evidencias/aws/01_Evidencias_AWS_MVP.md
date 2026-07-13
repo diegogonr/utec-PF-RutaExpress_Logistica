@@ -1,15 +1,13 @@
 # Evidencias de despliegue — AWS (MVP)
 
-> **Fuente:** IaC en `Implementacion/terraform/modules/aws/` + naming `modules/shared/naming/`.  
 > **Activación:** `enable_aws = true` en `environments/mvp` (fase 2: Azure + AWS).  
 > **Convención de nombres:** `project=rutaexpress`, `environment=mvp` → prefijo `rutaexpress-mvp`.  
-> **Imágenes:** colocar capturas en [`imagenes/`](imagenes/) con exactamente los nombres referenciados abajo.
 
 | Campo | Valor según repo |
 |---|---|
 | Región | `us-east-1` (variable `aws_region`) |
 | Prefijo | `rutaexpress-mvp` |
-| Sufijo S3 | `aws_account_suffix` (ej. `mvp01` → bucket `rutaexpress-mvp-evidence-mvp01`) |
+| Sufijo S3 | `mvp01` |
 | Tags FinOps | `project`, `environment`, `cost-center`, `managed-by=terraform`, `package=rutaexpress-mvp` |
 | Rol en arquitectura | Última milla móvil (APP-15): API + retry worker en ECS Fargate, evidencias S3, outbox DynamoDB, puente EventBridge → Azure |
 
@@ -210,47 +208,5 @@ Logs: CloudWatch group `/ecs/rutaexpress-mvp-mobile-api`, retención **14** día
 
 ---
 
-## Checklist de capturas
-
-Colocar en `evidencias/aws/imagenes/` estos archivos (mismos nombres):
-
-| Archivo | Componente |
-|---|---|
-| `01_ecr.png` | ECR `rutaexpress-mvp-mobile-api` |
-| `02_kms.png` | KMS alias `rutaexpress-mvp-evidence` |
-| `03_s3_evidence.png` | Bucket S3 evidencias |
-| `04_dynamodb.png` | Tabla DynamoDB outbox |
-| `05_sqs_bridge.png` | SQS bridge |
-| `05b_sqs_dlq.png` | SQS DLQ |
-| `06_eventbridge_bus.png` | Event bus bridge |
-| `06b_eventbridge_rule.png` | Rule mobile-to-hub |
-| `07_iam_roles.png` | Roles/policies ECS |
-| `08_ecs_cluster.png` | Cluster ECS |
-| `08b_ecs_task_definition.png` | Task definition (2 contenedores) |
-| `08c_ecs_service.png` | ECS service |
-| `09_alb.png` | ALB |
-| `09b_alb_target_group.png` | Target group / listener |
-| `10_security_groups.png` | SGs ALB y ECS |
-| `11_cloudwatch_logs.png` | Log group |
-
----
-
-## Dónde capturar en consola AWS (guía rápida)
-
-| Evidencia | Consola |
-|---|---|
-| ECR | Elastic Container Registry → Repositories |
-| KMS | KMS → Customer managed keys / Aliases |
-| S3 | S3 → Buckets |
-| DynamoDB | DynamoDB → Tables |
-| SQS | SQS → Queues |
-| EventBridge | EventBridge → Event buses / Rules |
-| IAM | IAM → Roles |
-| ECS | ECS → Clusters → Tasks / Services |
-| ALB | EC2 → Load Balancers / Target Groups |
-| SG | EC2 → Security Groups |
-| Logs | CloudWatch → Log groups |
-
----
 
 *Código de referencia: `Implementacion/terraform/modules/aws/main.tf`, `Implementacion/terraform/modules/shared/naming/`, `Implementacion/terraform/environments/mvp/` (`enable_aws`).*

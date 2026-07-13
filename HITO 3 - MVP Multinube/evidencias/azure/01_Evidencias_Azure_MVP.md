@@ -9,6 +9,7 @@
 | Región | `eastus` (variable `azure_region`) |
 | Resource Group | **`rg_Diego_Gonzales`** (`azure_create_resource_group = false`, `azure_resource_group_name = "rg_Diego_Gonzales"`) |
 | Tags FinOps | `project`, `environment`, `cost-center`, `managed-by=terraform`, `package=rutaexpress-mvp` |
+| Rol en arquitectura | **Hub operativo** multinube: APIM (APP-01) + Orquestador/Inventario en AKS (APP-02, MS-INI01-02), Event Hubs / Service Bus (PLT-03), SQL/Redis/Key Vault, mocks WMS/ERP/TMS/Portal y puente de eventos hacia AWS/GCP |
 
 ---
 
