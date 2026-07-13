@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RutaExpress MVP — E1-E8",
-    "description": "Variables de coleccion:\n\n**Azure (fase 1)**\n- `apim_base_url`: `terraform output -raw apim_gateway_url` (en mvp\\)\n- `apim_subscription_key`: APIM -> Subscriptions -> Built-in all-access (README 6.7)\n\n**AWS (fase 2)**\n- `aws_alb_base_url`: `http://` + `terraform output -raw aws_mobile_alb_dns`\n\n**E5** no tiene HTTP: ver carpeta E5 (portal Azure Service Bus q-dlq).",
+    "description": "Variables (coleccion; la mayoria ya vienen con valor):\n\n**Azure APIM:** `apim_base_url`, `apim_subscription_key`\n**AWS:** `aws_alb_base_url`\n\n**E5 Service Bus** — solo debes pegar en coleccion O environment:\n- `servicebus_sas_key` = Primary Key (Portal -> sb-rutaexpress-mvp -> Shared access policies -> RootManageSharedAccessKey)\n\nFijos en MVP (ya en coleccion, no los cambies):\n- namespace: `sb-rutaexpress-mvp`\n- cola: `q-inventory`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -15,10 +15,30 @@
     },
     {
       "key": "aws_alb_base_url",
-      "value": "http://rutaexpress-mvp-mobile-alb-208219070.us-east-1.elb.amazonaws.com"
+      "value": ""
     },
     {
       "key": "idempotency_key",
+      "value": ""
+    },
+    {
+      "key": "servicebus_namespace",
+      "value": "sb-rutaexpress-mvp"
+    },
+    {
+      "key": "servicebus_queue",
+      "value": "q-inventory"
+    },
+    {
+      "key": "servicebus_sas_key_name",
+      "value": "RootManageSharedAccessKey"
+    },
+    {
+      "key": "servicebus_sas_key",
+      "value": ""
+    },
+    {
+      "key": "e5_order_id",
       "value": ""
     }
   ],
@@ -126,7 +146,236 @@
           }
         },
         {
-          "name": "E8 — Tracking portal (stub)",
+          "name": "E5 — DLQ agotar reintentos",
+          "description": "E5 en el MVP: demo del mecanismo real de Azure (`max_delivery_count=10`).\n\n**Antes:** `servicebus_sas_key` en coleccion o environment.\n\n**Orden:** Paso 1 -> Paso 2 -> Paso 3.\n\n**Importante:** el body HTTP del paso 3 es solo eco Postman (ignoralo). El DLQ se verifica en portal: `q-inventory` -> `$deadletterqueue` -> Peek.\n\nSi Dead-letter sigue en 0: purga mensajes **Active** en `q-inventory` y repite paso 2 -> 3.\n\nREADME 6.7 E5.",
+          "item": [
+            {
+              "name": "E5 paso 1 — Crear orden (contexto)",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "pm.collectionVariables.set('idempotency_key', pm.variables.replaceIn('{{$guid}}'));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Orden creada (201)', () => pm.response.to.have.status(201));",
+                      "const body = pm.response.json();",
+                      "pm.collectionVariables.set('e5_order_id', body.orderId);",
+                      "console.log('e5_order_id=', body.orderId);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Idempotency-Key", "value": "{{idempotency_key}}" },
+                  { "key": "Ocp-Apim-Subscription-Key", "value": "{{apim_subscription_key}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"customerId\": \"B2B-E5\",\n  \"items\": [{ \"sku\": \"SKU-001\", \"quantity\": 1 }]\n}"
+                },
+                "url": "{{apim_base_url}}/api/v1/orders"
+              }
+            },
+            {
+              "name": "E5 paso 2 — Encolar evento en q-inventory",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "function sbSas(uri, keyName, key) {",
+                      "  const encodedUri = encodeURIComponent(uri);",
+                      "  const expiry = Math.floor(Date.now() / 1000) + 3600;",
+                      "  const stringToSign = encodedUri + '\\n' + expiry;",
+                      "  const signature = CryptoJS.HmacSHA256(stringToSign, key.trim());",
+                      "  const sig = encodeURIComponent(CryptoJS.enc.Base64.stringify(signature));",
+                      "  return 'SharedAccessSignature sr=' + encodedUri + '&sig=' + sig + '&se=' + expiry + '&skn=' + encodeURIComponent(keyName);",
+                      "}",
+                      "const ns = pm.variables.get('servicebus_namespace');",
+                      "const queue = pm.variables.get('servicebus_queue');",
+                      "const keyName = pm.variables.get('servicebus_sas_key_name');",
+                      "const key = (pm.variables.get('servicebus_sas_key') || '').trim();",
+                      "if (!key) { throw new Error('Pega servicebus_sas_key en coleccion O environment (Primary Key, sin espacios)'); }",
+                      "const baseUri = 'https://sb-rutaexpress-mvp.servicebus.windows.net/q-inventory';",
+                      "const sas = sbSas(baseUri, keyName, key);",
+                      "pm.request.headers.upsert({ key: 'Authorization', value: sas });",
+                      "const orderId = pm.variables.get('e5_order_id') || 'ORD-E5-DEMO';",
+                      "pm.collectionVariables.set('e5_event_body', JSON.stringify({",
+                      "  event_type: 'OrderCreated',",
+                      "  order_id: orderId,",
+                      "  scenario: 'E5',",
+                      "  note: 'evento para demo DLQ — consumidor ausente en MVP'",
+                      "}));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Mensaje encolado (201)', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json;charset=utf-8" },
+                  { "key": "BrokerProperties", "value": "{\"Label\":\"E5\"}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{e5_event_body}}"
+                },
+                "url": "https://sb-rutaexpress-mvp.servicebus.windows.net/q-inventory/messages"
+              }
+            },
+            {
+              "name": "E5 paso 3 — Agotar reintentos (10x abandon)",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "function sbSas(uri, keyName, key) {",
+                      "  const encodedUri = encodeURIComponent(uri);",
+                      "  const expiry = Math.floor(Date.now() / 1000) + 3600;",
+                      "  const stringToSign = encodedUri + '\\n' + expiry;",
+                      "  const signature = CryptoJS.HmacSHA256(stringToSign, key.trim());",
+                      "  const sig = encodeURIComponent(CryptoJS.enc.Base64.stringify(signature));",
+                      "  return 'SharedAccessSignature sr=' + encodedUri + '&sig=' + sig + '&se=' + expiry + '&skn=' + encodeURIComponent(keyName);",
+                      "}",
+                      "function getHeader(res, name) {",
+                      "  const h = res && res.headers;",
+                      "  if (!h) return null;",
+                      "  if (typeof h.get === 'function') return h.get(name);",
+                      "  if (Array.isArray(h)) {",
+                      "    const item = h.find(x => x.key && x.key.toLowerCase() === name.toLowerCase());",
+                      "    return item ? item.value : null;",
+                      "  }",
+                      "  const lk = name.toLowerCase();",
+                      "  for (const k of Object.keys(h)) {",
+                      "    if (k.toLowerCase() === lk) return h[k];",
+                      "  }",
+                      "  return null;",
+                      "}",
+                      "function getBody(res) {",
+                      "  if (res && typeof res.text === 'function') return res.text();",
+                      "  if (res && res.stream) return String(res.stream);",
+                      "  return '';",
+                      "}",
+                      "const ns = pm.variables.get('servicebus_namespace');",
+                      "const queue = pm.variables.get('servicebus_queue');",
+                      "const keyName = pm.variables.get('servicebus_sas_key_name');",
+                      "const key = (pm.variables.get('servicebus_sas_key') || '').trim();",
+                      "if (!key) { throw new Error('Pega servicebus_sas_key en coleccion O environment'); }",
+                      "const targetOrderId = pm.variables.get('e5_order_id') || '';",
+                      "const baseUri = 'https://' + ns + '.servicebus.windows.net/' + queue;",
+                      "const recvUrl = baseUri + '/messages/head?timeout=10';",
+                      "let lastDelivery = 0;",
+                      "let abandons = 0;",
+                      "let attempts = 0;",
+                      "const maxAttempts = 40;",
+                      "while (abandons < 10 && attempts < maxAttempts) {",
+                      "  attempts++;",
+                      "  const sas = sbSas(baseUri, keyName, key);",
+                      "  const recv = pm.sendRequest({",
+                      "    url: recvUrl,",
+                      "    method: 'POST',",
+                      "    header: [",
+                      "      { key: 'Authorization', value: sas },",
+                      "      { key: 'Content-Type', value: 'application/json' }",
+                      "    ]",
+                      "  });",
+                      "  if (recv.code === 204) {",
+                      "    console.warn('Cola vacia — ejecuta paso 2 primero');",
+                      "    break;",
+                      "  }",
+                      "  if (recv.code !== 201) {",
+                      "    console.warn('Receive fallo', recv.code, getBody(recv));",
+                      "    break;",
+                      "  }",
+                      "  const broker = getHeader(recv, 'BrokerProperties');",
+                      "  if (!broker) { console.warn('Sin BrokerProperties'); break; }",
+                      "  const props = JSON.parse(broker);",
+                      "  const bodyText = getBody(recv);",
+                      "  let orderId = '';",
+                      "  try { orderId = JSON.parse(bodyText).order_id || ''; } catch (e) {}",
+                      "  const sasAbandon = sbSas(baseUri, keyName, key);",
+                      "  const location = getHeader(recv, 'Location');",
+                      "  const abandonUrl = location || (baseUri + '/messages/' + props.MessageId + '/' + props.LockToken);",
+                      "  if (targetOrderId && orderId && orderId !== targetOrderId) {",
+                      "    console.warn('Mensaje ajeno order_id=' + orderId + ' — abandonando para buscar ' + targetOrderId);",
+                      "    pm.sendRequest({ url: abandonUrl, method: 'PUT', header: [{ key: 'Authorization', value: sasAbandon }] });",
+                      "    continue;",
+                      "  }",
+                      "  abandons++;",
+                      "  lastDelivery = props.DeliveryCount;",
+                      "  console.log('Abandon', abandons + '/10 deliveryCount=' + lastDelivery, 'order_id=' + (orderId || '?'));",
+                      "  const abandon = pm.sendRequest({",
+                      "    url: abandonUrl,",
+                      "    method: 'PUT',",
+                      "    header: [{ key: 'Authorization', value: sasAbandon }]",
+                      "  });",
+                      "  if (abandon.code !== 200 && abandon.code !== 204) {",
+                      "    console.warn('Abandon fallo', abandon.code, getBody(abandon));",
+                      "    break;",
+                      "  }",
+                      "}",
+                      "if (abandons < 10) {",
+                      "  console.warn('Solo', abandons, 'abandons en tu mensaje. Purga Active en q-inventory y repite paso 2 -> 3.');",
+                      "}",
+                      "pm.collectionVariables.set('e5_last_delivery', String(lastDelivery));",
+                      "pm.collectionVariables.set('e5_abandon_count', String(abandons));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Loop abandon ejecutado', () => pm.expect(true).to.be.true);",
+                      "const abandons = Number(pm.collectionVariables.get('e5_abandon_count') || 0);",
+                      "const last = Number(pm.collectionVariables.get('e5_last_delivery') || 0);",
+                      "console.log('E5 resumen: abandons=' + abandons + ' lastDeliveryCount=' + last);",
+                      "if (abandons >= 10 && last >= 10) {",
+                      "  pm.test('Listo para DLQ (10 abandons)', () => pm.expect(abandons).to.eql(10));",
+                      "} else {",
+                      "  console.warn('DLQ puede seguir en 0. Purga Active en q-inventory y repite paso 2 -> 3.');",
+                      "}",
+                      "pm.test('Request auxiliar OK (ignora body)', () => pm.response.to.have.status(200));",
+                      "console.log('Verifica SOLO en portal: q-inventory -> $deadletterqueue -> Peek');"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "https://postman-echo.com/get?e5=dlq-demo-done"
+              }
+            }
+          ]
+        },
+        {
+          "name": "E8 — Tracking portal (MVP)",
           "request": {
             "method": "GET",
             "header": [
@@ -136,10 +385,6 @@
           }
         }
       ]
-    },
-    {
-      "name": "E5 — DLQ replay (solo portal Azure)",
-      "description": "No hay request HTTP en el MVP.\n\n1. Portal Azure -> Service Bus -> `sb-rutaexpress-mvp`\n2. Colas -> `q-dlq`\n3. Revisar mensajes fallidos y opcion de reenvio manual\n\nVer README 6.7 E5."
     },
     {
       "name": "AWS ALB (fase 2)",
