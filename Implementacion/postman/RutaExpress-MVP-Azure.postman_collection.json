@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RutaExpress MVP — E1-E8",
-    "description": "Variables (coleccion; la mayoria ya vienen con valor):\n\n**Azure APIM:** `apim_base_url`, `apim_subscription_key`\n**AWS:** `aws_alb_base_url`\n\n**E5 Service Bus** — solo debes pegar en coleccion O environment:\n- `servicebus_sas_key` = Primary Key (Portal -> sb-rutaexpress-mvp -> Shared access policies -> RootManageSharedAccessKey)\n\nFijos en MVP (ya en coleccion, no los cambies):\n- namespace: `sb-rutaexpress-mvp`\n- cola: `q-inventory`",
+    "description": "Variables (coleccion; la mayoria ya vienen con valor):\n\n**Azure APIM:** `apim_base_url`, `apim_subscription_key` (pegar key)\n**AWS:** `aws_alb_base_url` (ya precargado para fase 2)\n\n**E5 Service Bus** — solo debes pegar en coleccion O environment:\n- `servicebus_sas_key` = Primary Key (Portal -> sb-rutaexpress-mvp -> Shared access policies -> RootManageSharedAccessKey)\n\nFijos en MVP (ya en coleccion, no los cambies):\n- namespace: `sb-rutaexpress-mvp`\n- cola: `q-inventory`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -15,7 +15,7 @@
     },
     {
       "key": "aws_alb_base_url",
-      "value": ""
+      "value": "http://rutaexpress-mvp-mobile-alb-208219070.us-east-1.elb.amazonaws.com"
     },
     {
       "key": "idempotency_key",
