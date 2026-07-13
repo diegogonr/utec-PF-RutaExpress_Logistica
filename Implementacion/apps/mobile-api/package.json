@@ -1,0 +1,8 @@
+{
+  "name": "mobile-api",
+  "version": "1.0.0",
+  "description": "Backend App de Conductores APP-15 — Fase 2 AWS",
+  "main": "src/index.js",
+  "scripts": { "start": "node src/index.js" },
+  "dependencies": { "express": "^4.21.0" }
+}

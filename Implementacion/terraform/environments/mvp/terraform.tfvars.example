@@ -1,18 +1,34 @@
 # Copiar a terraform.tfvars y completar valores reales.
 # NUNCA commitear terraform.tfvars con secretos.
 
+# --- Fases de despliegue ---
+# Fase 1 (solo Azure):  enable_aws = false, enable_gcp = false
+# Fase 2 (+ AWS):       enable_aws = true,  enable_gcp = false
+# Fase 3 (multinube):   enable_aws = true,  enable_gcp = true
+
+enable_aws = false
+enable_gcp = false
+
+# UTEC Posgrado: suele haber Contributor solo en rg_<alumno>, no en toda la suscripcion
+azure_create_resource_group = false
+azure_resource_group_name   = "rg_Diego_Gonzales"
+
 project              = "rutaexpress"
 environment          = "mvp"
 azure_subscription_id = "00000000-0000-0000-0000-000000000000"
 azure_tenant_id       = "00000000-0000-0000-0000-000000000000"
 azure_region          = "eastus"
 aws_region            = "us-east-1"
-aws_account_suffix    = "mvp01"   # único globalmente para S3
+aws_account_suffix    = "mvp01"
 gcp_project_id        = "rutaexpress-mvp"
 gcp_region            = "us-east1"
 sql_admin_login       = "sqladmin"
 sql_admin_password    = "CAMBIAR-POR-SECRETO-FUERTE"
 aks_node_count        = 2
+aks_vm_size           = "Standard_D2s_v3"
 eventhub_throughput_units = 1
 apim_sku              = "Developer_1"
 apim_publisher_email  = "tu-email@ejemplo.com"
+
+# Tras helm install (paso 4 fase 1): http://<IP-LOADBALANCER>:8080
+order_api_backend_url = "http://127.0.0.1:8080"

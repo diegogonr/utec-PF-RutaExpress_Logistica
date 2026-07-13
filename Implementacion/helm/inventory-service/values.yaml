@@ -1,8 +1,24 @@
 replicaCount: 1
+
 image:
-  repository: mcr.microsoft.com/azuredocs/containerapps-helloworld
+  repository: acrrutaexpressmvp.azurecr.io/inventory-service
   tag: latest
+  pullPolicy: Always
+
 service:
+  type: ClusterIP
   port: 8081
+
 env:
-  microserviceId: MS-INI01-02
+  sqlDatabase: db-inventory
+  sqlServer: ""
+  sqlUser: sqladmin
+  sqlPassword: ""
+
+resources:
+  limits:
+    cpu: 300m
+    memory: 384Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi

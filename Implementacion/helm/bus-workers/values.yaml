@@ -1,4 +1,19 @@
 replicaCount: 1
+
 image:
-  repository: mcr.microsoft.com/azuredocs/containerapps-helloworld
+  repository: acrrutaexpressmvp.azurecr.io/bus-workers
   tag: latest
+  pullPolicy: Always
+
+env:
+  sqlDatabase: db-orders
+  sqlServer: ""
+  sqlUser: sqladmin
+  sqlPassword: ""
+  eventhubName: eh-canonical
+  eventhubConnectionString: ""
+
+resources:
+  limits:
+    cpu: 300m
+    memory: 384Mi

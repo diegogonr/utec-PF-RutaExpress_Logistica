@@ -27,6 +27,38 @@ spec:
               value: {{ .Values.env.appId | quote }}
             - name: SERVICE_NAME
               value: {{ .Values.env.serviceName | quote }}
+            - name: SQL_SERVER
+              value: {{ .Values.env.sqlServer | quote }}
+            - name: SQL_DATABASE
+              value: {{ .Values.env.sqlDatabase | quote }}
+            - name: SQL_USER
+              value: {{ .Values.env.sqlUser | quote }}
+            - name: SQL_PASSWORD
+              value: {{ .Values.env.sqlPassword | quote }}
+            - name: REDIS_HOST
+              value: {{ .Values.env.redisHost | quote }}
+            - name: REDIS_PORT
+              value: {{ .Values.env.redisPort | quote }}
+            - name: REDIS_PASSWORD
+              value: {{ .Values.env.redisPassword | quote }}
+            - name: REDIS_TLS
+              value: {{ .Values.env.redisTls | quote }}
+            - name: INVENTORY_SERVICE_URL
+              value: {{ .Values.env.inventoryServiceUrl | quote }}
+            - name: MOCK_WMS_URL
+              value: {{ .Values.env.mockWmsUrl | quote }}
+            - name: APIM_SUBSCRIPTION_KEY
+              value: {{ .Values.env.apimSubscriptionKey | quote }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
 ---

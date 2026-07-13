@@ -10,6 +10,21 @@ terraform {
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
+locals {
+  mobile_api_image = var.mobile_api_image != "" ? var.mobile_api_image : "${aws_ecr_repository.mobile_api.repository_url}:latest"
+}
+
+resource "aws_ecr_repository" "mobile_api" {
+  name                 = "${var.prefix}-mobile-api"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
+  tags                 = var.tags
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
 resource "aws_kms_key" "evidence" {
   description             = "RutaExpress MVP evidence encryption"
   deletion_window_in_days = 7
@@ -50,6 +65,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "evidence" {
   rule {
     id     = "expire-90d"
     status = "Enabled"
+    filter {
+      prefix = ""
+    }
     expiration {
       days = 90
     }
@@ -204,7 +222,7 @@ resource "aws_ecs_task_definition" "mobile_api" {
   container_definitions = jsonencode([
     {
       name      = "mobile-api"
-      image     = var.mobile_api_image
+      image     = local.mobile_api_image
       essential = true
       portMappings = [{ containerPort = 8080, protocol = "tcp" }]
       environment = [
@@ -225,9 +243,9 @@ resource "aws_ecs_task_definition" "mobile_api" {
     },
     {
       name      = "retry-worker"
-      image     = var.mobile_api_image
+      image     = local.mobile_api_image
       essential = true
-      command   = ["node", "retry-worker.js"]
+      command   = ["node", "src/retry-worker.js"]
       environment = [
         { name = "SQS_QUEUE_URL", value = aws_sqs_queue.mobile_bridge.url },
         { name = "EVENT_BUS_NAME", value = aws_cloudwatch_event_bus.bridge.name },
@@ -255,6 +273,27 @@ resource "aws_default_subnet" "b" {
   availability_zone = "${data.aws_region.current.name}b"
 }
 
+resource "aws_security_group" "alb" {
+  name        = "${var.prefix}-alb-sg"
+  description = "ALB mobile API port 80 from Internet"
+  vpc_id      = aws_default_vpc.default.id
+  tags        = var.tags
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 resource "aws_security_group" "ecs" {
   name        = "${var.prefix}-ecs-sg"
   description = "ECS Fargate mobile API"
@@ -262,10 +301,10 @@ resource "aws_security_group" "ecs" {
   tags        = var.tags
 
   ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port       = 8080
+    to_port         = 8080
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
   }
 
   egress {
@@ -280,7 +319,7 @@ resource "aws_lb" "mobile" {
   name               = "${var.prefix}-mobile-alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.ecs.id]
+  security_groups    = [aws_security_group.alb.id]
   subnets            = [aws_default_subnet.a.id, aws_default_subnet.b.id]
   tags               = var.tags
 }

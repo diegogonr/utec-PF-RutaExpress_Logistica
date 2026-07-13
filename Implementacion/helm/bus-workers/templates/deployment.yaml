@@ -18,11 +18,31 @@ spec:
       containers:
         - name: outbox-publisher
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: ROLE
               value: outbox-publisher
+            - name: SQL_SERVER
+              value: {{ .Values.env.sqlServer | quote }}
+            - name: SQL_DATABASE
+              value: {{ .Values.env.sqlDatabase | quote }}
+            - name: SQL_USER
+              value: {{ .Values.env.sqlUser | quote }}
+            - name: SQL_PASSWORD
+              value: {{ .Values.env.sqlPassword | quote }}
+            - name: EVENTHUB_CONNECTION_STRING
+              value: {{ .Values.env.eventhubConnectionString | quote }}
+            - name: EVENTHUB_NAME
+              value: {{ .Values.env.eventhubName | quote }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
         - name: dlq-replay
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: ROLE
               value: dlq-replay-controller
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi

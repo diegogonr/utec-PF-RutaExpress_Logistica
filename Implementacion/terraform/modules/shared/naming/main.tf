@@ -22,6 +22,7 @@ locals {
   redis_name          = "redis-${local.prefix}"
   log_analytics_name  = "log-${local.prefix}"
   app_insights_name   = "appi-${local.prefix}"
+  acr_name            = substr(replace("acr${local.prefix}", "-", ""), 0, 50)
 
   ecs_cluster_name    = "ecs-${local.prefix}"
   dynamodb_table_name = "${local.prefix}-mobile-outbox"

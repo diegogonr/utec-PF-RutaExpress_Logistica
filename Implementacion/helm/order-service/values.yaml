@@ -1,17 +1,32 @@
 replicaCount: 1
 
 image:
-  repository: mcr.microsoft.com/azuredocs/containerapps-helloworld
+  repository: acrrutaexpressmvp.azurecr.io/order-service
   tag: latest
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 service:
-  type: ClusterIP
+  type: LoadBalancer
   port: 8080
 
 env:
   appId: APP-02
   serviceName: order-service
+  sqlDatabase: db-orders
+  inventoryServiceUrl: "http://inventory-service.rutaexpress.svc.cluster.local:8081"
+  # Completar tras terraform output (ver values-azure.example.yaml)
+  sqlServer: ""
+  sqlUser: sqladmin
+  sqlPassword: ""
+  redisHost: ""
+  redisPort: "6380"
+  redisPassword: ""
+  redisTls: "true"
+  mockWmsUrl: ""
+  apimSubscriptionKey: ""
+
+secrets:
+  create: false
 
 resources:
   limits:

@@ -1,0 +1,31 @@
+# Fase 1 — Azure hub (E1–E5)
+# Uso: copiar a helm/values-azure.yaml y completar secretos (no commitear)
+
+global:
+  acrLoginServer: acrrutaexpressmvp.azurecr.io
+
+order-service:
+  image:
+    repository: acrrutaexpressmvp.azurecr.io/order-service
+  env:
+    sqlServer: "sql-rutaexpress-mvp-xxxx.database.windows.net"
+    sqlPassword: "CAMBIAR"
+    redisHost: "redis-rutaexpress-mvp.redis.cache.windows.net"
+    redisPassword: "CAMBIAR"
+    mockWmsUrl: "https://apim-rutaexpress-mvp.azure-api.net/mock/wms/v1/reservations/confirm"
+    apimSubscriptionKey: "CAMBIAR_PRIMARY_KEY_APIM"
+
+inventory-service:
+  image:
+    repository: acrrutaexpressmvp.azurecr.io/inventory-service
+  env:
+    sqlServer: "sql-rutaexpress-mvp-xxxx.database.windows.net"
+    sqlPassword: "CAMBIAR"
+
+bus-workers:
+  image:
+    repository: acrrutaexpressmvp.azurecr.io/bus-workers
+  env:
+    sqlServer: "sql-rutaexpress-mvp-xxxx.database.windows.net"
+    sqlPassword: "CAMBIAR"
+    eventhubConnectionString: "CAMBIAR"

@@ -10,7 +10,7 @@ terraform {
 resource "google_bigquery_dataset" "tracking" {
   dataset_id                 = var.bq_dataset_id
   friendly_name              = "RutaExpress MVP tracking projection"
-  description                = "Proyección CQRS — lectura E8"
+  description                = "Proyeccion CQRS lectura E8"
   location                   = var.region
   delete_contents_on_destroy = true
   labels                     = var.labels
@@ -42,6 +42,15 @@ resource "google_project_iam_member" "projector_bq" {
   member  = "serviceAccount:${google_service_account.projector.email}"
 }
 
+resource "google_secret_manager_secret" "eventhub_bridge" {
+  secret_id = "${var.prefix}-eventhub-conn"
+  labels    = var.labels
+
+  replication {
+    auto {}
+  }
+}
+
 resource "google_cloud_run_v2_service" "projector" {
   name     = var.cloud_run_service
   location = var.region
@@ -62,8 +71,16 @@ resource "google_cloud_run_v2_service" "projector" {
         value = google_bigquery_table.tracking_projection.table_id
       }
       env {
-        name  = "EVENTHUB_CONNECTION_SECRET"
-        value = "projects/${var.project_id}/secrets/${var.eventhub_secret_id}"
+        name  = "EVENTHUB_SECRET_NAME"
+        value = google_secret_manager_secret.eventhub_bridge.secret_id
+      }
+
+      dynamic "env" {
+        for_each = var.eventhub_connection_string != "" ? [1] : []
+        content {
+          name  = "EVENTHUB_CONNECTION_STRING"
+          value = var.eventhub_connection_string
+        }
       }
 
       resources {
@@ -81,21 +98,6 @@ resource "google_cloud_run_v2_service" "projector" {
   }
 
   depends_on = [google_project_iam_member.projector_bq]
-}
-
-resource "google_secret_manager_secret" "eventhub_bridge" {
-  secret_id = "${var.prefix}-eventhub-conn"
-  labels    = var.labels
-
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "eventhub_bridge" {
-  count       = var.eventhub_connection_string != "" ? 1 : 0
-  secret      = google_secret_manager_secret.eventhub_bridge.id
-  secret_data = var.eventhub_connection_string
 }
 
 resource "google_cloud_run_service_iam_member" "invoker" {

@@ -10,6 +10,7 @@ output "servicebus_ns_name" { value = local.servicebus_ns_name }
 output "redis_name" { value = local.redis_name }
 output "log_analytics_name" { value = local.log_analytics_name }
 output "app_insights_name" { value = local.app_insights_name }
+output "acr_name" { value = local.acr_name }
 output "ecs_cluster_name" { value = local.ecs_cluster_name }
 output "dynamodb_table_name" { value = local.dynamodb_table_name }
 output "s3_evidence_bucket" { value = local.s3_evidence_bucket }

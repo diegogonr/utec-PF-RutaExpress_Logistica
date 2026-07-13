@@ -1,0 +1,15 @@
+{
+  "name": "order-service",
+  "version": "1.0.0",
+  "description": "Orquestador de Pedidos (APP-02) — MVP RutaExpress",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "ioredis": "^5.4.1",
+    "mssql": "^11.0.1",
+    "uuid": "^10.0.0"
+  }
+}

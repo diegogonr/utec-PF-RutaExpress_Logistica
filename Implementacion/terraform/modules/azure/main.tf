@@ -11,12 +11,6 @@ terraform {
   }
 }
 
-resource "azurerm_resource_group" "main" {
-  name     = var.resource_group_name
-  location = var.location
-  tags     = var.tags
-}
-
 resource "random_string" "sql_suffix" {
   length  = 4
   special = false
@@ -25,8 +19,8 @@ resource "random_string" "sql_suffix" {
 
 resource "azurerm_key_vault" "main" {
   name                       = var.key_vault_name
-  location                   = azurerm_resource_group.main.location
-  resource_group_name        = azurerm_resource_group.main.name
+  location                   = local.rg_location
+  resource_group_name        = local.rg_name
   tenant_id                  = var.tenant_id
   sku_name                   = "standard"
   soft_delete_retention_days = 7
@@ -46,8 +40,8 @@ resource "azurerm_key_vault_access_policy" "deployer" {
 
 resource "azurerm_mssql_server" "main" {
   name                         = "${var.sql_server_name}-${random_string.sql_suffix.result}"
-  resource_group_name          = azurerm_resource_group.main.name
-  location                     = azurerm_resource_group.main.location
+  resource_group_name          = local.rg_name
+  location                     = local.rg_location
   version                      = "12.0"
   administrator_login          = var.sql_admin_login
   administrator_login_password = var.sql_admin_password
@@ -75,8 +69,8 @@ resource "azurerm_mssql_database" "inventory" {
 
 resource "azurerm_log_analytics_workspace" "main" {
   name                = var.log_analytics_name
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
+  location            = local.rg_location
+  resource_group_name = local.rg_name
   sku                 = "PerGB2018"
   retention_in_days   = 30
   tags                = var.tags
@@ -84,8 +78,8 @@ resource "azurerm_log_analytics_workspace" "main" {
 
 resource "azurerm_application_insights" "main" {
   name                = var.app_insights_name
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
+  location            = local.rg_location
+  resource_group_name = local.rg_name
   workspace_id        = azurerm_log_analytics_workspace.main.id
   application_type    = "web"
   tags                = var.tags
@@ -93,8 +87,8 @@ resource "azurerm_application_insights" "main" {
 
 resource "azurerm_kubernetes_cluster" "main" {
   name                = var.aks_name
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
+  location            = local.rg_location
+  resource_group_name = local.rg_name
   dns_prefix          = var.aks_name
   tags                = var.tags
 
@@ -108,6 +102,8 @@ resource "azurerm_kubernetes_cluster" "main" {
     type = "SystemAssigned"
   }
 
+  oidc_issuer_enabled = true
+
   oms_agent {
     log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
   }
@@ -117,8 +113,8 @@ resource "azurerm_kubernetes_cluster" "main" {
 
 resource "azurerm_eventhub_namespace" "main" {
   name                = var.eventhub_ns_name
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
+  location            = local.rg_location
+  resource_group_name = local.rg_name
   sku                 = "Standard"
   capacity            = var.eventhub_capacity
   tags                = var.tags
@@ -127,7 +123,7 @@ resource "azurerm_eventhub_namespace" "main" {
 resource "azurerm_eventhub" "canonical" {
   name                = "eh-canonical"
   namespace_name      = azurerm_eventhub_namespace.main.name
-  resource_group_name = azurerm_resource_group.main.name
+  resource_group_name = local.rg_name
   partition_count     = 2
   message_retention   = 1
 }
@@ -135,7 +131,7 @@ resource "azurerm_eventhub" "canonical" {
 resource "azurerm_eventhub_authorization_rule" "send_listen" {
   name                = "mvp-send-listen"
   namespace_name      = azurerm_eventhub_namespace.main.name
-  resource_group_name = azurerm_resource_group.main.name
+  resource_group_name = local.rg_name
   eventhub_name       = azurerm_eventhub.canonical.name
   listen              = true
   send                = true
@@ -144,8 +140,8 @@ resource "azurerm_eventhub_authorization_rule" "send_listen" {
 
 resource "azurerm_servicebus_namespace" "main" {
   name                = var.servicebus_ns_name
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
+  location            = local.rg_location
+  resource_group_name = local.rg_name
   sku                 = "Standard"
   tags                = var.tags
 }
@@ -173,8 +169,8 @@ resource "azurerm_servicebus_queue" "dlq" {
 
 resource "azurerm_redis_cache" "main" {
   name                = var.redis_name
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
+  location            = local.rg_location
+  resource_group_name = local.rg_name
   capacity            = 0
   family              = "C"
   sku_name            = "Basic"
@@ -184,8 +180,8 @@ resource "azurerm_redis_cache" "main" {
 
 resource "azurerm_api_management" "main" {
   name                = var.apim_name
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
+  location            = local.rg_location
+  resource_group_name = local.rg_name
   publisher_name      = "RutaExpress"
   publisher_email     = var.apim_publisher_email
   sku_name            = var.apim_sku

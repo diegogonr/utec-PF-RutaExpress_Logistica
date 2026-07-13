@@ -13,6 +13,18 @@ variable "cost_center" {
   default = "logistics"
 }
 
+variable "azure_create_resource_group" {
+  type        = bool
+  description = "false = desplegar dentro de un RG existente (cuentas UTEC)"
+  default     = false
+}
+
+variable "azure_resource_group_name" {
+  type        = string
+  description = "Nombre del RG. Si create=false, debe existir y tener rol Contributor"
+  default     = ""
+}
+
 variable "azure_subscription_id" {
   type        = string
   description = "Azure subscription ID"
@@ -40,7 +52,26 @@ variable "aws_account_suffix" {
 
 variable "gcp_project_id" {
   type        = string
-  description = "GCP project ID"
+  description = "GCP project ID (requerido solo si enable_gcp = true)"
+  default     = "disabled"
+}
+
+variable "enable_aws" {
+  type        = bool
+  description = "Fase 2: desplegar recursos AWS (última milla)"
+  default     = false
+}
+
+variable "enable_gcp" {
+  type        = bool
+  description = "Fase 3: desplegar recursos GCP (CQRS)"
+  default     = false
+}
+
+variable "order_api_backend_url" {
+  type        = string
+  description = "URL del LoadBalancer de order-service. Actualizar tras helm (fase 1 paso 4)"
+  default     = "http://127.0.0.1:8080"
 }
 
 variable "gcp_region" {
@@ -66,7 +97,7 @@ variable "aks_node_count" {
 
 variable "aks_vm_size" {
   type    = string
-  default = "Standard_D2s_v5"
+  default = "Standard_D2s_v3"
 }
 
 variable "eventhub_throughput_units" {
@@ -85,8 +116,9 @@ variable "apim_publisher_email" {
 }
 
 variable "mobile_api_image" {
-  type    = string
-  default = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
+  type        = string
+  description = "Vacío = ECR AWS creado por Terraform (recomendado tras build-push-mobile-aws.ps1)."
+  default     = ""
 }
 
 variable "projector_image" {

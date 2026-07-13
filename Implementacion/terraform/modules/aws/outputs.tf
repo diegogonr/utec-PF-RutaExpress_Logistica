@@ -1,4 +1,6 @@
 output "ecs_cluster_name" { value = aws_ecs_cluster.main.name }
+output "ecs_service_name" { value = aws_ecs_service.mobile_api.name }
+output "ecr_mobile_api_url" { value = aws_ecr_repository.mobile_api.repository_url }
 output "mobile_alb_dns" { value = aws_lb.mobile.dns_name }
 output "dynamodb_table_name" { value = aws_dynamodb_table.mobile_outbox.name }
 output "s3_evidence_bucket" { value = aws_s3_bucket.evidence.bucket }

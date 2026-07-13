@@ -13,7 +13,7 @@
 **/*.pem
 **/*.key
 .env
-.env.*
+**/values-azure.yaml
 
 # OS / IDE
 .DS_Store

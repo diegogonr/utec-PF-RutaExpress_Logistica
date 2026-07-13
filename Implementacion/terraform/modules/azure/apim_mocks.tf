@@ -1,6 +1,6 @@
 resource "azurerm_api_management_api" "mock_wms" {
   name                = "mock-wms"
-  resource_group_name = azurerm_resource_group.main.name
+  resource_group_name = local.rg_name
   api_management_name = azurerm_api_management.main.name
   revision            = "1"
   display_name        = "Mock WMS Principal (APP-06)"
@@ -16,7 +16,7 @@ resource "azurerm_api_management_api" "mock_wms" {
 
 resource "azurerm_api_management_api" "mock_erp" {
   name                = "mock-erp"
-  resource_group_name = azurerm_resource_group.main.name
+  resource_group_name = local.rg_name
   api_management_name = azurerm_api_management.main.name
   revision            = "1"
   display_name        = "Mock ERP Financiero (APP-25)"
@@ -32,7 +32,7 @@ resource "azurerm_api_management_api" "mock_erp" {
 
 resource "azurerm_api_management_api" "mock_portal" {
   name                = "mock-portal"
-  resource_group_name = azurerm_resource_group.main.name
+  resource_group_name = local.rg_name
   api_management_name = azurerm_api_management.main.name
   revision            = "1"
   display_name        = "Mock Portal B2B tracking (APP-18)"
@@ -48,7 +48,7 @@ resource "azurerm_api_management_api" "mock_portal" {
 
 resource "azurerm_api_management_api" "mock_tms" {
   name                = "mock-tms"
-  resource_group_name = azurerm_resource_group.main.name
+  resource_group_name = local.rg_name
   api_management_name = azurerm_api_management.main.name
   revision            = "1"
   display_name        = "Mock TMS (APP-11)"
@@ -64,7 +64,7 @@ resource "azurerm_api_management_api" "mock_tms" {
 
 resource "azurerm_api_management_api" "orders" {
   name                = "orders-api"
-  resource_group_name = azurerm_resource_group.main.name
+  resource_group_name = local.rg_name
   api_management_name = azurerm_api_management.main.name
   revision            = "1"
   display_name        = "Orders API (APP-02)"

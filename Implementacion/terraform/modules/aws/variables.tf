@@ -8,6 +8,6 @@ variable "sqs_dlq_name" { type = string }
 
 variable "mobile_api_image" {
   type        = string
-  description = "Imagen del backend móvil (APP-15) — API + Retry Worker en el mismo task"
-  default     = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
+  description = "Imagen APP-15. Vacío = ECR del módulo (prefijo-mobile-api:latest)."
+  default     = ""
 }

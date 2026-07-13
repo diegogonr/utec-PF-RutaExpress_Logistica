@@ -14,10 +14,6 @@ variable "eventhub_connection_string" {
   type        = string
   default     = ""
   sensitive   = true
-  description = "Opcional en primer apply; completar tras crear Event Hubs en Azure"
+  description = "Connection string Event Hubs (Azure). Se inyecta en Cloud Run; no requiere Secret Version en Terraform."
 }
 
-variable "eventhub_secret_id" {
-  type    = string
-  default = "eventhub-connection"
-}

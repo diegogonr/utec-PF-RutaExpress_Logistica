@@ -44,26 +44,44 @@ provider "azurerm" {
 
 provider "aws" {
   region = var.aws_region
+
+  # Fase 1 (enable_aws=false): no requiere cuenta AWS real para plan/apply de Azure
+  access_key                  = var.enable_aws ? null : "AKIA0000000000000000"
+  secret_key                  = var.enable_aws ? null : "0000000000000000000000000000000000000000"
+  skip_credentials_validation = !var.enable_aws
+  skip_metadata_api_check     = !var.enable_aws
+  skip_requesting_account_id    = !var.enable_aws
 }
 
 provider "google" {
-  project = var.gcp_project_id
+  project = var.enable_gcp ? var.gcp_project_id : "disabled-mvp"
   region  = var.gcp_region
+
+  # Fase 1-2 (enable_gcp=false): credenciales dummy locales
+  credentials = var.enable_gcp ? null : file("${path.module}/gcp-disabled.credentials.json")
 }
 
 module "naming" {
   source = "../../modules/shared/naming"
 
-  project              = var.project
-  environment          = var.environment
-  cost_center          = var.cost_center
-  aws_account_suffix   = var.aws_account_suffix
+  project            = var.project
+  environment        = var.environment
+  cost_center        = var.cost_center
+  aws_account_suffix = var.aws_account_suffix
+}
+
+check "azure_resource_group_utec" {
+  assert {
+    condition     = var.azure_create_resource_group || var.azure_resource_group_name != ""
+    error_message = "Si azure_create_resource_group=false, debe indicar azure_resource_group_name (ej: rg_Diego_Gonzales)."
+  }
 }
 
 module "azure" {
   source = "../../modules/azure"
 
-  resource_group_name = module.naming.resource_group_name
+  resource_group_name   = var.azure_resource_group_name != "" ? var.azure_resource_group_name : module.naming.resource_group_name
+  create_resource_group = var.azure_create_resource_group
   location            = var.azure_region
   tags                = module.naming.tags
   tenant_id           = var.azure_tenant_id
@@ -89,10 +107,13 @@ module "azure" {
   apim_sku            = var.apim_sku
   apim_publisher_email = var.apim_publisher_email
 
+  acr_name               = module.naming.acr_name
+  order_api_backend_url  = var.order_api_backend_url
   mock_openapi_base_path = "${path.module}/../../../apis/mock"
 }
 
 module "aws" {
+  count  = var.enable_aws ? 1 : 0
   source = "../../modules/aws"
 
   prefix               = module.naming.prefix
@@ -108,6 +129,7 @@ module "aws" {
 }
 
 module "gcp" {
+  count  = var.enable_gcp ? 1 : 0
   source = "../../modules/gcp"
 
   project_id                   = var.gcp_project_id
