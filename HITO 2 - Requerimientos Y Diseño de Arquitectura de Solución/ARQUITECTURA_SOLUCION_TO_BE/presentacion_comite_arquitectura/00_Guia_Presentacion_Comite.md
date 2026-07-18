@@ -10,15 +10,24 @@ Este paquete organiza la presentacion de las dos alternativas TO BE de RutaExpre
 |---:|---|---|
 | 1 | `00_Guia_Presentacion_Comite.md` | Explicar el orden recomendado de exposicion y el mensaje de decision. |
 | 2 | `01_Modelo_A_Azure_Hub_Central.md` | Presentar el Modelo A como arquitectura completa: Azure como hub central de integracion y gobierno. |
-| 3 | `02_Modelo_B_AWS_Hub_Eventos.md` | Presentar el Modelo B como arquitectura completa: AWS como hub principal de eventos y ultima milla. |
+| 3 | `02_Modelo_B_Orquestacion_Monolito_Modular.md` | Presentar el Modelo B como arquitectura completa: orquestacion + monolito modular (estilo distinto a A). |
 | 4 | `03_Comparativo_ADR_Recomendacion.md` | Comparar ambos modelos, resumir ADRs clave y proponer la decision recomendada. |
 
 ## Fuente de diagramas
 
-| Modelo | Carpeta | Imágenes |
+Todos los diagramas embebidos en estos entregables usan las imagenes generadas en:
+
+- Modelo A: `../diagramas_c4/imagenes_python_graphviz`
+- Modelo B: `../diagramas_c4/imagenes_alternativa_B` (generadas con `generar_diagramas_alternativa_B_c4.py`, estilo Hito 3)
+
+| Modelo | Nivel C4 | Imagen utilizada |
 |---|---|---|
-| **A** | [`../diagramas_c4/`](../diagramas_c4/) | `alternativa_A_n1_contexto.png`, `alternativa_A_n2_contenedores.png`, `alternativa_A_n3_componentes.png` |
-| **B** | `../diagramas_c4/imagenes_python_graphviz/` | `alternativa_B_n1_contexto.png`, `alternativa_B_n2_contenedores.png`, `alternativa_B_n3_componentes.png` |
+| A | Nivel 1 Contexto | `alternativa_A_n1_contexto.png` |
+| A | Nivel 2 Contenedores | `alternativa_A_n2_contenedores.png` |
+| A | Nivel 3 PLT-03 / OMS / Inventario / Móvil | `alternativa_A_n3_*.png` (4 imágenes) |
+| B | Nivel 1 Contexto | `imagenes_alternativa_B/alternativa_B_c4_n1_contexto.png` |
+| B | Nivel 2 Contenedores | `imagenes_alternativa_B/alternativa_B_c4_n2_contenedores.png` |
+| B | Nivel 3 Orquestador / OMS / Inventario / Móvil | `imagenes_alternativa_B/alternativa_B_c4_n3_*_componentes.png` (4 imágenes) |
 
 ## Orden recomendado para la sesion
 
@@ -34,7 +43,7 @@ Objetivo:
 
 Mensaje sugerido:
 
-> "El objetivo de esta sesion no es revisar componentes aislados, sino decidir que topologia de arquitectura habilita mejor el primer TO BE de RutaExpress, con menor riesgo y mayor trazabilidad."
+> "El objetivo de esta sesion no es revisar componentes aislados, sino decidir que estilo de arquitectura habilita mejor el primer TO BE de RutaExpress, con menor riesgo y mayor trazabilidad."
 
 ### 2. Modelo A completo
 
@@ -60,17 +69,17 @@ Duracion sugerida: 18 a 22 minutos.
 
 Secuencia:
 
-1. Tesis del modelo: AWS como hub principal de eventos y ultima milla.
+1. Tesis del modelo: orquestacion + monolito modular (estilo distinto a EDA).
 2. C4 Nivel 1 Contexto.
 3. C4 Nivel 2 Contenedores.
-4. C4 Nivel 3 Componentes del Bus de Eventos Central (PLT-03) en AWS.
+4. C4 Nivel 3 (4 diagramas): Orquestador/notificaciones, modulo OMS, modulo Inventario, backend movil.
 5. Flujo de negocio explicado sobre el modelo.
 6. Fortalezas, riesgos y controles.
 
 Decision que debe evaluar el comite:
 
-- Si acepta desplazar el hub principal de eventos hacia AWS.
-- Si acepta operar un puente permanente Azure-AWS entre OMS centralizado / Orquestador de Pedidos (APP-02)/API governance y eventos corporativos.
+- Si acepta concentrar OMS + Inventario en un monolito modular orquestado.
+- Si acepta cubrir INI-02 con API-first fuerte y eventos solo como notificacion (sin PLT-03 completo).
 
 ### 4. Comparativo ejecutivo
 
@@ -110,7 +119,7 @@ Duracion sugerida: 5 minutos.
 Decision propuesta:
 
 - Aprobar el **Modelo A** como base del primer TO BE/MVP.
-- Mantener el **Modelo B** como alternativa viable para un escenario donde la organizacion decida priorizar AWS como plataforma dominante de eventos y ultima milla.
+- Mantener el **Modelo B** como alternativa de contraste (orquestacion + monolito modular) cuando se priorice simplicidad y time-to-MVP del core.
 
 ## Criterio de exposicion
 
@@ -120,7 +129,7 @@ La presentacion debe evitar comparar cada lamina de A contra B. La regla recomen
 2. Presentar Modelo B completo.
 3. Comparar ambos modelos al final.
 
-Esto permite que el comite evalue cada alternativa con justicia, entienda sus implicancias de gobierno y no confunda diferencias de topologia con diferencias funcionales.
+Esto permite que el comite evalue cada alternativa con justicia y entienda que A y B difieren por estilo arquitectonico (microservicios + PLT-03 vs orquestacion Durable Functions + monolito modular), no solo por proveedor de nube.
 
 ## Resultado esperado del comite
 
