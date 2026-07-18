@@ -67,7 +67,7 @@ GRAPH_ATTR = {
     "ranksep": "1.3",
     "dpi": "200",
     "compound": "true",
-    "splines": "spline",
+    "splines": "ortho",
     "overlap": "false",
     "newrank": "true",
 }
@@ -183,110 +183,157 @@ def n1_contexto() -> None:
 
 
 def n2_contenedores() -> None:
-    """N2 limpio: LR + ortho, sin flecha inter-nube larga (confirmacion en etiqueta ECS)."""
+    """C4 N2: nucleo modular + orquestador; notificaciones selectivas (no PLT-03)."""
     _ensure_out()
     with Diagram(
         "C4 N2 - Contenedores Alternativa B (Orquestacion + Monolito Modular)",
         filename=str(OUT_DIR / "alternativa_B_c4_n2_contenedores"),
         show=False,
         direction="LR",
-        graph_attr={
-            **GRAPH_ATTR,
-            "splines": "ortho",
-            "nodesep": "0.90",
-            "ranksep": "1.20",
-            "pad": "0.60",
-        },
+        graph_attr=GRAPH_ATTR,
         node_attr=NODE_ATTR,
-        edge_attr=EDGE_ATTR,
     ):
-        cliente = User(lbl("Actor externo", "Cliente B2B", "Persona"))
-        conductor = User(lbl("Actor externo", "Conductor", "Persona"))
+        cliente = User(lbl("Actor", "Cliente B2B", "Persona"))
+        conductor = Mobile(
+            lbl("Dispositivo movil", "App de Conductores", "APP-15")
+        )
+        ops = Users(lbl("Actor", "Operaciones / Soporte", "Persona"))
 
         with Cluster("Azure - Core orquestado"):
             apim = APIManagement(
                 lbl("Azure API Management", "Gateway y Gobierno API", "APP-01")
             )
-            with Cluster("Nucleo + Saga"):
-                core = Docker(
-                    lbl(
-                        "Kubernetes Deployment",
-                        "Nucleo Logistico Modular",
-                        "APP-02 OMS + Inventario",
-                    )
+            core = AKS(
+                lbl(
+                    "AKS",
+                    "Nucleo Logistico Modular",
+                    "APP-02 OMS + Inventario",
                 )
-                orch = FunctionApps(
-                    lbl(
-                        "Durable Functions",
-                        "Orquestador de Procesos",
-                        "Saga orden-reserva",
-                    )
+            )
+            orch = FunctionApps(
+                lbl(
+                    "Durable Functions",
+                    "Orquestador de Procesos",
+                    "Saga orden-reserva",
                 )
-            with Cluster("Datos y mensajeria"):
-                sql = SQLManagedInstances(
-                    lbl("Azure SQL", "Repositorio transaccional", "APP-02 nucleo")
+            )
+            sql = SQLManagedInstances(
+                lbl(
+                    "Azure SQL",
+                    "Repositorio transaccional",
+                    "APP-02 nucleo",
                 )
-                notif = ServiceBus(
-                    lbl(
-                        "Service Bus topics",
-                        "Canal de notificaciones",
-                        "fan-out informativo",
-                    )
+            )
+            notif = ServiceBus(
+                lbl(
+                    "Service Bus topics",
+                    "Canal de notificaciones",
+                    "fan-out informativo",
                 )
-            kv = KeyVaults(lbl("Key Vault", "Identidad y secretos", "PLT-02"))
-            mon = LogAnalyticsWorkspaces(
-                lbl("Azure Monitor", "Observabilidad Azure", "PLT-01")
+            )
+            kv = KeyVaults(
+                lbl("Key Vault", "Identidad y secretos", "PLT-02")
             )
 
         with Cluster("AWS - Ultima milla"):
             alb = ALB(
-                lbl("Application Load Balancer", "Entrada backend movil", "APP-15")
+                lbl(
+                    "Application Load Balancer",
+                    "Entrada backend movil",
+                    "soporta APP-15",
+                )
             )
             mob = ECS(
                 lbl(
                     "ECS Fargate",
                     "Backend movil ultima milla",
-                    "confirma a APIM · APP-15",
+                    "soporta APP-15",
                 )
             )
             ddb = Dynamodb(
-                lbl("DynamoDB", "Outbox backend + Ack Tracker", "APP-15")
+                lbl(
+                    "DynamoDB",
+                    "Outbox backend + Ack Tracker",
+                    "backend APP-15",
+                )
             )
-            s3 = S3(lbl("Amazon S3", "Almacenamiento Evidencias", "APP-16"))
-            cw = Cloudwatch(lbl("CloudWatch", "Observabilidad AWS", "PLT-01"))
+            s3 = S3(
+                lbl(
+                    "Amazon S3",
+                    "Almacenamiento Evidencias",
+                    "APP-16",
+                )
+            )
+            kms = KMS(lbl("AWS KMS", "Cifrado evidencias", "APP-16"))
 
         with Cluster("GCP - Analitica"):
-            run = Run(lbl("Cloud Run", "Proyector / optimizador", "CQRS"))
-            bq = BigQuery(lbl("BigQuery", "Almacen analitico", "lectura"))
-            glog = Logging(lbl("Cloud Logging", "Observabilidad GCP", "PLT-01"))
+            run = Run(
+                lbl("Cloud Run", "Optimizador / proyector", "rutas / CQRS")
+            )
+            bq = BigQuery(
+                lbl("BigQuery", "Almacen analitico", "consultas / tableros")
+            )
 
-        with Cluster("Legados simulados (SaaS externo)"):
-            mock_wms = Saas(lbl("APIM / ACL", "WMS Principal", "APP-06"))
-            mock_erp = Saas(lbl("APIM / ACL", "ERP Financiero", "APP-25"))
-            mock_portal = Saas(lbl("Notificacion", "Portal B2B / CRM", "APP-18"))
-            mock_tms = Saas(lbl("Notificacion", "TMS", "APP-11"))
+        with Cluster("Observabilidad"):
+            mon = LogAnalyticsWorkspaces(
+                lbl(
+                    "Azure Monitor",
+                    "Plataforma Observabilidad Unificada",
+                    "PLT-01",
+                )
+            )
+            cw = Cloudwatch(
+                lbl(
+                    "CloudWatch",
+                    "Plataforma Observabilidad Unificada",
+                    "PLT-01",
+                )
+            )
+            glog = Logging(
+                lbl(
+                    "Cloud Logging",
+                    "Plataforma Observabilidad Unificada",
+                    "PLT-01",
+                )
+            )
 
-        cliente >> el("HTTPS") >> apim
-        apim >> el() >> core
-        core >> el() >> orch
-        core >> el() >> sql
-        core >> el() >> notif
-        apim >> el() >> kv
-        core >> el() >> mon
+        with Cluster("Legados / externos"):
+            mock_wms = Saas(
+                lbl("ACL / API", "WMS Principal (On Premises)", "APP-06")
+            )
+            mock_erp = Saas(
+                lbl("ACL / API", "ERP Financiero (On Premises)", "APP-25")
+            )
+            mock_portal = Saas(
+                lbl("Notificacion / API", "Portal B2B / CRM", "APP-18 / APP-20")
+            )
+            mock_tms = Saas(
+                lbl("Notificacion / API", "TMS Transportation Mgmt", "APP-11")
+            )
 
-        apim >> el() >> mock_wms
-        apim >> el() >> mock_erp
-        notif >> el(style="dashed") >> mock_portal
-        notif >> el(style="dashed") >> mock_tms
-        notif >> el(style="dashed") >> run
-        run >> el() >> bq
-        run >> el() >> glog
+        cliente >> Edge(label="HTTPS API\nPOST orden") >> apim
+        apim >> Edge(label="REST comando\nidempotente") >> core
+        core >> sql
+        core >> Edge(label="dispara saga") >> orch
+        orch >> Edge(label="pasos / compensaciones") >> core
+        orch >> Edge(label="HTTPS sync\nACL + circuit breaker") >> mock_wms
+        orch >> Edge(label="HTTPS sync\nvalorizacion") >> mock_erp
+        orch >> Edge(label="notificacion\nresultado saga") >> notif
+        notif >> mock_portal
+        notif >> Edge(label="fan-out") >> mock_tms
+        notif >> Edge(label="fan-out analitico") >> run >> bq
 
-        conductor >> el("HTTPS") >> alb
-        alb >> el() >> mob
-        mob >> el() >> ddb
-        mob >> el() >> s3
-        mob >> el() >> cw
+        conductor >> Edge(label="HTTPS movil") >> alb >> mob >> ddb
+        mob >> s3 >> kms
+        mob >> Edge(label="confirmacion API\nidempotente") >> apim
+
+        apim >> Edge(label="obtiene secretos") >> kv
+        core >> Edge(label="obtiene secretos") >> kv
+        core >> mon
+        orch >> mon
+        mob >> cw
+        run >> glog
+        ops >> Edge(label="HTTPS monitoreo\nworkflows / SLA") >> mon
 
 
 def n3_orquestador() -> None:
