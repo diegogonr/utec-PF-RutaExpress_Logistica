@@ -152,8 +152,8 @@ Leyenda: **Implementado** = en uso en el MVP · **Parcial** = infra o stub sin c
 | Origen | Ubicación |
 |---|---|
 | Hito 1 | `HITO 1 - Arquitectura Empresarial/` |
+| Hito 2 — Alternativa A (TO BE) | `HITO 2 - .../ARQUITECTURA_SOLUCION_TO_BE/02_Alternativa_A.md` · imágenes `diagramas_c4/alternativa_A_*.png` |
 | Hito 2 — RF INI-01/02/03 | `HITO 2 - .../INI-*/` |
-| Hito 2 — Alternativa A | `HITO 2 - .../ARQUITECTURA_SOLUCION_TO_BE/02_Alternativa_A.md` |
 | Enunciado | `Enunciado del Proyecto Integrador Final.md` |
 | Defensa | [`06_Preguntas_Argumentos_Comite.md`](06_Preguntas_Argumentos_Comite.md) |
 

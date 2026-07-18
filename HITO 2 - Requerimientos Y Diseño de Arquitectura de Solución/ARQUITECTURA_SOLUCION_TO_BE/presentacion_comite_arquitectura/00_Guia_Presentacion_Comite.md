@@ -15,18 +15,10 @@ Este paquete organiza la presentacion de las dos alternativas TO BE de RutaExpre
 
 ## Fuente de diagramas
 
-Todos los diagramas embebidos en estos entregables usan las imagenes generadas en:
-
-`../diagramas_c4/imagenes_python_graphviz`
-
-| Modelo | Nivel C4 | Imagen utilizada |
+| Modelo | Carpeta | Imágenes |
 |---|---|---|
-| A | Nivel 1 Contexto | `alternativa_A_n1_contexto.png` |
-| A | Nivel 2 Contenedores | `alternativa_A_n2_contenedores.png` |
-| A | Nivel 3 Componentes | `alternativa_A_n3_componentes.png` |
-| B | Nivel 1 Contexto | `alternativa_B_n1_contexto.png` |
-| B | Nivel 2 Contenedores | `alternativa_B_n2_contenedores.png` |
-| B | Nivel 3 Componentes | `alternativa_B_n3_componentes.png` |
+| **A** | [`../diagramas_c4/`](../diagramas_c4/) | `alternativa_A_n1_contexto.png`, `alternativa_A_n2_contenedores.png`, `alternativa_A_n3_componentes.png` |
+| **B** | `../diagramas_c4/imagenes_python_graphviz/` | `alternativa_B_n1_contexto.png`, `alternativa_B_n2_contenedores.png`, `alternativa_B_n3_componentes.png` |
 
 ## Orden recomendado para la sesion
 
