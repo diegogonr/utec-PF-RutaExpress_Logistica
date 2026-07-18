@@ -63,10 +63,10 @@ Construcción            →  Herramientas (F)  →  afectan una o más nubes
 | Servicio cloud | Componente (APP/PLT/MS) | Qué hace en el MVP |
 |---|---|---|
 | **Azure API Management** | APP-01 | Entrada: `POST /api/v1/orders`; mocks WMS, ERP, portal, TMS |
-| **AKS** | APP-02, MS-INI01-02, workers bus | OMS, Saga, outbox, consumidores Service Bus |
+| **AKS** | APP-02, MS-INI01-02, `bus-workers`, BFF del MVP | OMS, Inventario (HTTP), outbox → Event Hubs vía `bus-workers` |
 | **Azure SQL** (S1) | Datos APP-02 + MS | Estado transaccional; tablas outbox |
-| **Event Hubs** (1 TU) | PLT-03 — stream | Ingesta eventos canónicos; alimenta GCP |
-| **Service Bus** | PLT-03 — colas | Colas por consumidor, **DLQ**, replay |
+| **Event Hubs** (1 TU) | PLT-03 — stream | Eventos canónicos; alimenta GCP (objetivo) |
+| **Service Bus** | PLT-03 — colas | Colas/DLQ; consumidor Inventario = **objetivo**; demo E5 parcial |
 | **Azure Cache for Redis** | Caché transversal | Idempotencia y dedup (E1, E2) |
 | **Entra ID** | PLT-02 parcial | OAuth en APIM |
 | **Key Vault** | PLT-02 | Connection strings bus |
@@ -76,11 +76,11 @@ Construcción            →  Herramientas (F)  →  afectan una o más nubes
 
 | Servicio cloud | Componente | Qué hace en el MVP |
 |---|---|---|
-| **ECS Fargate** + **ALB** | Backend **APP-15** | API móvil + **Retry Worker** en el **mismo task** |
+| **ECS Fargate** + **ALB** | Backend **APP-15** | API móvil + **`retry-worker`** en el **mismo task** |
 | **DynamoDB** | Outbox backend móvil | Persistencia post-offline hacia AWS |
 | **S3 + KMS** | APP-16 | Fotos/firmas cifradas; hash SHA-256 (E7) |
 | **SQS + DLQ** | Cola del puente | Buffer móvil → hub Azure |
-| **EventBridge** | Puente multinube | Publica hacia Event Hubs (Azure) |
+| **EventBridge** | Puente multinube (**objetivo**) | Publica hacia Adaptador AWS→Azure → Event Hubs |
 | **CloudWatch + X-Ray** | Observabilidad AWS | Logs y trazas backend móvil |
 
 ### 3.3 GCP — lectura CQRS
@@ -88,7 +88,7 @@ Construcción            →  Herramientas (F)  →  afectan una o más nubes
 | Servicio cloud | Componente | Qué hace en el MVP |
 |---|---|---|
 | **Cloud Run** | Proyector CQRS | Eventos → filas BigQuery |
-| **BigQuery** | Proyección tracking | Consulta E8 vía mock-portal APIM |
+| **BigQuery** | Proyección tracking (**objetivo**) | Lectura E8; hoy mock-portal en APIM no consulta BQ |
 | **Secret Manager** | Credenciales puente | Connection string Event Hubs |
 
 ### 3.4 Transversal — herramientas (no es «cuarta nube»)
@@ -104,7 +104,7 @@ Construcción            →  Herramientas (F)  →  afectan una o más nubes
 ```text
 Tu PC / GitHub Actions
     ├─► Terraform ──► Azure + AWS + GCP
-    └─► Helm ───────► AKS (pods APP-02, MS, workers, OTel)
+    └─► Helm ───────► AKS (pods OMS, Inventario, `bus-workers`, OTel)
 ```
 
 > Detalle de Terraform, Helm, OTel: **§11**. Confusión frecuente: «transversal» = propósito multinube, **no** que cada herramienta se instale en las 3 nubes.
@@ -113,22 +113,22 @@ Tu PC / GitHub Actions
 
 ## 4. Matriz servicio × nube
 
-Leyenda: **●** = implementado · **○** = integración/consumo · **—** = no en MVP v1
+Leyenda: **●** = provisionado / en uso · **◐** = parcial u objetivo cableado a medias · **○** = consume / integra · **—** = no en MVP v1
 
 ### 4.1 Servicios cloud del proveedor
 
 | Servicio cloud | Azure | AWS | GCP |
 |---|:---:|:---:|:---:|
 | API Management / Gateway | **●** APIM | — | — |
-| Kubernetes / contenedores | **●** AKS | **●** ECS Fargate | **●** Cloud Run |
+| Kubernetes / contenedores | **●** AKS | **●** ECS Fargate | **◐** Cloud Run |
 | Base transaccional SQL | **●** Azure SQL | — | — |
 | Bus streaming | **●** Event Hubs | — | — |
-| Bus colas / DLQ | **●** Service Bus | **●** SQS | — |
+| Bus colas / DLQ | **◐** Service Bus | **◐** SQS | — |
 | Caché | **●** Redis | — | — |
-| NoSQL outbox | — | **●** DynamoDB | — |
-| Object storage evidencias | — | **●** S3 + KMS | — |
-| Puente eventos | — | **●** EventBridge | — |
-| Data warehouse lectura | — | — | **●** BigQuery |
+| NoSQL outbox | — | **◐** DynamoDB | — |
+| Object storage evidencias | — | **◐** S3 + KMS | — |
+| Puente eventos | — | **◐** EventBridge | — |
+| Data warehouse lectura | — | — | **◐** BigQuery |
 | Identidad / secretos | **●** Entra, KV | **●** IAM, KMS | **●** Secret Manager |
 | Observabilidad | **●** Monitor | **●** CloudWatch | **●** Cloud Logging |
 | ML / Pub/Sub | — | — | **—** (post-MVP) |
@@ -140,10 +140,10 @@ Leyenda: **●** = implementado · **○** = integración/consumo · **—** = n
 | **APP-01** APIM | **●** | — | — | Incluye mocks |
 | **APP-02** OMS | **●** AKS | — | — | |
 | **MS-INI01-02** Inventario | **●** AKS | — | — | No es APP-XX |
-| **PLT-03** Bus | **●** EH+SB | **○** puente | **○** consume | Hub en Azure |
-| **APP-15** Conductores | — | **●** ECS | — | Offline = dispositivo |
-| **APP-16** Evidencias | — | **●** S3 | — | |
-| **APP-18** Portal tracking | **●** mock APIM | — | **○** lee BQ | E8 |
+| **PLT-03** Bus | **●** EH + **◐** SB | **◐** puente | **◐** consume | `bus-workers` → Event Hubs implementado |
+| **APP-15** Conductores | — | **◐** ECS | — | Offline = dispositivo; puente objetivo |
+| **APP-16** Evidencias | — | **◐** S3 | — | Infra parcial |
+| **APP-18** Portal tracking | **●** mock APIM | — | **◐** BQ | E8: mock hoy; BQ objetivo |
 | WMS / ERP / TMS legado | **●** mocks | — | — | |
 | Proyección CQRS | **○** eventos | **○** entregas | **●** BQ+Run | |
 | **PLT-04** IaC | **●** | **●** | **●** | Terraform |
@@ -303,7 +303,7 @@ Fotos y firmas en **S3+KMS**, hash SHA-256 (E7). No guarda binarios en DynamoDB.
 | Servicio | Nivel | Explicación |
 |---|---|---|
 | **ALB** | 🟢 | TLS + health check hacia ECS. E6, E7. |
-| **ECS Fargate** | 🔴 | **ECS** orquesta; **Fargate** es el cómputo sin servidores. Un **task** con API + Retry Worker (polling SQS con jitter). No es producto aparte de «AWS Fargate». |
+| **ECS Fargate** | 🔴 | **ECS** orquesta; **Fargate** es el cómputo sin servidores. Un **task** con API + `retry-worker`, que consume todos los mensajes de SQS y reintenta los fallidos. No es producto aparte de «AWS Fargate». |
 | **DynamoDB** | 🟡 | Outbox backend móvil tras sync. E6. |
 | **S3 + KMS** | 🟡 | Evidencias APP-16. E7. |
 | **SQS + DLQ** | 🟡 | Buffer antes de EventBridge. |

@@ -2,11 +2,11 @@
 ## RutaExpress Fulfillment & Transporte
 
 > **Audiencia:** Comité de Arquitectura y evaluación UTEC.  
-> **Contexto de negocio:** ver primero [`01_Resumen_Empresa_RutaExpress.md`](01_Resumen_Empresa_RutaExpress.md) (5 min).  
-> **TO BE vs MVP vs Alternativa A:** ver [`01b_TOBE_vs_MVP_Alternativa_A.md`](01b_TOBE_vs_MVP_Alternativa_A.md) — evita la confusión «¿el Hito 3 implementa toda la Alternativa A?».  
-> **Estado:** Documentación de diseño de implementación — **sin despliegue aún**.  
-> **Nomenclatura (regla de oro):** cada **APP-XX**, **PLT-XX** y **MS-INI01-02** va siempre con su **nombre oficial** — catálogo en `HITO 1 - .../06_Mapa_Portafolio_Aplicaciones.md`. El prefijo **MS** significa *microservicio*; **MS-INI01-02** identifica el microservicio de inventario de la iniciativa **INI-01**, con ID propio distinto del catálogo **APP-01…APP-26**.  
-> **Términos técnicos:** siglas y palabras en inglés llevan entre paréntesis un significado breve — glosario: [`00_INDICE_COMITE.md`](00_INDICE_COMITE.md) §Glosario breve.
+> **Empieza por:** [`00_INDICE_COMITE.md`](00_INDICE_COMITE.md) (mapa y nombres) · [`01_Resumen_Empresa_RutaExpress.md`](01_Resumen_Empresa_RutaExpress.md) (negocio).  
+> **TO BE vs MVP:** [`01b_TOBE_vs_MVP_Alternativa_A.md`](01b_TOBE_vs_MVP_Alternativa_A.md) — plano → maqueta → producción.  
+> **Estado:** Diseño + código/IaC del núcleo Azure; AWS/GCP parcial u objetivo. Fuente de estados: [`03_C4_Model_MVP.md`](03_C4_Model_MVP.md).  
+> **Nombres canónicos:** índice §3 — `bus-workers`, `retry-worker`, BFF del MVP, Inventario ≠ WMS.  
+> **Glosario:** [`00_INDICE_COMITE.md`](00_INDICE_COMITE.md) §8.
 
 ---
 
@@ -35,7 +35,7 @@ En este dossier no se usan abreviaturas informales («apps», «ML» sin nombre 
 
 **Aplicación y microservicio no son lo mismo:** **Orquestador de Pedidos (APP-02)** es una **aplicación** del catálogo (negocio la reconoce como APP-02). **Microservicio Inventario y Reservas (MS-INI01-02)** es un **microservicio** creado porque INI-01 necesita dominio de inventario sin reutilizar **Control de Inventario (APP-08)** legado. Ambos pueden ejecutarse en el **mismo servicio AKS**, pero son **dos contenedores** distintos con IDs distintos.
 
-**Un microservicio no agrupa varias aplicaciones:** **Microservicio Inventario y Reservas (MS-INI01-02)** es **una** pieza desplegable. Internamente tiene componentes (nivel 3 C4: API de reserva, repositorio, publicador de eventos). Externamente **consume** servicios en la nube (Azure SQL, Event Hubs) y **colabora** con **Orquestador de Pedidos (APP-02)** vía API y eventos; no “contiene” APP-02 dentro.
+**Un microservicio no agrupa varias aplicaciones:** **Microservicio Inventario y Reservas (MS-INI01-02)** es **una** pieza desplegable. Internamente tiene componentes (nivel 3 C4: API de reserva, repositorio, publicador de eventos). Externamente **consume** servicios en la nube (Azure SQL, Event Hubs) y **colabora** con **Orquestador de Pedidos (APP-02)** vía API y eventos; no "contiene" APP-02 dentro.
 
 **INI-01** descompone órdenes e inventario en: **Orquestador de Pedidos (APP-02)** (aplicación del catálogo, evoluciona a OMS centralizado) y **Microservicio Inventario y Reservas (MS-INI01-02)** (reservas y disponibilidad — distinto de **Control de Inventario (APP-08)** y de **WMS Principal (On Premises) (APP-06)**).
 
@@ -209,7 +209,7 @@ Iniciativa centrada en **Azure API Management (APP-01)** y **Bus de Eventos Cent
 | Aspecto | Cómo se hará en el MVP |
 |---|---|
 | Patrón Outbox | Tras guardar en SQL, el **Orquestador de Pedidos (APP-02)** y el **Microservicio Inventario y Reservas (MS-INI01-02)** escriben en tabla **outbox** (cola local en la misma BD: el evento solo se publica si la transacción de escritura fue exitosa). |
-| Publicación | Worker en AKS lee outbox y publica a **Azure Event Hubs** (bus de ingesta de eventos en streaming, parte del **Bus de Eventos Central (PLT-03)**). |
+| Publicación | **`bus-workers`** (Deployment AKS de PLT-03) lee outbox y publica a **Event Hubs**. |
 | Entrega | **Azure Service Bus** (colas por consumidor con acuse de recibo) entrega a: **Microservicio Inventario y Reservas (MS-INI01-02)**, mock **TMS (Transportation Management) (APP-11)**, puente hacia AWS y proyector GCP. |
 | Contrato | **Schema Validator** valida mensajes contra contrato **AsyncAPI** (especificación formal del formato del evento: campos, tipos y versión). |
 | Demo | Ver evento `OrderValidated` → `InventoryReserved` en Monitor/Service Bus con el mismo **correlation ID** (identificador único que atraviesa todo el flujo). |
@@ -333,7 +333,7 @@ El enunciado exige mínimo 3; el MVP implementa **seis** de forma explícita:
 │ Orquestador de Pedidos (APP-02)         │   │ Reservas (MS-INI01-02)           │   │ Central (PLT-03) Event Hubs + SB    │
 │ Azure AKS                               │──▶│ ID MS-INI01-02, no APP-XX        │──▶│                                     │
 └────────┬────────────────────────────────┘   └────────┬─────────────────────────┘   └──────────┬──────────────────────────┘
-         │ Saga                                        │ eventos                          │ fan-out (un evento a varios consumidores)
+         │ Saga                                        │ HTTP reserva                     │ outbox → Event Hubs
          ▼                                             ▼                                  ▼
 ┌─────────────────────────┐   ┌──────────────────────────────────┐   ┌─────────────────────────────────────┐
 │ Última milla            │   │ Evidencias                       │   │ Analítica (GCP)                      │
@@ -342,19 +342,20 @@ El enunciado exige mínimo 3; el MVP implementa **seis** de forma explícita:
 └─────────────────────────┘   └──────────────────────────────────┘   └─────────────────────────────────────┘
 ```
 
-### 4.2 Flujo Saga — orden con reserva (happy path)
+### 4.2 Flujo Saga — orden con reserva (camino actual del MVP)
 
-1. Cliente invoca `POST /api/v1/orders` (Azure API Management (APP-01)) con `Idempotency-Key`.
-2. **OMS centralizado / Orquestador de Pedidos (APP-02)** valida, deduplica, persiste orden, escribe **outbox**.
-3. Worker publica `OrderValidated` a **Event Hubs**.
-4. **Microservicio Inventario y Reservas (MS-INI01-02)** consume, reserva stock, publica `InventoryReserved`.
-5. Adaptador llama **mock de WMS Principal (On Premises) (APP-06)**; si OK, publica `ReservationConfirmed`.
-6. **mock de TMS (Transportation Management) (APP-11)** recibe evento de despacho (opcional en demo).
-7. Conductor completa entrega offline → **backend móvil** outbox → SQS → puente → Event Hubs.
-8. Evidencia a **S3** con hash; evento `DeliveryCompleted` al Bus de Eventos Central (PLT-03).
-9. Proyector **GCP** actualiza tabla consulta tracking/SLA.
+1. Cliente invoca `POST /api/v1/orders` (APIM APP-01) con `Idempotency-Key`.
+2. **OMS (APP-02)** valida, deduplica, persiste orden y escribe **outbox** en Azure SQL.
+3. La Saga reserva stock por **HTTP** en **Inventario (MS-INI01-02)** (no por Service Bus en el MVP).
+4. La Saga confirma al **mock WMS (APP-06)** vía **Circuit Breaker → APIM** (`mock-wms`).
+5. **`bus-workers`** lee el outbox en Azure SQL y publica el evento canónico en **Event Hubs**.
+6. **Objetivo:** fan-out Event Hubs → Service Bus → consumidores (Inventario, TMS).
+7. Conductor completa entrega → **Backend móvil APP-15** (`mobile-api`); puente objetivo: SQS → **`retry-worker`** → EventBridge → **Adaptador AWS→Azure** → Event Hubs.
+8. Evidencia a **S3** (parcial); tracking CQRS en BigQuery = **objetivo** (hoy mock-portal).
 
-**Compensación:** si mock de WMS Principal (On Premises) (APP-06) falla → `ReleaseInventory` + orden `ON_HOLD`.
+**Compensación:** si el mock WMS falla tras reservar → `ReleaseInventory` por HTTP + orden `ON_HOLD`.
+
+> El camino **diseño Alternativa A** (inventario solo por cola) permanece como evolución; el C4 documenta ambos estados.
 
 ### 4.3 APIs mock (Azure API Management (APP-01))
 
@@ -362,7 +363,7 @@ El enunciado exige mínimo 3; el MVP implementa **seis** de forma explícita:
 |---|---|---|
 | `mock-wms` | **WMS Principal (On Premises) (APP-06)** | 200 OK / 503 degradado / timeout (circuit breaker) |
 | `mock-erp` | **ERP Financiero (On Premises) (APP-25)** | Valorización inventario async |
-| `mock-portal` | **Portal B2B (Trazabilidad) (APP-18)** | **Solo lectura:** `GET /mock/portal/v1/tracking/{id}` desde proyección CQRS (no crea órdenes) |
+| `mock-portal` | **Portal B2B (Trazabilidad) (APP-18)** | **Solo lectura mock:** respuesta simulada; BigQuery = objetivo |
 | `mock-tms` | **TMS (Transportation Management) (APP-11)** | Recibe despacho y actualiza manifiesto |
 
 Los mocks permiten MVP sin VPN a on premises; contratos OpenAPI versionados en Azure API Management (APP-01).
@@ -378,7 +379,7 @@ Los mocks permiten MVP sin VPN a on premises; contratos OpenAPI versionados en A
 | Servicio | Rol en MVP | Justificación |
 |---|---|---|
 | Azure API Management (APP-01) (Developer/Standard) | Gateway, OAuth, rate limit, mocks | Entrada única; mocks sin VPN; OAuth y cuotas antes del backend |
-| AKS (2–3 nodos) | **Orquestador de Pedidos (APP-02)** (aplicación), **Microservicio Inventario y Reservas (MS-INI01-02)** (microservicio), workers outbox | API + Saga + workers de fondo (outbox, bus) en procesos de vida larga; dos dominios en un cluster |
+| AKS (2–3 nodos) | **OMS (APP-02)**, **Inventario (MS-INI01-02)**, **`bus-workers`**, BFF del MVP | API + Saga + outbox publisher en procesos de vida larga; un cluster compartido |
 | Azure SQL (S1/S2) | Estado transaccional **Orquestador de Pedidos (APP-02)** + **Microservicio Inventario y Reservas (MS-INI01-02)** | Consistencia relacional Saga/outbox |
 | Event Hubs (Standard, 1 TU) | Ingesta eventos canónicos Bus de Eventos Central (PLT-03) | Throughput para campañas y flujos orden → inventario → tracking |
 | Service Bus (Standard) | Colas, DLQ, replay | Colas por consumidor, mensajes fallidos y reproceso auditado |
@@ -390,7 +391,7 @@ Los mocks permiten MVP sin VPN a on premises; contratos OpenAPI versionados en A
 
 | Servicio | Rol en MVP | Por qué |
 |---|---|---|
-| ECS Fargate | API backend móvil + Retry Worker (mismo task) | **App de Conductores (APP-15)**: un solo servicio; polling (consulta periódica) de SQS con jitter (espera aleatoria entre reintentos) hacia el puente Azure |
+| ECS Fargate | API backend móvil + `retry-worker` en el mismo task | **App de Conductores (APP-15)**: un solo servicio; el worker consume todos los mensajes de SQS, publica en EventBridge y reintenta fallos con jitter |
 | DynamoDB on-demand | Outbox móvil, estado sync | Baja latencia offline; ya en caso |
 | S3 + KMS | Evidencias **Almacenamiento Evidencias (S3) (APP-16)** | Integridad, costo, escalabilidad |
 | SQS + EventBridge | Buffer y puente hacia Azure | Desacopla móvil del hub |

@@ -596,7 +596,7 @@ $body = '{"customerId":"B2B-001","items":[{"sku":"SKU-001","quantity":1}]}'
 
 #### E3 — Sin stock suficiente
 
-**De qué trata:** El cliente pide más unidades de las disponibles (stock inicial ≈ 100 en `SKU-001`).
+**De qué trata:** El cliente pide más unidades de las disponibles (stock inicial ≈ 100 en `SKU-001`). También puedes probar **E3** con `SKU-002`…`SKU-005` (catálogo sin stock en el CD demo).
 
 **Flujo:** order-service pide reserva → **inventory-service** rechaza → la orden **no** se confirma.
 

@@ -1,112 +1,153 @@
 # Hito 3 — MVP Multinube RutaExpress
-## Índice para el Comité de Arquitectura
+## Índice y guía de lectura
 
-> **Carpeta única de lectura.** Este Hito 3 consolida Hito 1 (arquitectura empresarial) y Hito 2 (diseño TO BE — Alternativa A recomendada) y define **qué se implementará** en el prototipo/MVP. **Aún no hay código desplegado**; este paquete es documentación de diseño de implementación aprobable por comité.
+Paquete de documentación del **MVP multinube** (Alternativa A recortada). Consolida Hito 1 (empresa) y Hito 2 (TO BE) y define qué se demuestra en el prototipo.
 
-> **Regla de oro — nomenclatura:** en todo el paquete cada identificador va **siempre** con su **nombre oficial** (catálogo APP/PLT → `HITO 1 - .../06_Mapa_Portafolio_Aplicaciones.md`).
-
-> **Regla de oro — términos técnicos:** toda sigla o palabra en inglés lleva entre paréntesis un significado breve en español — p. ej. **jitter** (espera aleatoria entre reintentos), **CQRS** (separar escritura y lectura). Glosario completo en la sección siguiente.
+> **Estado real del MVP (julio 2026):** núcleo Azure de órdenes (APIM → OMS → Inventario HTTP → outbox → `bus-workers` → Event Hubs) **implementado** en código/IaC. AWS última milla y puente **parcial / objetivo**. GCP lectura CQRS **objetivo** (tracking hoy = mock APIM). Detalle canónico: [`03_C4_Model_MVP.md`](03_C4_Model_MVP.md).
 
 > **Marco de alcance:** [`01b_TOBE_vs_MVP_Alternativa_A.md`](01b_TOBE_vs_MVP_Alternativa_A.md) — **plano** (Alternativa A) → **maqueta** (MVP) → **casa entera** (producción).
 
 ---
 
-## Glosario breve (términos técnicos del paquete)
+## 1. Cómo leer este paquete
 
-| Término | Significado en español |
+### Lectura corta (cualquier persona · ~25 min)
+
+| Paso | Documento | Qué obtienes |
+|:---:|---|---|
+| 1 | Este índice (§2–§4) | Mapa, nombres y estado |
+| 2 | [`01_Resumen_Empresa_RutaExpress.md`](01_Resumen_Empresa_RutaExpress.md) | Quién es RutaExpress y qué duele |
+| 3 | [`01b_TOBE_vs_MVP_Alternativa_A.md`](01b_TOBE_vs_MVP_Alternativa_A.md) §1–2 | Plano vs maqueta vs producción |
+| 4 | [`05_Servicios_por_Nube_MVP.md`](05_Servicios_por_Nube_MVP.md) **Parte I** | Qué hay en Azure / AWS / GCP |
+| 5 | Diagramas en `diagramas_c4/imagenes/` + [`03b_Guion…`](03b_Guion_Exposicion_C4_PPT_6a_13.md) | Cómo se ve la arquitectura |
+
+### Lectura de comité / defensa (~50–70 min)
+
+| Paso | Documento | Para qué |
+|:---:|---|---|
+| 1 | Este índice completo | Orientación |
+| 2 | `01` → `01b` | Negocio y alcance |
+| 3 | [`02_Dossier_MVP_Alternativa_A.md`](02_Dossier_MVP_Alternativa_A.md) | Alcance, patrones, E1–E8 |
+| 4 | [`03_C4_Model_MVP.md`](03_C4_Model_MVP.md) | **Fuente de verdad** C4 + estados |
+| 5 | [`04_IaC_Costos_Despliegue.md`](04_IaC_Costos_Despliegue.md) | IaC, nube, personal, operación, ROI |
+| 6 | [`05_Servicios_por_Nube_MVP.md`](05_Servicios_por_Nube_MVP.md) | Catálogo (Parte II si hace falta) |
+| 7 | [`06_Preguntas_Argumentos_Comite.md`](06_Preguntas_Argumentos_Comite.md) | Defensa oral |
+
+**Código IaC:** [`../Implementacion/`](../Implementacion/)  
+**Regenerar diagramas:** `python diagramas_c4/generar_diagramas_mvp_c4.py`
+
+---
+
+## 2. Mensaje ejecutivo (30 segundos)
+
+RutaExpress demuestra el flujo **orden → reserva → evento → entrega offline → evidencia → tracking**, repartido en **Azure + AWS + GCP**, con **IaC** (Terraform), **mocks** de legados y **seis patrones** (Microservicios, DDD, EDA, CQRS, Saga, Resiliencia).
+
+El MVP es un **recorte** del TO BE: valida decisiones y una ruta evolutiva; **no** es toda la Alternativa A en producción.
+
+---
+
+## 3. Nombres canónicos (usar siempre estos)
+
+| Nombre correcto | Qué es | No usar |
+|---|---|---|
+| **OMS — APP-02** | Orquestador de Pedidos | “el orquestador” sin ID en docs formales |
+| **Inventario — MS-INI01-02** | Microservicio de reservas | Confundirlo con WMS (APP-06) o APP-08 |
+| **`bus-workers`** | Deployment AKS: lee outbox SQL → Event Hubs | Publicador Outbox, Bus Workers |
+| **`retry-worker`** | Contenedor Fargate: SQS → EventBridge | SQS Bridge Worker, Retry Worker |
+| **BFF del MVP** | Backend for Frontend en AKS | Demo Comité BFF |
+| **Backend móvil — APP-15** / `mobile-api` | API última milla en ECS | “backend movil ultima milla” |
+| **Adaptador AWS→Azure** | Function objetivo EventBridge → Event Hubs | “adaptador” genérico (≠ mock WMS) |
+| **Event Hubs** | Stream canónico | Decir que es Service Bus |
+| **Service Bus** | Colas + DLQ | Decir que es donde publica `bus-workers` |
+
+Taxonomía completa y protocolos: [`03_C4_Model_MVP.md`](03_C4_Model_MVP.md) §0.
+
+---
+
+## 4. Estado del MVP en una mirada
+
+| Flujo | Estado | Dónde leer |
+|---|---|---|
+| Alta de orden + reserva HTTP + mock WMS | **Implementado** | C4 Flujo A · N3 OMS/Inventario |
+| Outbox → `bus-workers` → Event Hubs | **Implementado** (órdenes) | C4 N3 PLT-03 |
+| Service Bus → consumidor Inventario | **Objetivo** | C4 §3.4 / N3 Inventario |
+| DLQ demo E5 (BFF → Service Bus) | **Demo parcial** (replay = objetivo) | C4 Flujo D |
+| Entrega offline + evidencia AWS | **Parcial** | C4 Flujo B · N3 móvil |
+| Puente SQS → `retry-worker` → EventBridge → Azure | **Objetivo** | C4 Flujo B |
+| Tracking BigQuery / CQRS | **Objetivo** (hoy mock portal) | C4 Flujo C |
+
+Leyenda: **Implementado** = en uso en el MVP · **Parcial** = infra o stub sin cadena completa · **Objetivo** = diseño no cableado · **Mock** = legado simulado.
+
+---
+
+## 5. Mapa de documentos
+
+| Archivo | Contenido | Audiencia |
+|---|---|---|
+| `00` (este) | Índice, nombres, estado, lectura | Todos |
+| `01` | Empresa, cadena de valor, dolores | Todos |
+| `01b` | Alternativa A vs MVP vs producción | Comité |
+| `02` | Dossier: alcance, patrones, E1–E8 | Comité |
+| `03` | C4 N1–N3, flujos, canon | Técnico / defensa |
+| `03b` | Guion oral solo diagramas C4 | Expositor |
+| `04` | IaC, costos nube/personal/ops, ROI | Comité FinOps |
+| `05` | Catálogo por nube | Comité + técnico |
+| `06` | Preguntas y argumentos | Defensa oral |
+
+---
+
+## 6. Cumplimiento del enunciado (Hito 3)
+
+| Requisito | Cumplimiento |
 |---|---|
-| **ACK** | Acuse de recibo — confirmación de que el destino guardó el dato |
-| **AKS** | Kubernetes administrado en Azure (orquestador de contenedores) |
-| **backoff** | Espera creciente entre reintentos |
-| **backpressure** | Reducir velocidad de ingesta cuando un sistema downstream está degradado |
-| **bounded context** | Límite de dominio de negocio (DDD) |
-| **circuit breaker** | Corte automático de llamadas a un sistema que falla repetidamente |
-| **cold start** | Arranque en frío — demora al activar una función serverless tras inactividad |
-| **CQRS** | Separar escritura transaccional y lectura analítica |
-| **DDD** | Diseño guiado por el dominio de negocio |
-| **dedup / deduplicación** | Detectar y evitar registros duplicados |
-| **DLQ** | Cola de mensajes fallidos (Dead Letter Queue) |
-| **EDA** | Arquitectura orientada a eventos |
-| **egress** | Tráfico de salida de datos (p. ej. entre nubes — costo de transferencia) |
-| **fan-out** | Un evento entregado a varios consumidores |
-| **Fargate** | Contenedores en AWS sin administrar servidores |
-| **IaC** | Infraestructura como código (Terraform) |
-| **idempotencia** | Misma petición repetida produce el mismo resultado sin duplicar |
-| **jitter** | Espera aleatoria entre reintentos para no saturar el sistema |
-| **KMS** | Gestión de llaves de cifrado en la nube |
-| **OAuth** | Autorización delegada sin compartir contraseña |
-| **OLTP** | Procesamiento transaccional en línea (altas, reservas, Saga) |
-| **outbox** | Cola local de eventos pendientes de publicar al bus |
-| **OTel / OpenTelemetry** | Estándar abierto de trazas, métricas y logs |
-| **payload** | Cuerpo o contenido de un mensaje |
-| **polling** | Consulta periódica de una cola hasta que haya mensajes |
-| **replay** | Reprocesamiento auditado de mensajes desde DLQ |
-| **Saga** | Secuencia coordinada de pasos con compensación si algo falla |
-| **smoke test** | Prueba mínima de que el despliegue arranca y responde |
-| **SPOF** | Punto único de falla |
-| **store-and-forward** | Guardar en el dispositivo y reenviar cuando hay red |
-| **throughput** | Volumen de mensajes u operaciones por unidad de tiempo |
-| **TTL** | Tiempo de vida de un dato en caché antes de expirar |
-| **vertical slice** | Corte que atraviesa todas las capas para demostrar un flujo end-to-end |
-
----
-
-## Lectura recomendada (40–50 minutos)
-
-| Orden | Documento | Para qué sirve | Tiempo |
-|:---:|---|---|:---:|
-| 1 | **Este índice** | Orientación y mensajes clave | 3 min |
-| 2 | [`01_Resumen_Empresa_RutaExpress.md`](01_Resumen_Empresa_RutaExpress.md) | Contexto de negocio — dolores, cadena de valor | 5 min |
-| 3 | [`01b_TOBE_vs_MVP_Alternativa_A.md`](01b_TOBE_vs_MVP_Alternativa_A.md) | Marco TO BE vs MVP, hitos, INI parciales, E1–E8 | 8 min |
-| 4 | [`02_Dossier_MVP_Alternativa_A.md`](02_Dossier_MVP_Alternativa_A.md) | Alcance, patrones, mocks, escenarios E1–E8 | 15 min |
-| 5 | [`05_Servicios_por_Nube_MVP.md`](05_Servicios_por_Nube_MVP.md) | **Catálogo unificado** — Parte I: por nube y E1–E8 (~5 min); Parte II: qué hace cada servicio (🟢/🟡/🔴) | 5–20 min |
-| 6 | [`03_C4_Model_MVP.md`](03_C4_Model_MVP.md) | **C4 central** — N1–N3, flujos A–D, guía §4.0 + §4.0.7 FAQ | 15 min |
-| 7 | [`04_IaC_Costos_Despliegue.md`](04_IaC_Costos_Despliegue.md) | Terraform, pipeline, costos (~USD 449/mes) | 8 min |
-
-**Antes de la defensa oral:** [`06_Preguntas_Argumentos_Comite.md`](06_Preguntas_Argumentos_Comite.md) — preguntas frecuentes, argumentos (p. ej. ECS Fargate vs Lambda §4.1, ECS vs EKS §4.2, multinube §2.1) y guion de 5 min.
-
-**Soporte para defensa oral:** [`06_Preguntas_Argumentos_Comite.md`](06_Preguntas_Argumentos_Comite.md) — incluye reglas para **no** argumentar solo con «porque el Hito 2 / Alternativa A lo dice».
-
-**Diagramas:** `diagramas_c4/imagenes/` — regenerar con `python diagramas_c4/generar_diagramas_mvp_c4.py`.
-
-**Implementación IaC (código):** [`../Implementacion/`](../Implementacion/) — Terraform multinube, Helm, mocks OpenAPI y CI/CD.
-
----
-
-## Mensaje ejecutivo
-
-RutaExpress demostrará en el MVP el flujo crítico **orden → reserva → evento → entrega offline → evidencia → tracking CQRS** (separar escritura y lectura), en **Azure + AWS + GCP**, con **IaC** (infraestructura como código) completo, **mocks** de legados y **seis patrones** (Microservicios, DDD, EDA, CQRS, Saga, Resiliencia).
-
-El MVP **implementa un recorte** del diseño TO BE (hub Azure + AWS móvil + GCP lectura), alineado al caso AS IS y a los escenarios E1–E8; **no** despliega todo el C4 TO BE ni cierra todos los RF de INI-01/02/03. Marco académico plano/maqueta: [`01b`](01b_TOBE_vs_MVP_Alternativa_A.md).
-
----
-
-## Cumplimiento del enunciado (Hito 3)
-
-| Requisito académico | Cómo se cumple |
-|---|---|
-| Basado en TO BE recomendado (Hito 2) | Hub Azure + reparto por carga (OLTP — transaccional/bus, móvil, CQRS — lectura); trazabilidad académica en [`01b`](01b_TOBE_vs_MVP_Alternativa_A.md) |
+| Basado en TO BE Alternativa A | Hub Azure + AWS móvil + GCP lectura — [`01b`](01b_TOBE_vs_MVP_Alternativa_A.md) |
 | Mínimo 2 nubes | **3:** Azure + AWS + GCP |
-| Mínimo 3 patrones | **6:** Microservicios, DDD (diseño por dominio), EDA (eventos), CQRS (escritura/lectura), Saga (pasos compensables), Resiliencia |
-| Despliegue 100 % IaC | Terraform modular — doc `04` |
-| Costos por nube/mes | ~USD 449/mes — doc `04` §4 |
-| API mock permitidas | APIM + mocks WMS/ERP/Portal/TMS — dossier §4.3 |
+| Mínimo 3 patrones | **6:** Microservicios, DDD, EDA, CQRS, Saga, Resiliencia |
+| Despliegue 100 % IaC | Terraform — [`04`](04_IaC_Costos_Despliegue.md) |
+| Costos | Nube ~USD 449/mes; TCO Lima ~USD 37k/año — [`04`](04_IaC_Costos_Despliegue.md) §4–§7 |
+| APIs mock | APIM + mocks WMS/ERP/Portal/TMS — dossier §4.3 |
 
 ---
 
-## Decisiones que el comité valida
+## 7. Decisiones que el comité valida
 
-1. **Hub central Azure** — OMS, API gateway y bus donde ya está el núcleo operativo del cliente; integración por eventos con AWS y GCP.
-2. **Orquestador de Pedidos (APP-02)** evoluciona a OMS (mismo ID).
-3. **Bus de Eventos Central (PLT-03)** = Event Hubs (stream) + Service Bus (colas con DLQ — mensajes fallidos).
-4. **Microservicio Inventario (MS-INI01-02)** en AKS (Kubernetes administrado) — no es APP-XX.
-5. **Alcance parcial** INI-01 (E1–E4), INI-02 (E5, E8 + backpressure — frenado de ingesta en E4), INI-03 (E6–E7).
+1. **Hub Azure** — OMS, APIM y bus donde ya está el núcleo operativo.
+2. **OMS = APP-02** evolucionado (mismo ID).
+3. **PLT-03** = Event Hubs (stream) + Service Bus (colas/DLQ); `bus-workers` publica en Event Hubs.
+4. **Inventario MS-INI01-02** en AKS — no es APP-XX ni el WMS.
+5. Alcance parcial **INI-01 / INI-02 / INI-03** (escenarios E1–E8).
 6. **GCP MVP:** Event Hubs → Cloud Run → BigQuery (**sin Pub/Sub** en v1).
-7. **Legados** simulados con mocks en APIM.
+7. Legados simulados con **mocks** en APIM.
 
 ---
 
-## Trazabilidad a entregables previos
+## 8. Glosario breve
+
+| Término | Significado |
+|---|---|
+| **ACK** | Acuse de recibo |
+| **AKS** | Kubernetes administrado en Azure |
+| **backpressure** | Frenar consumo cuando hay cola acumulada |
+| **circuit breaker** | Cortar llamadas a un sistema que falla repetido |
+| **CQRS** | Separar escritura operativa y lectura analítica |
+| **DDD** | Diseño guiado por el dominio |
+| **DLQ** | Cola de mensajes fallidos |
+| **EDA** | Arquitectura orientada a eventos |
+| **egress** | Tráfico de salida entre nubes (costo) |
+| **Fargate** | Contenedores AWS sin administrar servidores |
+| **IaC** | Infraestructura como código (Terraform) |
+| **idempotencia** | Misma petición repetida sin duplicar efecto |
+| **OLTP** | Procesamiento transaccional (órdenes, reservas) |
+| **outbox** | Registro local de eventos pendientes de publicar |
+| **ROI** | Retorno de inversión |
+| **Saga** | Pasos coordinados con compensación si falla |
+| **store-and-forward** | Guardar offline y reenviar con red |
+| **TCO** | Costo total de propiedad |
+| **vertical slice** | Corte end-to-end demostrable |
+
+---
+
+## 9. Trazabilidad
 
 | Origen | Ubicación |
 |---|---|
@@ -114,7 +155,7 @@ El MVP **implementa un recorte** del diseño TO BE (hub Azure + AWS móvil + GCP
 | Hito 2 — RF INI-01/02/03 | `HITO 2 - .../INI-*/` |
 | Hito 2 — Alternativa A | `HITO 2 - .../ARQUITECTURA_SOLUCION_TO_BE/02_Alternativa_A.md` |
 | Enunciado | `Enunciado del Proyecto Integrador Final.md` |
-| Defensa oral — preguntas y argumentos | [`06_Preguntas_Argumentos_Comite.md`](06_Preguntas_Argumentos_Comite.md) |
+| Defensa | [`06_Preguntas_Argumentos_Comite.md`](06_Preguntas_Argumentos_Comite.md) |
 
 ---
 
