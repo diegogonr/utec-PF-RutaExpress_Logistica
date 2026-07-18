@@ -8,14 +8,15 @@ Este documento compara el Modelo A y el Modelo B despues de haberlos presentado 
 
 | Aspecto | Modelo A | Modelo B |
 |---|---|---|
-| Tesis | Azure como hub central de integracion y gobierno. | AWS como hub principal de eventos y ultima milla. |
-| Centro de eventos | **Bus de Eventos Central (PLT-03)** — Azure Event Hubs + Azure Service Bus | **Bus de Eventos Central (PLT-03)** — AWS EventBridge + SQS/workers |
-| OMS centralizado / Orquestador de Pedidos (APP-02) | Azure AKS, cercano a Azure API Management (APP-01) y Bus de Eventos Central (PLT-03) | Azure AKS, pero publica eventos hacia AWS |
-| Gobierno API | Azure API Management (APP-01) | Azure API Management (APP-01) |
-| Ultima milla | AWS con backend movil, DynamoDB logico, S3/KMS y buffer hacia Azure. | AWS con backend movil, DynamoDB logico, S3/KMS y eventos nativos al hub AWS. |
-| Optimizacion y analitica | GCP consume eventos desde Azure. | GCP consume eventos desde AWS. |
-| Observabilidad | Mas centralizada desde Azure con federacion hacia AWS/GCP. | Mas federada entre AWS, Azure y GCP. |
-| Complejidad dominante | Resiliencia del hub Azure y puentes controlados a AWS/GCP. | Gobierno cruzado Azure-AWS y puente permanente entre OMS/API y eventos. |
+| Tesis | EDA + microservicios con Azure como hub de integracion y gobierno. | Orquestacion + monolito modular para el core orden/inventario. |
+| Estilo de coordinacion | Saga coreografiada por eventos (PLT-03). | Saga orquestada (Durable Functions). |
+| Empaquetado del core | OMS e Inventario como servicios separados. | OMS + Inventario en un Nucleo Logistico Modular. |
+| Integracion principal | API-first + Event-Driven completo. | API-first sincrono; eventos solo como notificacion. |
+| Centro de eventos | Bus de Eventos Central (PLT-03) en Azure. | Sin PLT-03 completo; Service Bus topics livianos. |
+| OMS / APP-02 | Azure AKS, cercano a APIM y PLT-03. | Azure AKS como nucleo modular + orquestador. |
+| Ultima milla | AWS (store-and-forward, evidencias) conectada al hub Azure. | AWS (store-and-forward, evidencias) con confirmacion API al nucleo. |
+| Optimizacion y analitica | GCP consume eventos desde Azure. | GCP consume notificaciones/APIs desde Azure. |
+| Complejidad dominante | Mas piezas async; mejor absorcion de picos. | Menos piezas; orquestador/nucleo como punto critico. |
 
 ## Comparativo visual
 
@@ -25,137 +26,103 @@ Este documento compara el Modelo A y el Modelo B despues de haberlos presentado 
 
 Lectura ejecutiva:
 
-- OMS, API governance, bus de eventos, colas, observabilidad e identidad se concentran en Azure.
+- OMS, Inventario, API governance, bus de eventos, colas y observabilidad se concentran en Azure.
 - AWS queda enfocado en ultima milla y evidencias.
-- GCP queda enfocado en optimizacion y analitica.
-- Los puentes existen, pero no dividen el plano principal de gobierno.
+- El bus es el mecanismo de resiliencia y desacoplamiento.
 
 ### Modelo B - Contenedores C4
 
-![Modelo B - C4 Nivel 2 Contenedores](../diagramas_c4/imagenes_python_graphviz/alternativa_B_n2_contenedores.png)
+![Modelo B - C4 Nivel 2 Contenedores](../diagramas_c4/imagenes_alternativa_B/alternativa_B_c4_n2_contenedores.png)
 
 Lectura ejecutiva:
 
-- AWS concentra eventos, colas, backend movil y evidencias.
-- Azure conserva OMS y gobierno API.
-- El puente Azure-AWS pasa a ser estructural, no accesorio.
-- Observabilidad, seguridad y FinOps requieren mayor coordinacion entre planos de control.
+- El Nucleo Modular y el Orquestador concentran el flujo orden-reserva.
+- No hay hub event-driven corporativo equivalente a PLT-03.
+- AWS y GCP mantienen roles especializados; la diferencia es de estilo, no solo de nube.
 
 ## Evaluacion por criterios
 
 Escala: 1 = bajo cumplimiento, 5 = alto cumplimiento.
 
-| Criterio | Modelo A: Azure hub central | Modelo B: AWS hub principal | Lectura para comite |
+| Criterio | Modelo A: EDA + microservicios | Modelo B: Orquestacion + monolito modular | Lectura para comite |
 |---|---:|---:|---|
-| Alineamiento con Hito 1 | 5 | 3 | A mantiene OMS centralizado / Orquestador de Pedidos (APP-02), Azure API Management (APP-01), TMS (Transportation Management) (APP-11) y Bus de Eventos Central (PLT-03) en el eje Azure y conserva AWS/GCP como dominios especializados. |
-| Cobertura INI-01 | 5 | 4 | Ambas cubren OMS e inventario, pero A reduce puentes entre OMS, API governance y bus. |
-| Cobertura INI-02 | 5 | 4 | A concentra contratos, eventos, DLQ, replay y observabilidad operacional en un mismo plano. |
-| Cobertura INI-03 | 5 | 5 | Ambas mantienen AWS para app movil, store-and-forward y evidencias. |
-| Cobertura INI-04 | 5 | 5 | Ambas integran GCP para optimizacion dinamica y analitica. |
-| Cobertura INI-05 | 5 | 4 | A facilita trazabilidad y seguridad desde un plano central; B requiere mayor federacion. |
-| Cobertura INI-06 | 5 | 4 | A simplifica la trazabilidad OMS-eventos-evidencias-ERP; B exige mas control intercloud. |
-| Complejidad de integracion | 4 | 3 | B requiere puente permanente Azure OMS/API hacia AWS hub y doble gobierno API/eventos. |
-| Seguridad | 5 | 4 | A centraliza mas controles; B reparte secretos, identidad y politicas entre nubes. |
-| Observabilidad | 5 | 4 | A facilita trazas end-to-end desde OMS/eventos; B depende mas de federacion. |
-| Resiliencia | 5 | 5 | Ambas soportan DLQ, retry, backpressure, outbox/inbox y store-and-forward. |
-| Impacto en aplicaciones existentes | 5 | 4 | A evoluciona APP-02 y fortalece APP-15/APP-16 sin mover el centro operativo de eventos hacia AWS. |
-| Riesgo de migracion | 4 | 3 | A minimiza cambios de topologia; B cambia el centro operativo de eventos. |
-| Facilidad de MVP | 5 | 4 | A permite mocks, contratos, OMS y eventos en el mismo eje de gobierno. |
-| Gobierno FinOps | 4 | 3 | A reduce dispersion de costos y transferencia intercloud; B exige mas control de costos cruzados. |
+| Alineamiento con Hito 1 | 5 | 4 | A materializa mejor PLT-03 y desacoplamiento del ADM. |
+| Cobertura INI-01 | 5 | 5 | Ambas cubren OMS/inventario con trade-offs distintos de consistencia. |
+| Cobertura INI-02 | 5 | 3 | A cubre bus, DLQ, replay y backpressure; B prioriza API-first. |
+| Cobertura INI-03 | 5 | 5 | Ambas mantienen AWS para movil y evidencias. |
+| Diferenciacion de estilo | 5 | 5 | Contraste real de patrones, no solo de proveedor. |
+| Complejidad de integracion | 3 | 4 | B es mas simple; A tiene mas superficie async. |
+| Seguridad | 5 | 4 | A centraliza mejor gobierno API+eventos. |
+| Observabilidad | 5 | 4 | A traza mejor flujos async; B traza workflows. |
+| Resiliencia en campanas | 5 | 3 | A absorbe picos con colas; B depende del orquestador. |
+| Escalabilidad | 5 | 3 | A escala por dominio; B escala el nucleo. |
+| Impacto en aplicaciones existentes | 5 | 4 | B concentra mas responsabilidad en APP-02. |
+| Riesgo de migracion | 4 | 4 | A migra a EDA; B implica rework si luego se adopta EDA. |
+| Facilidad de MVP | 4 | 5 | B acelera demo del core orden-reserva. |
+| Gobierno FinOps | 4 | 4 | Trade-off distinto: mas eventos vs mas compute concentrado. |
 
 ## Puntaje ejecutivo
 
 | Modelo | Puntaje | Resultado |
 |---|---:|---|
-| Modelo A | 72 / 75 | Recomendado para primer TO BE/MVP |
-| Modelo B | 59 / 75 | Viable, no recomendado como primer modelo |
-
-Nota: la escala se amplia respecto del comparativo base para incluir explicitamente INI-04, INI-05 e INI-06, manteniendo el mismo criterio de evaluacion.
+| Modelo A | 65 / 70 | Recomendado para primer TO BE/MVP |
+| Modelo B | 57 / 70 | Viable como contraste de menor complejidad; no recomendado como primer modelo |
 
 ## Diferencias clave para decision
 
 | Pregunta de decision | Modelo A | Modelo B |
 |---|---|---|
-| Donde vive el centro operativo de eventos? | Azure. | AWS. |
-| Donde vive el OMS? | Azure, junto al gobierno API y bus. | Azure, separado del hub de eventos AWS. |
-| Que puente es mas critico? | AWS/GCP hacia Azure. | Azure hacia AWS. |
-| Que modelo simplifica trazabilidad inicial? | A, porque OMS y eventos quedan juntos. | B requiere correlacion mas federada. |
-| Que modelo favorece ultima milla? | A la soporta bien con AWS conectado al hub Azure. | B la favorece mas al poner eventos y mobile en AWS. |
-| Que modelo reduce riesgo MVP? | A. | B tiene mas dependencias intercloud. |
-| Que modelo conviene si AWS es estrategia corporativa dominante? | Puede quedar como segundo paso. | B podria ser preferible. |
+| Cual es el centro de gravedad? | Bus de Eventos Central (PLT-03). | Nucleo modular + orquestador. |
+| Como se coordina orden-reserva? | Coreografia por eventos. | Orquestacion por workflow. |
+| Como se empaqueta el core? | Microservicios. | Modular monolith. |
+| Que pasa si WMS se degrada en campana? | Colas + backpressure absorben. | Throttle/circuit breaker; riesgo de cuello de botella. |
+| Que modelo reduce riesgo MVP de campana? | A. | B reduce complejidad, no riesgo de pico. |
+| Cuando conviene B? | - | Si el comite prioriza time-to-value y simplicidad del core. |
 
 ## ADRs clave que sustentan la recomendacion
 
 | ADR | Decision | Relacion con la recomendacion |
 |---|---|---|
-| ADR-001 Hub central de eventos | Usar Bus de Eventos Central (PLT-03) como hub gobernado de eventos. | En el Modelo A se implementa en Azure, cercano a OMS centralizado / Orquestador de Pedidos (APP-02) y Azure API Management (APP-01). |
-| ADR-002 Estrategia OMS | Orquestador de Pedidos (APP-02) evoluciona a OMS centralizado. | Evita crear nueva aplicacion y mantiene trazabilidad con Hito 1. |
-| ADR-003 Idempotencia y deduplicacion | Idempotency key, hash logistico y ventana temporal en OMS. | Critico para evitar duplicidad de pedidos y reservas. |
-| ADR-004 Vista canonica de inventario | Servicio de Inventario y Reservas por SKU, almacen, ubicacion, lote y estado. | Habilita conciliacion WMS central/local y reservas confiables. |
-| ADR-005 Saga orden-inventario-ERP | Sagas con eventos y compensaciones. | Evita transacciones distribuidas fragiles entre OMS, WMS, TMS y ERP. |
-| ADR-006 Store-and-forward movil | Outbox local cifrado, acks y reintentos. | Mantiene continuidad de ultima milla en ambos modelos. |
-| ADR-007 Evidencias con hash | Evidencias cifradas, hash y manifest auditado. | Reduce perdida/corrupcion de evidencias y soporta conciliacion. |
-| ADR-008 DLQ y replay controlado | DLQ con payload/error/responsable y replay aprobado por rol. | Obligatorio para resiliencia event-driven. |
-| ADR-009 Backpressure y circuit breaker | Proteccion ante degradacion WMS/ERP/consumidores. | Reduce colapso en campañas y eventos masivos. |
-| ADR-010 Observabilidad unificada | OpenTelemetry y correlation ID obligatorio. | Permite trazabilidad de orden a entrega y liquidacion. |
-| ADR-011 Seguridad federada y secretos | OAuth/OIDC, minimo privilegio, Key Vault/KMS/Secrets Manager. | Controla datos sensibles y accesos multinube. |
-| ADR-012 Gobierno multinube con IaC | Terraform/pipelines y politicas por nube. | Hace gobernable la arquitectura y sus puentes. |
+| ADR-001 Hub central de eventos | Usar PLT-03 Azure Event Hubs + Service Bus en A. | Descarta B como baseline porque no materializa el hub completo. |
+| ADR-002 Estrategia OMS | APP-02 evoluciona a OMS centralizado. | Valido en ambas; en B se amplía a nucleo modular con Inventario. |
+| ADR-003 Idempotencia y deduplicacion | Idempotency key + hash logistico. | Critico en A y B. |
+| ADR-005 Saga orden-inventario-ERP | En A: coreografia; en B: orquestacion. | A se alinea mejor a resiliencia distribuida del caso. |
+| ADR-006 Store-and-forward movil | Offline-first en AWS. | Comun a ambos modelos. |
+| ADR-008 DLQ y replay | Obligatorio en A. | En B se sustituye parcialmente por reproceso de comandos. |
+| ADR-009 Backpressure y circuit breaker | Proteccion ante degradacion WMS/ERP. | A lo combina con colas; B depende mas del orquestador. |
 
 ## Recomendacion
 
-Se recomienda aprobar el **Modelo A - Azure como hub central de integracion y gobierno** como arquitectura base del primer TO BE/MVP.
+Se recomienda aprobar el **Modelo A - EDA + microservicios con Azure como hub** como arquitectura base del primer TO BE/MVP.
 
 Justificacion:
 
-- Mantiene juntos OMS, API governance, eventos, colas y observabilidad operacional.
-- Reduce el puente critico entre OMS y PLT-03.
-- Esta mas alineado con Hito 1 y con la evolucion de APP-02 a OMS.
-- Conserva AWS donde aporta mayor valor: app movil, store-and-forward y evidencias.
-- Conserva GCP donde aporta mayor valor: optimizacion, analitica y prediccion.
-- Facilita un MVP con APIs mock, contratos, eventos canonicos y trazabilidad desde el inicio.
-- Reduce la probabilidad de duplicar gobierno entre API Management y event governance.
-
-## Condiciones de aprobacion recomendadas
-
-Para aprobar el Modelo A, se recomienda que el comite deje estas condiciones:
-
-| Condicion | Motivo |
-|---|---|
-| Bus de Eventos Central (PLT-03) debe tener DLQ, replay, retry, priorizacion y backpressure desde MVP. | Evitar perdida de eventos y reprocesos manuales. |
-| APP-02 debe evolucionar formalmente a OMS, no quedar solo como middleware. | Asegurar ownership del ciclo de vida de ordenes. |
-| Todo evento debe tener correlation ID. | Trazabilidad end-to-end y soporte operativo. |
-| OMS debe implementar idempotencia y deduplicacion. | Reducir duplicidad de pedidos, reservas y entregas. |
-| App movil debe operar store-and-forward cifrado. | Evitar perdida de tracking y evidencias offline. |
-| Evidencias deben conservar hash, cifrado y manifest de auditoria. | Soportar conciliacion financiera y no repudio operativo. |
-| Los puentes AWS/GCP deben tener monitoreo y politicas FinOps. | Controlar latencia, costo y fallas multinube. |
-| WMS/ERP deben protegerse con circuit breaker y backpressure. | Evitar colapso ante degradacion o campañas de alto volumen. |
+- Responde mejor a Cyber Days, colas y degradacion WMS del caso.
+- Cubre INI-02 de forma completa (contratos, eventos, DLQ, replay, backpressure).
+- Desacopla sistemas criticos y facilita trazabilidad multinube.
+- Conserva AWS para ultima milla y GCP para analitica.
+- El Modelo B se mantiene como alternativa de contraste: valida el trade-off simplicidad vs resiliencia distribuida.
 
 ## Cuando elegir el Modelo B
 
-El Modelo B podria ser elegido si se cumple alguna de estas condiciones estrategicas:
+El Modelo B podria preferirse si:
 
-- La organizacion decide que AWS sera el estandar corporativo para eventos.
-- El mayor dolor operativo esta concentrado en ultima milla y eventos moviles, por encima de OMS/API governance.
-- Existe capacidad madura para operar observabilidad, seguridad y FinOps federados.
-- El puente Azure-AWS ya existe, esta probado y tiene gobierno formal.
-- Se acepta mayor complejidad inicial a cambio de fortalecer la plataforma AWS de eventos.
+- El comite prioriza time-to-MVP y menor superficie operativa.
+- El dolor inmediato esta en ordenes/inventario locales, no en fan-out event-driven.
+- Se acepta cobertura parcial de capacidades PLT-03 en la primera ola.
+- Existe un plan explicito para evolucionar luego a EDA sin rehacer el dominio.
 
 ## Decision solicitada al comite
-
-Se propone solicitar al comite una decision explicita sobre estos puntos:
 
 | Punto | Decision propuesta |
 |---|---|
 | Modelo base TO BE/MVP | Aprobar Modelo A. |
-| Modelo alternativo | Mantener Modelo B como alternativa viable condicionada a estrategia AWS. |
-| OMS | Confirmar evolucion de APP-02 a OMS centralizado. |
-| Bus de Eventos Central (PLT-03) | Confirmar hub en Azure para el MVP. |
-| Ultima milla | Confirmar AWS para backend movil (App de Conductores (APP-15)), store-and-forward y Almacenamiento Evidencias (S3) (APP-16). |
-| Optimizacion | Confirmar GCP para rutas dinamicas, analitica y prediccion. |
-| Controles minimos | Aprobar idempotencia, DLQ, replay, backpressure, observabilidad, seguridad federada e IaC desde el inicio. |
+| Modelo alternativo | Mantener Modelo B como contraste de estilo (orquestacion + monolito modular). |
+| OMS | Confirmar evolucion de APP-02 a OMS (servicio en A; nucleo modular en B). |
+| Bus de Eventos Central (PLT-03) | Confirmar hub Azure en el MVP (Modelo A). |
+| Ultima milla | Confirmar AWS para APP-15/APP-16. |
+| Controles minimos | Idempotencia, observabilidad, seguridad federada, store-and-forward e IaC desde el inicio. |
 
 ## Cierre para presentacion
 
-El mensaje final recomendado es:
-
-> "Ambos modelos cubren funcionalmente las iniciativas, pero el Modelo A reduce el riesgo del primer TO BE porque mantiene en el mismo eje el OMS, el gobierno API, el hub de eventos, colas y observabilidad. El Modelo B es viable, especialmente si AWS se vuelve la plataforma estrategica de eventos, pero para el MVP introduce mas gobierno cruzado y dependencia intercloud."
+> "Ambos modelos cubren INI-01, INI-02 e INI-03, pero no son la misma arquitectura con distinto proveedor. El Modelo A es event-driven y desacoplado; el Modelo B es orquestado y modular-monolitico. Para RutaExpress, el Modelo A reduce el riesgo del primer TO BE porque absorbe mejor picos e integridad distribuida. El Modelo B es util para discutir simplicidad y time-to-MVP, no como baseline por defecto."

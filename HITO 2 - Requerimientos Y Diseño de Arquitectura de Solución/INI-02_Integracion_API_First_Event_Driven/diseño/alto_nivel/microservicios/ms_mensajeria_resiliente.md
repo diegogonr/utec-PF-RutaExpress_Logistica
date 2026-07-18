@@ -3,7 +3,7 @@
 ## Identificacion
 
 - Iniciativa: INI-02 Integracion API-First y Event-Driven.
-- Componente TO BE: capacidad logica del Bus de Eventos Central (PLT-03), implementable sobre Azure Event Hubs/Service Bus o AWS EventBridge/SQS segun alternativa.
+- Componente TO BE: capacidad logica del Bus de Eventos Central (PLT-03), implementable sobre Azure Event Hubs/Service Bus en Alternativa A. En Alternativa B esta capacidad se reduce a notificaciones selectivas (sin hub de consistencia completo).
 - Fuentes: `01_Requerimientos_y_Criterios_Aceptacion.md` e historias `HU-INI02-RF03` a `HU-INI02-RF09` y `HU-INI02-RF11`.
 - Alcance: publicacion de eventos canonicos, validacion de esquema, reintentos, DLQ, backpressure, prioridad, replay y secuencia logica por agregado.
 

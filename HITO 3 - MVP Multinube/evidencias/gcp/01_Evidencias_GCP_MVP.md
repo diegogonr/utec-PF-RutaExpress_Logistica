@@ -1,6 +1,6 @@
 # Evidencias de despliegue — GCP (MVP)
 
-> **Activación:** `enable_gcp = true` en `environments/mvp` (fase 3: Azure + AWS + GCP).  
+> **Activación:** `enable_gcp = true` en `environments/mvp` (fase 3: Azure + AWS + GCP).    
 > **Convención de nombres:** `project=rutaexpress`, `environment=mvp` → prefijo `rutaexpress-mvp`.  
 
 | Campo | Valor según repo |

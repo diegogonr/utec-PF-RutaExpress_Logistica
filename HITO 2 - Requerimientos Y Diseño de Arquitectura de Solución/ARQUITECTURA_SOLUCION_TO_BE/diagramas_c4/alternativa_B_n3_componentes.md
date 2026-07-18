@@ -2,103 +2,129 @@
 
 ## Proposito
 
-Diagrama de componentes C4 para la Alternativa B. Este nivel hace zoom sobre un unico contenedor: **Hub principal de eventos (Bus de Eventos Central (PLT-03))** en AWS.
+Diagrama de componentes C4 para la Alternativa B. Este nivel hace zoom sobre un unico contenedor: **Nucleo Logistico Modular (APP-02 evolucionado)** en Azure.
 
-> Regla aplicada: C4 Component debe descomponer un solo contenedor. OMS centralizado / Orquestador de Pedidos (APP-02), Backend Movil, TMS (Transportation Management) (APP-11), Portal/CRM y GCP aparecen como contenedores o sistemas de soporte, no como componentes internos.
+> Regla aplicada: C4 Component debe descomponer un solo contenedor. API Management, Orquestador Durable Functions, Backend Movil, Key Vault (PLT-02), TMS, Portal/CRM y WMS/ERP aparecen como colaboradores o sistemas externos, no como componentes internos.
 
 ```mermaid
 graph TB
-    subgraph SoporteEntrada["Contenedores productores"]
-        OMS centralizado / Orquestador de Pedidos (APP-02)["OMS centralizado / Orquestador de Pedidos (APP-02) e Inventario<br/>APP-02 sobre Azure AKS"]
+    subgraph SoporteEntrada["Colaboradores externos"]
+        APIM["Gateway API<br/>Azure API Management (APP-01)"]
+        ORCH_RT["Runtime Orquestador<br/>Durable Functions"]
         MOBILE["Backend movil<br/>AWS ECS/Lambda"]
-        API_GW["Gateway y Gobierno API<br/>Azure API Management (APP-01)"]
         LEGADO["Adaptadores transicionales<br/>CSV / Excel / S3"]
+        KV["Key Vault<br/>PLT-02"]
     end
 
-    subgraph PLT03["Contenedor en foco: Hub principal de eventos Bus de Eventos Central (PLT-03)<br/>AWS EventBridge + SQS"]
-        INGEST["Event Ingestion<br/>PutEvents / API de eventos"]
-        SCHEMA["Schema Lambda<br/>contratos AsyncAPI y versionado"]
-        RULES["EventBridge Rules<br/>ruteo, filtros y fan-out"]
-        QUEUES["SQS Queues<br/>buffer por consumidor y prioridad"]
-        ORDERING["Ordering Guard<br/>secuencia por agregado"]
-        RETRY["Retry Worker<br/>backoff + jitter"]
-        DLQ["DLQ Processor<br/>mensajes fallidos y remediacion"]
-        REPLAY["Replay Worker<br/>reproceso auditado"]
-        THROTTLE["Backpressure Controller<br/>cuotas y throttling"]
-        AUDIT["Audit/Event Store<br/>trazabilidad y evidencias de intercambio"]
+    subgraph CORE["Contenedor en foco: Nucleo Logistico Modular APP-02"]
+        subgraph API["Capa API"]
+            FACADE["Command API Facade"]
+            QUERY["Query API"]
+        end
+        subgraph SEG["Seguridad de aplicacion"]
+            AUTHZ["AuthZ / Claims Middleware"]
+            SECRETS["Secrets Client"]
+            CORR["Correlation Middleware"]
+        end
+        subgraph DOM["Dominio DDD"]
+            VALID["Validation and Dedup"]
+            ORDER["Order Lifecycle Module"]
+            INV["Inventory and Reservation"]
+            IDEM["Idempotency Guard"]
+        end
+        subgraph APP["Aplicacion"]
+            CREATE["Create Order Handler"]
+            COMP["Compensation Manager"]
+        end
+        subgraph INT["Integracion"]
+            ACL["External ACL Gateway"]
+            CB["Circuit Breaker / Throttle"]
+            NOTIF_PUB["Notification Publisher"]
+        end
+        subgraph TX["Infraestructura transaccional"]
+            UOW["Unit of Work / TX Boundary<br/>TX local Azure SQL"]
+            REPO["Order + Inventory Repository"]
+            OUTBOX["Notification Outbox<br/>post-commit"]
+            AUDIT["Audit Store"]
+        end
     end
 
-    subgraph SoporteSalida["Contenedores consumidores"]
-        TMS (Transportation Management) (APP-11)["Adaptador TMS (Transportation Management) (APP-11)<br/>APP-11"]
+    subgraph SoporteSalida["Sistemas / contenedores de salida"]
+        WMS["WMS Principal / Satelite<br/>APP-06 / APP-07"]
+        ERP["ERP Financiero<br/>APP-25"]
+        TMS["Adaptador TMS<br/>APP-11"]
         PORTAL["Portal B2B / CRM<br/>APP-18 / APP-20"]
-        ROUTE_OPT["Optimizador dinamico<br/>GCP Cloud Run/GKE"]
-        OBS["Observabilidad federada<br/>CloudWatch + Azure Monitor + GCP"]
-        IAM["Secretos y roles<br/>AWS IAM + Secrets Manager"]
+        NOTIF["Canal de notificaciones<br/>Service Bus topics"]
+        OBS["Observabilidad<br/>PLT-01"]
     end
 
-    API_GW -->|"contratos / politicas"| OMS centralizado / Orquestador de Pedidos (APP-02)
-    OMS centralizado / Orquestador de Pedidos (APP-02) -->|"OrderEvents / InventoryEvents"| INGEST
-    MOBILE -->|"Tracking / Evidence / Exception Events"| INGEST
-    LEGADO -->|"LegacyNormalizedEvents"| INGEST
-
-    INGEST --> SCHEMA
-    SCHEMA --> RULES
-    RULES --> QUEUES
-    QUEUES --> ORDERING
-    ORDERING --> RETRY
-    RETRY --> TMS (Transportation Management) (APP-11)
-    RETRY --> PORTAL
-    RETRY --> ROUTE_OPT
-    QUEUES --> DLQ
-    DLQ --> REPLAY
-    REPLAY --> RULES
-    THROTTLE --> RULES
-    SCHEMA --> AUDIT
-    RULES --> AUDIT
-    DLQ --> AUDIT
+    APIM -->|"POST /orders"| FACADE
+    MOBILE -->|"DeliveryConfirmed"| FACADE
+    LEGADO -->|"BulkOrder"| FACADE
+    FACADE --> AUTHZ --> CORR --> CREATE
+    SECRETS -->|"lee secretos"| KV
+    ACL --> SECRETS
+    CREATE --> VALID --> IDEM
+    CREATE -->|"TX local commit/rollback"| UOW
+    UOW --> ORDER
+    UOW --> INV
+    UOW --> REPO
+    UOW -->|"misma TX"| OUTBOX
+    FACADE -->|"dispara"| ORCH_RT
+    ORCH_RT -->|"pasos saga fuera TX local"| ORDER
+    ORCH_RT -->|"pasos saga fuera TX local"| INV
+    ORCH_RT --> COMP
+    COMP --> INV
+    COMP --> ORDER
+    INV --> ACL --> CB
+    ORDER --> ACL
+    CB -->|"HTTPS sync"| WMS
+    CB -->|"HTTPS sync"| ERP
+    OUTBOX -->|"relay post-commit"| NOTIF_PUB --> NOTIF
+    NOTIF --> PORTAL
+    NOTIF --> TMS
+    CORR --> AUDIT
+    ORDER --> AUDIT
     AUDIT --> OBS
-    IAM --> INGEST
-    IAM --> REPLAY
+    QUERY --> REPO
 ```
 
 ## Como leer este diagrama para el comite
 
-Este diagrama responde a la pregunta: **como funciona internamente el contenedor Bus de Eventos Central (PLT-03) cuando AWS es el hub principal**. El foco es el Bus de Eventos Central (PLT-03) en AWS; los demas bloques son productores o consumidores externos al contenedor.
+Este diagrama responde a la pregunta: **como funciona internamente el Nucleo Logistico Modular**, incluyendo seguridad de aplicacion y limites transaccionales.
 
 | Elemento | Como interpretarlo |
 |---|---|
-| Contenedores productores | OMS centralizado / Orquestador de Pedidos (APP-02)/Inventario en Azure, Backend Movil en AWS, Gateway API y adaptadores legados que generan o habilitan eventos. |
-| Contenedor en foco | Hub principal de eventos Bus de Eventos Central (PLT-03) sobre AWS EventBridge + SQS. Solo las cajas dentro de este bloque son componentes internos. |
-| Contenedores consumidores | TMS (Transportation Management) (APP-11), Portal/CRM, Optimizador GCP, Observabilidad e IAM/Secrets que reciben eventos o soportan la operacion. |
-| Flechas de entrada | Eventos o politicas que llegan al hub AWS desde Azure, backend movil y legados. |
-| Flechas internas | Flujo de procesamiento dentro del hub AWS: ingestion, validacion, reglas, colas, orden, retry, DLQ, replay y auditoria. |
-| Flechas de salida | Entrega de eventos a sistemas consumidores y plataformas de monitoreo. |
+| Seguridad de aplicacion | AuthZ, Correlation y Secrets Client viven **dentro** del nucleo; Key Vault (PLT-02) queda afuera. |
+| Unit of Work / TX Boundary | Frontera de transaccion **local** Azure SQL: orden + reserva logica + outbox en el mismo commit. |
+| Saga orquestada | Pasos hacia WMS/ERP estan **fuera** de la TX local; fallos se compensan, no se hace 2PC. |
+| Notification Outbox | Fan-out solo despues del commit; evita notificar estados no persistidos. |
+| Circuit Breaker / ACL | Protege llamadas sincronas a legados sin mezclarlas con la TX del core. |
 
 Flujo para explicar:
 
-1. Azure API Management (APP-01) gobierna contratos y politicas antes de que OMS centralizado / Orquestador de Pedidos (APP-02)/Inventario publique eventos.
-2. OMS centralizado / Orquestador de Pedidos (APP-02)/Inventario envia eventos de orden e inventario hacia Event Ingestion en AWS.
-3. Backend Movil publica tracking, evidencias y excepciones de forma nativa hacia el hub AWS.
-4. Schema Lambda valida contrato, version, productor, correlation ID e idempotency key.
-5. EventBridge Rules enruta eventos por dominio, consumidor, SLA, filtros y criticidad.
-6. SQS Queues desacopla consumidores y permite buffering, prioridad y control de carga.
-7. Ordering Guard preserva secuencia por agregado; Retry Worker maneja fallas transitorias.
-8. DLQ Processor retiene eventos no procesables y Replay Worker permite reproceso controlado.
-9. Audit/Event Store conserva trazabilidad para soporte, auditoria, observabilidad y conciliacion.
+1. APIM o el backend movil envian un comando al Facade.
+2. AuthZ y Correlation Middleware validan claims y correlation ID.
+3. Create Order Handler abre Unit of Work: valida, deduplica, actualiza Order/Inventory y escribe Notification Outbox en la misma TX.
+4. Al commit, el relay publica notificaciones; si falla el commit, no hay fan-out.
+5. Durable Functions orquesta pasos hacia WMS/ERP **fuera** de esa TX; Compensation Manager revierte efectos de negocio.
+6. Secrets Client obtiene credenciales de Key Vault para el ACL; Circuit Breaker/Throttle protege legados.
+7. Audit Store conserva correlation ID para soporte.
 
-Mensaje clave para el comite: **esta alternativa concentra la resiliencia de eventos en AWS y simplifica ultima milla, pero exige control fuerte de puentes Azure-AWS para no duplicar gobierno ni perder trazabilidad**.
+Mensaje clave: **en B la consistencia fuerte es local al nucleo; la saga orquestada no es una transaccion distribuida unica**.
 
 ## Componentes del contenedor en foco
 
 | Componente | Responsabilidad | Trazabilidad |
 |---|---|---|
-| Event Ingestion | Recibir eventos canonicos desde OMS centralizado / Orquestador de Pedidos (APP-02), backend movil y adaptadores. | INI-02 RF-03 |
-| Schema Lambda | Validar contrato, version, productor, correlation ID e idempotency key. | INI-02 RF-01, RF-04 |
-| EventBridge Rules | Enrutar eventos por dominio, consumidor, SLA y filtros. | INI-02 RF-08 |
-| SQS Queues | Desacoplar consumidores, soportar buffering y prioridades. | INI-02 RF-05, RF-07 |
-| Ordering Guard | Preservar secuencia logica por orden, paquete, ruta, entrega y evidencia. | INI-02 RF-11 |
-| Retry Worker | Ejecutar reintentos con backoff y jitter. | INI-02 RF-05 |
-| DLQ Processor | Mantener payload, error, timestamp, consumidor y responsable de remediacion. | INI-02 RF-06 |
-| Replay Worker | Reprocesar eventos bajo aprobacion y sin duplicar efectos de negocio. | INI-02 RF-09 |
-| Backpressure Controller | Regular productores/consumidores ante degradacion o saturacion. | INI-02 RF-07 |
-| Audit/Event Store | Guardar evidencias de intercambio y trazabilidad operativa. | INI-02 RF-10, INT-10 |
+| Command API Facade / Query API | Comandos y lecturas versionadas. | INI-01 RF-01, RF-10 |
+| AuthZ / Claims Middleware | Autorizacion por token/roles desde APIM. | SEG / INI-02 RF-02 |
+| Secrets Client | Lectura de secretos hacia PLT-02. | SEG |
+| Correlation Middleware | correlation ID obligatorio. | INI-01 RNF-05 |
+| Validation and Dedup / Idempotency Guard | Validacion e idempotencia. | INI-01 RF-02 a RF-04 |
+| Order Lifecycle / Inventory Reservation | Estado canonico y reservas. | INI-01 RF-05 a RF-09 |
+| Unit of Work / TX Boundary | Commit/rollback local orden+stock+outbox. | Consistencia fuerte B |
+| Notification Outbox | Publicacion post-commit. | INI-02 selectivo |
+| Compensation Manager | Compensaciones de la saga. | INI-01 RF-08 |
+| External ACL + Circuit Breaker | Integracion resiliente WMS/ERP/TMS. | INI-01 RF-12 |
+| Audit Store | Auditoria y trazabilidad. | INI-01 RNF-08 |
