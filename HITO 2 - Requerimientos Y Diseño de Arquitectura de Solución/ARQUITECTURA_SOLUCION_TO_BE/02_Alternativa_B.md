@@ -9,9 +9,9 @@
 
 ## 1. Resumen ejecutivo
 
-La **Alternativa B** propone un estilo arquitectonico distinto al de la Alternativa A. En lugar de microservicios coreografiados por un Bus de Eventos Central (PLT-03), concentra el core de **INI-01** en un **monolito modular**: OMS centralizado / Orquestador de Pedidos (APP-02) e Inventario/Reservas conviven en un mismo despliegue AKS, con base transaccional unica (Azure SQL) y limites de modulo internos (DDD).
+La **Alternativa B** propone un estilo arquitectonico distinto al de la Alternativa A. En lugar de **microservicios** (OMS APP-02 e Inventario MS-INI01-02 separados) con Saga OMS vía HTTP y **Bus de Eventos Central (PLT-03)** — outbox → `bus-workers` → Event Hubs → Service Bus —, concentra el core de **INI-01** en un **monolito modular**: OMS centralizado / Orquestador de Pedidos (APP-02) e Inventario/Reservas conviven en un mismo despliegue AKS, con base transaccional unica (Azure SQL) y limites de modulo internos (DDD).
 
-La coordinacion del ciclo `orden -> validacion -> reserva -> liberacion a despacho -> notificacion` se realiza con una **Saga orquestada** mediante Azure Durable Functions (o equivalente de workflow). El camino feliz de integracion es **API-first sincrono** gobernado por Azure API Management (APP-01). Los eventos existen, pero como **notificaciones de dominio** (fan-out a TMS, portal, GCP y ultima milla), no como mecanismo principal de consistencia ni source of truth operativo.
+La coordinacion del ciclo `orden -> validacion -> reserva -> liberacion a despacho -> notificacion` se realiza con una **Saga orquestada** mediante Azure Durable Functions (o equivalente de workflow). El camino feliz de integracion es **API-first sincrono** gobernado por Azure API Management (APP-01). Los eventos existen, pero como **notificaciones de dominio** (fan-out a TMS, portal, GCP y ultima milla), no como hub canonico con outbox/`bus-workers`, DLQ y replay equivalentes a PLT-03.
 
 AWS se conserva para App de Conductores (APP-15), store-and-forward, evidencias en S3/KMS y backend movil. GCP se conserva para optimizacion y analitica. La colocacion multinube puede parecerse a A; **la diferencia real es el estilo de coordinacion y empaquetado del core**.
 
@@ -40,10 +40,10 @@ AWS se conserva para App de Conductores (APP-15), store-and-forward, evidencias 
 | Patron | Uso en Alternativa B | Contraste con Alternativa A |
 |---|---|---|
 | **Modular Monolith** | APP-02 e Inventario/Reservas como modulos en un deploy; limites DDD internos. | A separa OMS e Inventario como servicios independientes. |
-| **Orchestration (Saga orquestada)** | Durable Functions coordina pasos y compensaciones. | A usa Saga coreografiada por eventos. |
-| **API-First sincrono** | Camino feliz orden/reserva via REST/gRPC interno del nucleo. | A publica/consume eventos canonicos como flujo principal. |
-| **Notification events (selectivo)** | Eventos de fan-out sin gobernar el estado core. | A usa EDA completa con PLT-03, DLQ y replay como eje. |
-| **Transactional consistency (core)** | Transacciones locales Azure SQL para orden + reserva logica. | A prioriza consistencia eventual entre servicios. |
+| **Orchestration (Saga orquestada)** | Durable Functions coordina pasos y compensaciones. | A tambien orquesta la Saga, pero desde **OMS vía HTTP** (Inventario) y APIM (WMS); no desde un workflow engine. |
+| **API-First sincrono** | Camino feliz orden/reserva via REST/gRPC interno del nucleo. | A usa HTTP sincrono en el core (OMS→Inventario) y EDA/PLT-03 para fan-out downstream. |
+| **Notification events (selectivo)** | Eventos de fan-out sin gobernar el estado core. | A usa EDA completa con PLT-03 (outbox → `bus-workers` → Event Hubs → Service Bus), DLQ y replay. |
+| **Transactional consistency (core)** | Transacciones locales Azure SQL para orden + reserva logica. | A mantiene SQL por servicio + outbox; consistencia entre dominios vía Saga HTTP y eventos canonicos. |
 | **Circuit Breaker / Bulkhead / Throttle** | Proteccion del orquestador ante WMS/ERP degradados. | A combina eso con backpressure de colas. |
 | **Store-and-Forward** | APP-15 offline-first (igual necesidad de casuistica). | Equivalente en ultima milla. |
 | **Anti-Corruption Layer** | Adaptadores hacia WMS Principal (On Premises) (APP-06), ERP Financiero (On Premises) (APP-25) y TMS (Transportation Management) (APP-11). | Similar intencion, distinto transporte (API vs eventos). |
@@ -77,7 +77,7 @@ AWS se conserva para App de Conductores (APP-15), store-and-forward, evidencias 
 
 ## 4. Diagramas C4
 
-> **Principio de diseno:** Contexto = alcance; Contenedores = topologia y empaquetado; Componentes = interior del **Nucleo Logistico Modular** (contenedor critico de esta alternativa).
+> **Principio de diseno:** Contexto = alcance; Contenedores = topologia y empaquetado; Componentes = zoom por contenedor/modulo (4 diagramas N3, paralelos a Alternativa A).
 
 ### 4.1 Nivel 1 - Contexto
 
@@ -108,22 +108,31 @@ AWS se conserva para App de Conductores (APP-15), store-and-forward, evidencias 
 
 **Flujo clave:** Cliente -> API Management -> Nucleo Modular -> Orquestador (validar/reservar/compensar) -> ACL WMS/ERP/TMS -> notificaciones a portal/movil/GCP. Ultima milla confirma por API al nucleo tras sync store-and-forward.
 
-### 4.3 Nivel 3 - Componentes del Nucleo Logistico Modular
+### 4.3 Nivel 3 - Componentes (4 diagramas, paralelo a Alternativa A)
 
-![C4 Componentes Alternativa B](diagramas_c4/imagenes_alternativa_B/alternativa_B_c4_n3_nucleo_componentes.png)
+#### Orquestador / notificaciones (~ PLT-03 en A)
 
-Componentes principales del **Nucleo Logistico Modular (APP-02 evolucionado)**:
+![C4 N3 Orquestador B](diagramas_c4/imagenes_alternativa_B/alternativa_B_c4_n3_orquestador_componentes.png)
 
-- **Command API Facade / Query API:** comandos y lecturas versionadas desde Azure API Management (APP-01).
-- **Seguridad de aplicacion:** AuthZ/Claims Middleware, Correlation Middleware y Secrets Client (Key Vault/PLT-02 queda fuera del contenedor).
-- **Validation & Dedup / Idempotency Guard:** valida direccion/SKU/SLA y evita dobles efectos.
-- **Order Lifecycle + Inventory & Reservation:** estado canonico y reservas en el mismo deploy.
-- **Unit of Work / TX Boundary:** transaccion local Azure SQL (orden + reserva logica + Notification Outbox).
-- **Notification Outbox + Publisher:** fan-out informativo solo post-commit.
-- **Process Orchestrator (Durable Functions):** Saga orquestada **fuera** de la TX local hacia WMS/ERP.
-- **Compensation Manager:** libera reservas y marca fallas de negocio.
-- **External ACL Gateway + Circuit Breaker/Throttle:** integracion resiliente con legados.
-- **Audit Store:** auditoria y correlation ID.
+Durable Functions (Saga Starter, Process Orchestrator, compensaciones, actividades WMS/ERP) + Service Bus topics como canal de notificaciones (sin hub PLT-03 completo).
+
+#### Modulo OMS del nucleo (~ OMS en A)
+
+![C4 N3 OMS B](diagramas_c4/imagenes_alternativa_B/alternativa_B_c4_n3_oms_componentes.png)
+
+Command/Query API, AuthZ, Create Order Handler, Order Lifecycle, Unit of Work, Notification Outbox; dispara Durable Functions y reserva in-proc al modulo Inventario.
+
+#### Modulo Inventario del nucleo (~ Inventario en A)
+
+![C4 N3 Inventario B](diagramas_c4/imagenes_alternativa_B/alternativa_B_c4_n3_inventario_componentes.png)
+
+Reserve/Release/Availability, Inventory Aggregate, Compensation Hook, WMS ACL + Circuit Breaker; misma BD Azure SQL del nucleo.
+
+#### Backend movil (~ movil en A)
+
+![C4 N3 Movil B](diagramas_c4/imagenes_alternativa_B/alternativa_B_c4_n3_mobile_componentes.png)
+
+`mobile-api` + evidencias S3/KMS + DynamoDB outbox; confirmacion al nucleo por **API idempotente via APIM** (no adaptador EventBridge → Event Hubs).
 
 ---
 
@@ -146,20 +155,20 @@ Componentes principales del **Nucleo Logistico Modular (APP-02 evolucionado)**:
 | Campo | Decision |
 |---|---|
 | Estado | Propuesto |
-| Contexto | INI-01 exige OMS e inventario consistentes; A separa servicios y asume consistencia eventual. |
+| Contexto | INI-01 exige OMS e inventario consistentes; A separa OMS e Inventario (microservicios) con Saga HTTP y outbox por servicio. |
 | Decision | Empaquetar OMS + Inventario/Reservas + validacion como monolito modular en AKS. |
 | Consecuencias | Consistencia fuerte y MVP mas simple; acoplamiento de despliegue del core. |
 | Alternativas descartadas | Microservicios OMS/Inventario separados (estilo A); crear nueva APP OMS distinta de APP-02. |
 
-### ADR-B-002 - Saga orquestada en lugar de coreografia
+### ADR-B-002 - Saga vía Durable Functions (vs OMS HTTP en A)
 
 | Campo | Decision |
 |---|---|
 | Estado | Propuesto |
-| Contexto | El ciclo orden-reserva-despacho necesita compensaciones ante fallas WMS/ERP. |
+| Contexto | El ciclo orden-reserva-despacho necesita compensaciones ante fallas WMS/ERP. En A la Saga la orquesta OMS por HTTP/APIM; en B se busca un workflow explicito fuera del nucleo. |
 | Decision | Usar Azure Durable Functions como Process Orchestrator. |
 | Consecuencias | Flujo explicito y depurable; el orquestador es punto critico de capacidad. |
-| Alternativas descartadas | Saga coreografiada por eventos; orquestacion embebida ad-hoc en controladores. |
+| Alternativas descartadas | Saga orquestada embebida en OMS (estilo A); orquestacion ad-hoc en controladores; coreografia pura por eventos sin orquestador. |
 
 ### ADR-B-003 - Eventos como notificacion, no como hub de consistencia
 
@@ -169,7 +178,7 @@ Componentes principales del **Nucleo Logistico Modular (APP-02 evolucionado)**:
 | Contexto | INI-02 exige API-first y desacoplamiento progresivo, pero B prioriza sincronicidad del core. |
 | Decision | No implementar Bus de Eventos Central (PLT-03) completo; usar canal liviano de notificaciones. |
 | Consecuencias | Menos capacidad nativa de replay/DLQ corporativo; menor complejidad inicial. |
-| Alternativas descartadas | PLT-03 Azure Event Hubs/Service Bus como eje (A); PLT-03 en AWS EventBridge. |
+| Alternativas descartadas | PLT-03 Azure completo (outbox → `bus-workers` → Event Hubs → Service Bus, estilo A); PLT-03 en AWS EventBridge. |
 
 ### ADR-B-004 - Ultima milla permanece en AWS con confirmacion API
 

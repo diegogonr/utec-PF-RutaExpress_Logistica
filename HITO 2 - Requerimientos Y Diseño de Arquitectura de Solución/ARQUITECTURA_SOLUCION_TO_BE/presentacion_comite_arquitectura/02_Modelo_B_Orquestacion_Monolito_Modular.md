@@ -2,9 +2,9 @@
 
 ## Tesis del modelo
 
-El Modelo B propone un **estilo arquitectonico distinto** al Modelo A. En lugar de microservicios coreografiados por un Bus de Eventos Central (PLT-03), concentra OMS e Inventario en un **monolito modular** (APP-02 evolucionado) y coordina el ciclo orden-reserva-despacho con una **Saga orquestada** (Azure Durable Functions).
+El Modelo B propone un **estilo arquitectonico distinto** al Modelo A. En lugar de **microservicios** (OMS e Inventario separados) con Saga OMS vía HTTP y **Bus de Eventos Central (PLT-03)** — outbox → `bus-workers` → Event Hubs → Service Bus —, concentra OMS e Inventario en un **monolito modular** (APP-02 evolucionado) y coordina el ciclo orden-reserva-despacho con una **Saga orquestada** (Azure Durable Functions).
 
-El camino feliz es **API-first sincrono** con Azure API Management (APP-01). Los eventos existen solo como **notificaciones de dominio** para fan-out a TMS, portal, ultima milla y GCP. AWS conserva App de Conductores (APP-15), store-and-forward y evidencias. GCP conserva optimizacion y analitica.
+El camino feliz es **API-first sincrono** con Azure API Management (APP-01). Los eventos existen solo como **notificaciones de dominio** para fan-out a TMS, portal, ultima milla y GCP — sin hub PLT-03 completo. AWS conserva App de Conductores (APP-15), store-and-forward y evidencias. GCP conserva optimizacion y analitica.
 
 Mensaje ejecutivo:
 
@@ -89,34 +89,39 @@ Este nivel responde a la pregunta: **como se reparte la plataforma cuando el cor
 
 El centro de gravedad es el nucleo transaccional orquestado. Los eventos no gobiernan el estado core.
 
-## C4 Nivel 3 - Componentes del Nucleo Logistico Modular
+## C4 Nivel 3 - Componentes (4 diagramas, paralelo al Modelo A)
 
-![Modelo B - C4 Nivel 3 Componentes](../diagramas_c4/imagenes_alternativa_B/alternativa_B_c4_n3_nucleo_componentes.png)
+### Orquestador / notificaciones (~ PLT-03 en A)
 
-### Como leer el diagrama
+![Modelo B - N3 Orquestador](../diagramas_c4/imagenes_alternativa_B/alternativa_B_c4_n3_orquestador_componentes.png)
 
-Este nivel responde a la pregunta: **como funciona internamente el Nucleo Logistico Modular**.
+Durable Functions coordina la Saga; Service Bus topics hacen fan-out informativo (sin hub PLT-03).
 
-| Componente | Objetivo |
-|---|---|
-| Command API Facade | Recibe comandos versionados e idempotentes. |
-| Validation and Dedup | Valida datos y evita duplicados. |
-| Order Lifecycle | Estado canonico de la orden. |
-| Inventory and Reservation | Stock, reserva, liberacion y conciliacion logica. |
-| Compensation Manager | Compensa reservas/estados ante fallas. |
-| External ACL Gateway | Circuit breaker/throttle hacia WMS/ERP/TMS. |
-| Notification Publisher | Emite notificaciones informativas. |
-| Audit Store | Correlation ID y auditoria. |
+### Modulo OMS del nucleo (~ OMS en A)
 
-### Flujo interno del nucleo
+![Modelo B - N3 OMS](../diagramas_c4/imagenes_alternativa_B/alternativa_B_c4_n3_oms_componentes.png)
 
-1. APIM o backend movil envian un comando al Facade.
-2. Validation and Dedup rechaza invalidos/duplicados.
-3. Order e Inventory actualizan estado en la misma unidad de despliegue/BD.
-4. Durable Functions orquesta pasos y dispara compensaciones.
-5. ACL protege integraciones externas.
-6. Notification Publisher informa a consumidores sin ser source of truth.
-7. Audit Store habilita soporte y conciliacion.
+Facade, Create Order, Order Lifecycle, Unit of Work y outbox de notificaciones; dispara el orquestador y reserva in-proc.
+
+### Modulo Inventario del nucleo (~ Inventario en A)
+
+![Modelo B - N3 Inventario](../diagramas_c4/imagenes_alternativa_B/alternativa_B_c4_n3_inventario_componentes.png)
+
+Reserve/Release, Inventory Aggregate, compensacion y ACL hacia WMS; misma BD del nucleo.
+
+### Backend movil (~ movil en A)
+
+![Modelo B - N3 Movil](../diagramas_c4/imagenes_alternativa_B/alternativa_B_c4_n3_mobile_componentes.png)
+
+Entregas/evidencias en AWS; confirmacion al nucleo por API idempotente via APIM.
+
+### Flujo interno resumido
+
+1. APIM envia comando al modulo OMS del nucleo.
+2. TX local: orden + reserva logica + outbox de notificacion.
+3. Durable Functions orquesta pasos hacia WMS/ERP fuera de esa TX.
+4. Notificaciones fan-out a portal/TMS/GCP sin gobernar el estado core.
+5. Ultima milla confirma entrega al nucleo por API tras store-and-forward.
 
 ## Lineamientos y patrones aplicados
 
@@ -137,7 +142,7 @@ Este nivel responde a la pregunta: **como funciona internamente el Nucleo Logist
 |---|---|
 | Menor complejidad inicial | Menos buses, consumers y contratos de eventos. |
 | Consistencia fuerte en el core | Orden y reserva en la misma BD/deploy. |
-| Debugging mas directo | Workflow explicito frente a coreografia. |
+| Debugging mas directo | Workflow Durable Functions explicito frente a Saga OMS HTTP + fan-out async de A. |
 | MVP mas rapido | Flujo orden-reserva demostrable con APIs mock. |
 | Ultima milla intacta | Conserva AWS para offline y evidencias. |
 

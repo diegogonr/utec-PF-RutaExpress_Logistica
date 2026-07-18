@@ -24,10 +24,10 @@ Todos los diagramas embebidos en estos entregables usan las imagenes generadas e
 |---|---|---|
 | A | Nivel 1 Contexto | `alternativa_A_n1_contexto.png` |
 | A | Nivel 2 Contenedores | `alternativa_A_n2_contenedores.png` |
-| A | Nivel 3 Componentes | `alternativa_A_n3_componentes.png` |
+| A | Nivel 3 PLT-03 / OMS / Inventario / Móvil | `alternativa_A_n3_*.png` (4 imágenes) |
 | B | Nivel 1 Contexto | `imagenes_alternativa_B/alternativa_B_c4_n1_contexto.png` |
 | B | Nivel 2 Contenedores | `imagenes_alternativa_B/alternativa_B_c4_n2_contenedores.png` |
-| B | Nivel 3 Componentes | `imagenes_alternativa_B/alternativa_B_c4_n3_nucleo_componentes.png` |
+| B | Nivel 3 Orquestador / OMS / Inventario / Móvil | `imagenes_alternativa_B/alternativa_B_c4_n3_*_componentes.png` (4 imágenes) |
 
 ## Orden recomendado para la sesion
 
@@ -72,7 +72,7 @@ Secuencia:
 1. Tesis del modelo: orquestacion + monolito modular (estilo distinto a EDA).
 2. C4 Nivel 1 Contexto.
 3. C4 Nivel 2 Contenedores.
-4. C4 Nivel 3 Componentes del Nucleo Logistico Modular (APP-02).
+4. C4 Nivel 3 (4 diagramas): Orquestador/notificaciones, modulo OMS, modulo Inventario, backend movil.
 5. Flujo de negocio explicado sobre el modelo.
 6. Fortalezas, riesgos y controles.
 
@@ -129,7 +129,7 @@ La presentacion debe evitar comparar cada lamina de A contra B. La regla recomen
 2. Presentar Modelo B completo.
 3. Comparar ambos modelos al final.
 
-Esto permite que el comite evalue cada alternativa con justicia y entienda que A y B difieren por estilo arquitectonico (EDA vs orquestacion/modular monolith), no solo por proveedor de nube.
+Esto permite que el comite evalue cada alternativa con justicia y entienda que A y B difieren por estilo arquitectonico (microservicios + PLT-03 vs orquestacion Durable Functions + monolito modular), no solo por proveedor de nube.
 
 ## Resultado esperado del comite
 
