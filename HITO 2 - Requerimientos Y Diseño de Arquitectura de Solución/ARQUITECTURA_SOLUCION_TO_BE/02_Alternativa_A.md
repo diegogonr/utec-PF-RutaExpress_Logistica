@@ -1,227 +1,214 @@
-# Alternativa A - Hub Central Azure
-## RutaExpress Fulfillment & Transporte - Hito 2
+# Alternativa A — Hub Central Azure
+## RutaExpress Fulfillment & Transporte — Hito 2 (diseño TO BE)
 
-> **Modelo presentado:** Azure como hub central de integracion y gobierno.
-> **Diagramas C4:** generados con Graphviz desde `diagramas_c4/imagenes_python_graphviz`.
-> **Decision esperada:** validar si este modelo sera la base del primer TO BE/MVP.
+> **Modelo:** Azure como hub central de integración y gobierno.  
+> **Diagramas C4:** [`diagramas_c4/`](diagramas_c4/).  
+> **Decisión esperada:** validar este modelo como base del TO BE / implementación.
+
+---
+
+## 0. Nombres canónicos
+
+| Nombre | Qué es | No usar |
+|---|---|---|
+| **OMS — APP-02** | Orquestador de Pedidos | “orquestador” sin ID |
+| **Inventario — MS-INI01-02** | Microservicio de reservas | Confundirlo con WMS APP-06 |
+| **`bus-workers`** | Deployment AKS: lee outbox SQL → Event Hubs | Publicador Outbox como único ingreso canónico al hub |
+| **`retry-worker`** | Contenedor Fargate: SQS → EventBridge | “buffer” genérico |
+| **Adaptador AWS→Azure** | Function: EventBridge → Event Hubs | “puente” sin nombre |
+| **Backend móvil — APP-15** / `mobile-api` | API última milla | sin APP-15 |
+| **Event Hubs** | Stream canónico | Decir que es Service Bus |
+| **Service Bus** | Colas + DLQ | Decir que ahí publica `bus-workers` |
+
+### Topología de eventos
+
+```text
+OMS / Inventario → Azure SQL (estado + outbox)
+bus-workers → Azure SQL (consulta outbox) → Event Hubs
+Event Hubs → Schema / Dispatcher → Service Bus → consumidores
+
+OMS → Inventario por HTTP (Saga)
+OMS → APIM → WMS
+
+AWS: mobile-api → SQS → retry-worker → EventBridge → Adaptador AWS→Azure → Event Hubs
+```
 
 ---
 
 ## 1. Resumen ejecutivo
 
-La **Alternativa A** consolida el gobierno de APIs, OMS centralizado / Orquestador de Pedidos (APP-02), eventos, colas, observabilidad e identidad en **Azure**. APP-02 evoluciona a un **OMS centralizado** desplegado en Azure AKS, mientras Bus de Eventos Central (PLT-03) opera como hub central de eventos con Azure Event Hubs y Azure Service Bus.
+La **Alternativa A** consolida APIM, OMS (APP-02), Inventario (MS-INI01-02), eventos, colas, identidad y observabilidad en **Azure**. El **Bus de Eventos Central (PLT-03)** combina:
 
-AWS se conserva como dominio de ultima milla, backend movil, sincronizacion offline y evidencias. GCP se conserva como dominio de optimizacion dinamica, analitica y modelos predictivos.
+- código **`bus-workers`** (lee outbox y publica);
+- **Event Hubs** (stream);
+- **Service Bus** (colas, DLQ, replay).
 
-**Ventaja principal:** menor complejidad operativa y menor riesgo de MVP, porque OMS centralizado / Orquestador de Pedidos (APP-02), API Management, eventos, colas y observabilidad quedan en un mismo eje de gobierno.
+**AWS** permanece como dominio de última milla (APP-15, evidencias APP-16). **GCP** permanece como dominio analítico y de optimización.
+
+**Ventaja:** menor complejidad operativa porque el hub de gobierno queda en un solo eje Azure.
 
 ---
 
-## 2. Lineamientos de arquitectura aplicados
+## 2. Lineamientos de arquitectura
 
-| Lineamiento | Implementacion en Alternativa A |
+| Lineamiento | Implementación en Alternativa A |
 |---|---|
-| **Integracion** | API-first con Azure API Management (APP-01); Event-Driven Architecture con Bus de Eventos Central (PLT-03) en Azure; reemplazo progresivo de integraciones punto a punto. |
-| **Seguridad** | Entra ID, Key Vault, OAuth/OIDC, minimo privilegio, cifrado en transito/reposo y gestion central de secretos. |
-| **Observabilidad** | OpenTelemetry, Azure Monitor, Application Insights, Log Analytics y correlation ID obligatorio para orden, inventario, tracking y SLA. |
-| **Resiliencia** | DLQ, retry con backoff, replay controlado, backpressure, circuit breaker y outbox/inbox. |
-| **Gobierno / IaC** | Terraform, pipelines, politicas por nube y control de cambios para evitar drift manual. |
-| **Datos** | Azure SQL para estado transaccional OMS centralizado / Orquestador de Pedidos (APP-02)/Inventario; S3/KMS para evidencias inmutables; BigQuery para analitica. |
-| **Multinube** | Modelo hub-and-spoke: Azure como hub operativo; AWS y GCP como dominios especializados conectados por puentes controlados. |
+| **Integración** | API-first con APIM (APP-01); EDA con PLT-03 (outbox → `bus-workers` → Event Hubs → Service Bus). |
+| **Seguridad** | Entra ID, Key Vault, OAuth/OIDC, mínimo privilegio. |
+| **Observabilidad** | OpenTelemetry, Azure Monitor, correlation ID. |
+| **Resiliencia** | Outbox, DLQ, retry, replay, backpressure, circuit breaker (OMS → WMS vía APIM). |
+| **Gobierno / IaC** | Terraform y pipelines. |
+| **Datos** | Azure SQL (OLTP + outbox); S3/KMS evidencias; BigQuery lectura. |
+| **Multinube** | Hub Azure; spokes AWS (móvil) y GCP (analítica). |
 
 ---
 
-## 3. Patrones de arquitectura
+## 3. Patrones
 
-| Patron | Uso en Alternativa A |
+| Patrón | Uso en Alternativa A |
 |---|---|
-| **Hub-and-Spoke** | Bus de Eventos Central (PLT-03) en Azure como hub; OMS centralizado / Orquestador de Pedidos (APP-02), WMS Principal (On Premises) (APP-06), TMS (Transportation Management) (APP-11), mobile backend, portal y GCP como productores/consumidores. |
-| **Event-Driven Architecture** | Eventos canonicos de orden, inventario, tracking, evidencia, excepcion y SLA. |
-| **Saga** | Coordinacion orden -> reserva -> despacho -> entrega -> liquidacion mediante eventos y compensaciones. |
-| **CQRS selectivo** | Modelos de lectura para trazabilidad, SLA, inventario consultivo y tableros. |
-| **Outbox/Inbox** | Publicacion confiable de eventos desde OMS centralizado / Orquestador de Pedidos (APP-02), Inventario y backend movil. |
-| **DLQ + Replay** | Manejo de mensajes fallidos con reproceso auditado por rol. |
-| **Store-and-Forward** | Operacion offline-first de APP-15 con persistencia local cifrada y sincronizacion posterior. |
-| **Circuit Breaker / Backpressure** | Proteccion ante WMS Principal (On Premises) (APP-06), ERP Financiero (On Premises) (APP-25), TMS (Transportation Management) (APP-11) o consumidores degradados. |
+| **Hub-and-Spoke** | PLT-03 en Azure; OMS, Inventario, WMS, TMS, móvil y GCP como productores/consumidores. |
+| **EDA** | Eventos canónicos vía outbox + Event Hubs. |
+| **Saga** | OMS coordina Inventario (HTTP) y WMS (vía APIM); compensación con Release. |
+| **CQRS** | SQL operativo vs BigQuery lectura. |
+| **Outbox** | OMS, Inventario y backend móvil. |
+| **DLQ + Replay** | Service Bus + Replay Controller. |
+| **Store-and-Forward** | APP-15 offline → sync a AWS. |
 
 ---
 
-## 3.1 Aplicaciones, plataformas y servicios modificados o fuera del foco
+## 3.1 Aplicaciones impactadas
 
-### Aplicaciones AS IS impactadas directamente
-
-| Elemento AS IS | Disposicion TO BE en Alternativa A | Motivo |
+| Elemento AS IS | Disposición TO BE | Motivo |
 |---|---|---|
-| Orquestador de Pedidos (APP-02) | **Evoluciona a OMS centralizado** | Evita crear una nueva app; concentra ciclo de vida de ordenes, idempotencia y estados. |
-| WMS Principal / Satelite (APP-06 / APP-07) | **Integracion gobernada con Inventario y Reservas** | Se mantiene durante transicion, pero se desacopla mediante APIs/eventos. |
-| Integraciones punto a punto | **Reemplazo progresivo por Bus de Eventos Central (PLT-03)** | Reduce acoplamiento, reprocesos manuales y trazabilidad fragmentada. |
-| App de Conductores (APP-15) | **Fortalecida en AWS** | Offline-first, store-and-forward, acks, retry y taxonomia de excepciones. |
-| Evidencias (APP-16) | **Conservada en AWS S3/KMS** | Hash, cifrado, manifest de auditoria y soporte para conciliacion. |
-
-### Plataformas y dominios
-
-| Dominio | En Alternativa A | Motivo |
-|---|---|---|
-| **Azure** | Hub central de APIs, OMS centralizado / Orquestador de Pedidos (APP-02), eventos, colas, identidad y observabilidad. | Reduce puentes criticos y centraliza gobierno operativo. |
-| **AWS** | Ultima milla, backend movil, evidencias y buffer movil. | Aprovecha capacidades existentes de campo sin mover APP-15. |
-| **GCP** | Optimizacion dinamica, analitica, BigQuery y modelos predictivos. | Mantiene especializacion analitica sin convertir GCP en hub operativo. |
-| **On premises / SaaS** | Sistemas transicionales integrados por APIs/eventos. | Evita corte brusco y permite migracion por fases. |
+| Orquestador de Pedidos (APP-02) | Evoluciona a **OMS** | Ciclo de vida, idempotencia, Saga. |
+| WMS APP-06/07 | Integración gobernada vía **APIM** (OMS Saga) | Desacopla legado. |
+| Punto a punto | Reemplazo por **PLT-03** | Menos acoplamiento. |
+| App Conductores (APP-15) | Fortalecida en **AWS** | Offline, ACK, evidencias. |
+| Evidencias (APP-16) | **S3 + KMS** | Inmutabilidad. |
 
 ---
 
 ## 4. Diagramas C4
 
-> **Principio de diseno:** mostrar cada nivel C4 como una vista separada. Contexto explica alcance, Contenedores explica topologia y Componentes explica el interior del contenedor critico Bus de Eventos Central (PLT-03).
+### 4.1 Nivel 1 — Contexto
 
-### 4.1 Nivel 1 - Contexto
+![C4 Contexto Alternativa A](diagramas_c4/alternativa_A_n1_contexto.png)
 
-![C4 Contexto Alternativa A](diagramas_c4/imagenes_python_graphviz/alternativa_A_n1_contexto.png)
+Personas: Cliente B2B, Conductor, Operaciones.  
+Externos: WMS, TMS, ERP, Portal (contratos / mocks según fase).
 
-**Lectura:** la caja central representa la Plataforma Logistica RutaExpress TO BE. Las personas y sistemas externos interactuan con la plataforma para crear ordenes, ejecutar entregas, consultar trazabilidad, conciliar inventario y validar soportes financieros.
+### 4.2 Nivel 2 — Contenedores
 
-**Actores:** cliente B2B/Retail, conductor, operacion RutaExpress y finanzas.
-**Sistemas externos:** WMS Principal (On Premises) (APP-06) APP-06/APP-07, TMS (Transportation Management) (APP-11) APP-11, ERP Financiero (On Premises) (APP-25) APP-25, Portal B2B/CRM, canales legados y servicios de mapas/trafico.
+![C4 Contenedores Alternativa A](diagramas_c4/alternativa_A_n2_contenedores.png)
 
-### 4.2 Nivel 2 - Contenedores
-
-![C4 Contenedores Alternativa A](diagramas_c4/imagenes_python_graphviz/alternativa_A_n2_contenedores.png)
-
-| Contenedor | Plataforma | Tecnologia / responsabilidad |
+| Contenedor | Nube | Responsabilidad |
 |---|---|---|
-| Gateway y Gobierno API | Azure | Azure API Management (APP-01); contratos, OAuth/OIDC, cuotas, rate limiting y APIs mock. |
-| OMS centralizado APP-02 | Azure | AKS; ciclo de vida de ordenes, validacion, deduplicacion, idempotencia y estados. |
-| Inventario y Reservas | Azure | AKS; disponibilidad, reservas, liberaciones, movimientos y conciliacion. |
-| Repositorio transaccional | Azure | Azure SQL; ordenes, inventario, outbox, auditoria y estado operacional. |
-| Bus de Eventos Central (PLT-03) | Azure | Event Hubs; eventos canonicos y particionamiento. |
-| Colas, DLQ y Replay | Azure | Service Bus; colas, mensajes fallidos, replay y backpressure. |
-| Backend movil | AWS | ECS/Lambda; store-and-forward, acks, tracking y excepciones. |
-| Repositorio sync movil | AWS | DynamoDB logico; eventos pendientes y estado offline. |
-| Repositorio evidencias | AWS | S3 + KMS; fotos, firmas, hash, cifrado y retencion. |
-| Optimizador dinamico | GCP | Cloud Run/GKE; trafico, capacidad, ventanas, cadena de frio, seguridad y SLA. |
-| Analitica | GCP | Pub/Sub, Dataflow, BigQuery y Vertex AI. |
+| APIM (APP-01) | Azure | Gateway, OAuth, contratos legado. |
+| OMS (APP-02) | Azure AKS | Órdenes, Saga, idempotencia; escribe outbox. |
+| Inventario (MS-INI01-02) | Azure AKS | Reservas HTTP; escribe outbox. |
+| **`bus-workers`** (PLT-03) | Azure AKS | Consulta outbox SQL → publica Event Hubs. |
+| Azure SQL | Azure | Estado + tablas outbox. |
+| Event Hubs | Azure | Stream canónico PLT-03. |
+| Service Bus | Azure | Colas, DLQ, replay. |
+| Backend móvil (`mobile-api`) APP-15 | AWS Fargate | Entregas / evidencias. |
+| **`retry-worker`** | AWS Fargate | Consume SQS → EventBridge. |
+| Adaptador AWS→Azure | Azure Function | EventBridge → Event Hubs. |
+| DynamoDB / S3+KMS | AWS | Sync móvil y evidencias. |
+| Proyector / BigQuery / Optimizador | GCP | Lectura CQRS y rutas. |
 
-**Flujo clave:** Cliente -> API Management -> OMS centralizado / Orquestador de Pedidos (APP-02) -> Inventario -> Bus de Eventos Central (PLT-03) -> colas/DLQ/replay -> TMS (Transportation Management) (APP-11), backend movil, portal/CRM y GCP.
-
-### 4.3 Nivel 3 - Componentes de Bus de Eventos Central (PLT-03)
-
-![C4 Componentes Alternativa A](diagramas_c4/imagenes_python_graphviz/alternativa_A_n3_componentes.png)
-
-Componentes principales **Bus de Eventos Central (PLT-03) en Azure**:
-
-- **Event Ingestion API:** recibe eventos canonicos desde OMS centralizado / Orquestador de Pedidos (APP-02), Inventario, backend movil y legados.
-- **Schema Validator:** valida contratos, versionado y compatibilidad.
-- **Event Router:** enruta eventos por dominio, prioridad, SLA y consumidor.
-- **Ordering Guard:** mantiene secuencia por agregado.
-- **Retry Scheduler:** aplica reintentos con backoff y jitter.
-- **DLQ Manager:** captura mensajes fallidos y registra causa/responsable.
-- **Replay Controller:** permite reproceso auditado por rol.
-- **Backpressure Controller:** regula velocidad cuando consumidores se degradan.
-- **Audit / Event Store:** conserva trazabilidad de intercambio.
-
----
-
-## 5. Trazabilidad requerimientos - diseno
-
-| Requerimiento / iniciativa | Elemento de diseno Alternativa A |
-|---|---|
-| INI-01 ordenes e inventario | OMS centralizado / Orquestador de Pedidos (APP-02) APP-02, Inventario y Reservas, Azure SQL, idempotencia, deduplicacion y conciliacion WMS Principal (On Premises) (APP-06)/ERP. |
-| INI-02 API-first/event-driven | Azure API Management (APP-01), Bus de Eventos Central (PLT-03) Event Hubs, Service Bus, DLQ, replay, backpressure y contratos canonicos. |
-| INI-03 ultima milla | Backend movil AWS, store-and-forward, DynamoDB logico, S3/KMS, acks y taxonomia de excepciones. |
-| INI-04 rutas | Optimizador dinamico GCP integrado por eventos y APIs con TMS (Transportation Management) (APP-11). |
-| INI-05 observabilidad/seguridad | Plataforma de Observabilidad Unificada (PLT-01), correlation ID, Entra ID, Key Vault, KMS, IaC y politicas multinube. |
-| INI-06 conciliacion | Evidencias, estados, tracking, OMS centralizado / Orquestador de Pedidos (APP-02), TMS (Transportation Management) (APP-11), ERP Financiero (On Premises) (APP-25) y auditoria de eventos. |
-
----
-
-## 6. Architectural Decision Records (ADR)
-
-### ADR-A-001 - Hub central en Azure
-
-| Campo | Decision |
-|---|---|
-| Estado | Aceptado |
-| Contexto | Se requiere un bus canonico para eventos de orden, inventario, tracking, evidencias y SLA. |
-| Decision | Implementar Bus de Eventos Central (PLT-03) en Azure con Event Hubs y Service Bus. |
-| Consecuencias | Gobierno centralizado y trazabilidad directa; requiere alta resiliencia del hub. |
-| Alternativas descartadas | Hub principal AWS para MVP; integraciones punto a punto; Kafka autogestionado. |
-
-### ADR-A-002 - APP-02 evoluciona a OMS centralizado / Orquestador de Pedidos (APP-02)
-
-| Campo | Decision |
-|---|---|
-| Estado | Aceptado |
-| Contexto | INI-01 exige OMS centralizado y Hito 1 ya contiene APP-02 como Orquestador de Pedidos. |
-| Decision | APP-02 evoluciona a OMS centralizado / Orquestador de Pedidos (APP-02), sin crear un nuevo ID de aplicacion. |
-| Consecuencias | Menor impacto en portafolio y mayor ownership de estados de orden. |
-| Alternativas descartadas | Crear una nueva app OMS centralizado / Orquestador de Pedidos (APP-02) o dejar APP-02 solo como middleware. |
-
-### ADR-A-003 - Ultima milla permanece en AWS
-
-| Campo | Decision |
-|---|---|
-| Estado | Aceptado |
-| Contexto | APP-15 y APP-16 ya se ubican naturalmente en AWS para campo y evidencias. |
-| Decision | Mantener backend movil y evidencias en AWS, conectados al hub Azure. |
-| Consecuencias | Aprovecha capacidades existentes; requiere puente monitoreado AWS -> Azure. |
-| Alternativas descartadas | Migrar APP-15 a Azure en el MVP. |
-
-### ADR-A-004 - Observabilidad end-to-end
-
-| Campo | Decision |
-|---|---|
-| Estado | Aceptado |
-| Contexto | Se requiere diagnostico de orden a entrega y liquidacion en ambiente multinube. |
-| Decision | OpenTelemetry, correlation ID obligatorio, Azure Monitor y federacion con AWS/GCP. |
-| Consecuencias | Permite tableros y alertas; exige disciplina de logs y proteccion de PII. |
-
----
-
-## 7. Vista de despliegue por plataforma
+**Flujo clave:**
 
 ```text
-Cloud MS Azure (EEUU)          Cloud AWS (EEUU)             Cloud GCP (EEUU)
----------------------          ----------------             ----------------
-Azure API Management (APP-01)           Backend movil ECS/Lambda      Pub/Sub analitico
-OMS centralizado / Orquestador de Pedidos (APP-02) APP-02 en AKS              DynamoDB logico               Cloud Run/GKE rutas
-Inventario y Reservas AKS      S3 + KMS evidencias           Dataflow
-Azure SQL                      SQS/EventBridge buffer        BigQuery
-Bus de Eventos Central (PLT-03) Event Hubs              CloudWatch                    Vertex AI
-Service Bus DLQ/replay
-Entra ID + Key Vault
-Azure Monitor + App Insights
+Cliente → APIM → OMS → Inventario (HTTP)
+                 ├→ APIM → WMS
+                 └→ Azure SQL (orden + outbox)
+bus-workers → SQL → Event Hubs → Service Bus → TMS / portal / GCP
+mobile-api → SQS → retry-worker → EventBridge → Adaptador → Event Hubs
+```
 
-On premises / SaaS
-------------------
-WMS Principal (On Premises) (APP-06) APP-06 / APP-07
-TMS (Transportation Management) (APP-11) APP-11
-ERP Financiero (On Premises) (APP-25) APP-25
-Portal B2B / CRM
-Canales legados
+### 4.3 Nivel 3 — Componentes
+
+#### Bus de Eventos / `bus-workers` (PLT-03)
+
+![C4 N3 PLT-03](diagramas_c4/alternativa_A_n3_componentes.png)
+
+| Pieza | Rol |
+|---|---|
+| Outbox Poller | Lee pendientes en Azure SQL |
+| Event Hubs Publisher | Publica evento canónico |
+| Schema Validator / Dispatcher / Replay / Backpressure | Evolución del bus |
+
+#### OMS, Inventario y Backend móvil
+
+![C4 N3 OMS](diagramas_c4/alternativa_A_n3_oms_componentes.png)
+
+![C4 N3 Inventario](diagramas_c4/alternativa_A_n3_inventario_componentes.png)
+
+![C4 N3 Móvil](diagramas_c4/alternativa_A_n3_mobile_componentes.png)
+
+---
+
+## 5. Trazabilidad INI → diseño
+
+| Iniciativa | Elemento Alternativa A |
+|---|---|
+| INI-01 | OMS APP-02, Inventario MS-INI01-02, Azure SQL, Saga, WMS vía APIM |
+| INI-02 | APIM, PLT-03 (`bus-workers` + Event Hubs + Service Bus), DLQ, replay |
+| INI-03 | `mobile-api`, DynamoDB, S3/KMS, SQS → `retry-worker` → Adaptador |
+| INI-04 | Optimizador GCP |
+| INI-05 | PLT-01 / PLT-02 observabilidad e identidad |
+| INI-06 | Evidencias + estados + ERP |
+
+---
+
+## 6. ADR (resumen)
+
+| ADR | Decisión |
+|---|---|
+| **A-001** | Hub PLT-03 en Azure = Event Hubs + Service Bus + `bus-workers`. |
+| **A-002** | APP-02 evoluciona a OMS (sin nuevo ID). |
+| **A-003** | Última milla en AWS; puente nombrado hasta Event Hubs. |
+| **A-004** | Observabilidad end-to-end con correlation ID. |
+
+---
+
+## 7. Vista de despliegue
+
+```text
+Azure                              AWS                         GCP
+-----------------------------      ------------------------    ------------------
+APIM (APP-01)                      mobile-api (APP-15)         Cloud Run proyector
+OMS (APP-02) AKS                   retry-worker                BigQuery
+Inventario (MS-INI01-02) AKS       DynamoDB / S3+KMS           Optimizador
+bus-workers AKS                    SQS → EventBridge           Pub/Sub
+Azure SQL (outbox)
+Event Hubs ← Adaptador AWS→Azure
+Service Bus (colas/DLQ)
+Monitor / Key Vault / Entra
+
+On premises / SaaS: WMS · TMS · ERP · Portal (vía APIM / eventos)
 ```
 
 ---
 
 ## 8. Riesgos y mitigaciones
 
-| Riesgo | Mitigacion |
+| Riesgo | Mitigación |
 |---|---|
-| Azure queda como punto central critico. | Alta disponibilidad, particiones, pruebas de carga, DR y monitoreo proactivo. |
-| Saturacion de eventos en campanas. | Backpressure, particionamiento, colas por consumidor y limites por SLA. |
-| Perdida de datos offline. | Store-and-forward cifrado, acks por evento y reintentos automaticos. |
-| Inconsistencia OMS centralizado / Orquestador de Pedidos (APP-02)/WMS/ERP. | Saga, compensaciones, auditoria y conciliacion automatizada. |
-| Costos intercloud no controlados. | FinOps por dominio, medicion de transferencia y presupuestos por ambiente. |
+| Azure como hub crítico | HA, particiones, DR, monitoreo. |
+| Saturación en campañas | Backpressure, colas por consumidor. |
+| Pérdida offline | Store-and-forward + ACK. |
+| Inconsistencia OMS/WMS | Saga + compensación + auditoría. |
 
 ---
 
-## 9. Recomendacion
+## 9. Recomendación
 
-Se recomienda usar la **Alternativa A** como base del primer TO BE/MVP.
+Usar **Alternativa A** como base del TO BE.
 
-Motivos:
-
-- Menor complejidad de integracion.
-- Mejor alineamiento con Hito 1.
-- OMS centralizado / Orquestador de Pedidos (APP-02), API governance, eventos y observabilidad quedan en el mismo eje.
-- APP-15 y APP-16 no se mueven de AWS.
-- GCP conserva su rol analitico sin asumir gobierno operativo.
-- Facilita APIs mock, contratos, DLQ, replay y trazabilidad desde el inicio.
+- Menor complejidad de integración.
+- Alineada al AS IS (APIM/OMS ya en Azure).
+- APP-15/16 permanecen en AWS.
+- GCP conserva rol analítico.
+- Topología de eventos clara: outbox → `bus-workers` → Event Hubs.

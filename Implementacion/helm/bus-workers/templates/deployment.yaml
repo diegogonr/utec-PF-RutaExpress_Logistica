@@ -20,8 +20,6 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
-            - name: ROLE
-              value: outbox-publisher
             - name: SQL_SERVER
               value: {{ .Values.env.sqlServer | quote }}
             - name: SQL_DATABASE
@@ -36,13 +34,3 @@ spec:
               value: {{ .Values.env.eventhubName | quote }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-        - name: dlq-replay
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          env:
-            - name: ROLE
-              value: dlq-replay-controller
-          resources:
-            limits:
-              cpu: 100m
-              memory: 128Mi

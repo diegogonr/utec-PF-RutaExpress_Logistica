@@ -32,7 +32,7 @@ resource "azurerm_api_management_api_operation_policy" "mock_wms_confirm" {
   XML
 }
 
-# Mock portal tracking (E8 stub en fase Azure — sin BigQuery aún)
+# Mock portal tracking (E8 — contrato lectura CQRS; respuesta mock APIM, infra BQ en GCP)
 resource "azurerm_api_management_api_operation_policy" "mock_portal_tracking" {
   api_name            = azurerm_api_management_api.mock_portal.name
   api_management_name = azurerm_api_management.main.name
@@ -53,8 +53,8 @@ resource "azurerm_api_management_api_operation_policy" "mock_portal_tracking" {
             return new JObject(
               new JProperty("orderId", id),
               new JProperty("status", "IN_TRANSIT"),
-              new JProperty("source", "mock-portal-azure-phase"),
-              new JProperty("note", "Fase GCP añadirá proyección BigQuery")
+              new JProperty("scenario", "E8"),
+              new JProperty("source", "mock-portal-mvp")
             ).ToString();
           }</set-body>
         </return-response>

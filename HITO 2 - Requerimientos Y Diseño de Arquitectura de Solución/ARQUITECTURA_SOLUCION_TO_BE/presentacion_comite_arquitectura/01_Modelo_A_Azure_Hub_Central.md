@@ -1,5 +1,7 @@
 # Modelo A - Azure como hub central de integracion y gobierno
 
+> Diagramas C4: [`../diagramas_c4/`](../diagramas_c4/). Detalle: [`../02_Alternativa_A.md`](../02_Alternativa_A.md).
+
 ## Tesis del modelo
 
 El Modelo A propone que Azure sea el plano principal de gobierno, integracion y operacion del TO BE de RutaExpress. En este modelo, **Orquestador de Pedidos (APP-02)** evoluciona a **OMS centralizado / Orquestador de Pedidos (APP-02)** en Azure, el gobierno de APIs se gestiona con **Azure API Management (APP-01)** y el **Bus de Eventos Central (PLT-03)** se implementa con Azure Event Hubs y Azure Service Bus.
@@ -32,7 +34,7 @@ Mensaje ejecutivo:
 
 ## C4 Nivel 1 - Contexto
 
-![Modelo A - C4 Nivel 1 Contexto](../diagramas_c4/imagenes_python_graphviz/alternativa_A_n1_contexto.png)
+![Modelo A - C4 Nivel 1 Contexto](../diagramas_c4/alternativa_A_n1_contexto.png)
 
 ### Como leer el diagrama
 
@@ -60,7 +62,7 @@ El alcance funcional del Modelo A no es una aplicacion aislada. Es una plataform
 
 ## C4 Nivel 2 - Contenedores
 
-![Modelo A - C4 Nivel 2 Contenedores](../diagramas_c4/imagenes_python_graphviz/alternativa_A_n2_contenedores.png)
+![Modelo A - C4 Nivel 2 Contenedores](../diagramas_c4/alternativa_A_n2_contenedores.png)
 
 ### Como leer el diagrama
 
@@ -68,28 +70,26 @@ Este nivel responde a la pregunta: **como se reparte la plataforma en aplicacion
 
 | Contenedor / grupo | Responsabilidad |
 |---|---|
-| Azure API Management (APP-01) | Expone APIs, contratos, seguridad, cuotas, rate limiting y APIs mock para MVP. |
-| OMS centralizado / Orquestador de Pedidos (APP-02) | Gestiona ciclo de vida de ordenes, validacion, deduplicacion, idempotencia y estados. |
-| Inventario y Reservas | Mantiene vista unificada de stock por SKU, almacen, ubicacion, lote y estado; ejecuta reservas, liberaciones y conciliaciones. |
-| Azure SQL | Repositorio transaccional de OMS centralizado / Orquestador de Pedidos (APP-02), inventario, outbox, auditoria y estado operacional. |
-| Bus de Eventos Central (PLT-03) — Event Hubs / Service Bus | Gestiona eventos canonicos, colas, DLQ, replay, priorizacion y backpressure. |
-| Backend movil AWS (soporte App de Conductores (APP-15)) | Soporta store-and-forward, confirmaciones, reintentos, tracking y excepciones desde la app de conductores. |
-| Almacenamiento Evidencias (S3) (APP-16) — S3/KMS | Conserva fotos, firmas, hashes y documentos de entrega con cifrado y auditoria. |
-| Optimizador GCP (APP-12/APP-24) | Calcula rutas dinamicas usando trafico, capacidad, ventanas, cadena de frio, seguridad y SLA. |
-| WMS / ERP / Portal / CRM | Sistemas externos o transicionales integrados mediante APIs/eventos y adaptadores. |
+| Azure API Management (APP-01) | Expone APIs, contratos, seguridad, cuotas, rate limiting y APIs mock. |
+| OMS centralizado / Orquestador de Pedidos (APP-02) | Ciclo de vida de ordenes, Saga, idempotencia; escribe outbox en Azure SQL. |
+| Inventario y Reservas (MS-INI01-02) | Stock unificado, reservas HTTP; escribe outbox. |
+| Azure SQL | Estado transaccional + tablas outbox. |
+| **`bus-workers`** + Event Hubs + Service Bus (PLT-03) | Poll outbox → stream canonico → colas / DLQ / replay. |
+| Backend movil AWS (`mobile-api`, APP-15) | Store-and-forward, entregas, evidencias. |
+| **`retry-worker`** + SQS / EventBridge | Reintentos de ultima milla hacia el hub Azure. |
+| Adaptador AWS→Azure | EventBridge → Event Hubs. |
+| Almacenamiento Evidencias (S3) (APP-16) | Fotos, firmas, hashes con KMS. |
+| Optimizador / analitica GCP | Rutas dinamicas y proyecciones (BigQuery). |
+| WMS / ERP / Portal / CRM | Externos o transicionales via APIM / eventos. |
 
 ### Flujo principal del Modelo A
 
-1. El cliente ingresa por Azure API Management (APP-01).
-2. Azure API Management (APP-01) valida contrato, seguridad, cuotas y politicas antes de enviar la solicitud al OMS centralizado / Orquestador de Pedidos (APP-02).
-3. El OMS centralizado / Orquestador de Pedidos (APP-02) valida la orden, aplica idempotencia, deduplicacion y registra estado en Azure SQL.
-4. El servicio de Inventario y Reservas consulta y actualiza disponibilidad, reservas y liberaciones.
-5. OMS centralizado / Orquestador de Pedidos (APP-02) e Inventario publican eventos canonicos al Bus de Eventos Central (PLT-03) en Azure.
-6. Service Bus desacopla consumidores: TMS (Transportation Management) (APP-11), backend movil, Portal B2B (Trazabilidad) (APP-18) / CRM de Atención al Cliente (APP-20) y procesos de soporte.
-7. App de Conductores (APP-15) opera con backend movil en AWS, guarda estado offline y evidencias en Almacenamiento Evidencias (S3) (APP-16).
-8. El buffer movil AWS devuelve tracking, excepciones y evidencias hacia el Bus de Eventos Central (PLT-03) en Azure.
-9. GCP consume eventos analiticos para optimizacion dinamica, BigQuery y prediccion.
-10. Plataforma de Observabilidad Unificada (PLT-01) e identidad atraviesan los dominios con correlation ID, trazas, secretos y politicas.
+1. Cliente → Azure API Management (APP-01) → OMS (APP-02).
+2. OMS valida, aplica idempotencia y reserva Inventario por HTTP.
+3. OMS / Inventario escriben estado + outbox en Azure SQL; WMS via APIM (Saga / circuit breaker).
+4. `bus-workers` publica outbox a Event Hubs; Service Bus desacopla consumidores (TMS, portal, GCP).
+5. App de Conductores → `mobile-api` → SQS → `retry-worker` → EventBridge → Adaptador → Event Hubs.
+6. Evidencias en S3/KMS; observabilidad e identidad atraviesan dominios con correlation ID.
 
 ### Decision arquitectonica representada
 
@@ -97,36 +97,29 @@ El hub operativo queda en Azure. Esto reduce puentes entre OMS centralizado / Or
 
 ## C4 Nivel 3 - Componentes del Bus de Eventos Central (PLT-03) en Azure
 
-![Modelo A - C4 Nivel 3 Componentes](../diagramas_c4/imagenes_python_graphviz/alternativa_A_n3_componentes.png)
+![Modelo A - C4 Nivel 3 Componentes](../diagramas_c4/alternativa_A_n3_componentes.png)
 
 ### Como leer el diagrama
 
-Este nivel responde a la pregunta: **como funciona internamente el contenedor critico Bus de Eventos Central (PLT-03) cuando Azure es el hub central**.
+Este nivel responde a la pregunta: **como funciona internamente el Bus de Eventos Central (PLT-03) cuando Azure es el hub**.
 
-| Componente | Objetivo |
+| Pieza | Objetivo |
 |---|---|
-| Event Ingestion API | Recibe eventos canonicos desde OMS centralizado / Orquestador de Pedidos (APP-02), Inventario, backend movil y adaptadores legados. |
-| Schema Validator | Valida contratos, versiones, estructura y compatibilidad de eventos. |
-| Event Router | Enruta eventos por dominio, consumidor, prioridad, SLA y particion. |
-| Ordering Guard | Mantiene secuencia por agregado para evitar desorden en ordenes, inventario y tracking. |
-| Retry Scheduler | Aplica reintentos con backoff y jitter cuando consumidores o sistemas externos fallan. |
-| DLQ Manager | Gestiona mensajes fallidos, causa de error, responsable y remediacion. |
-| Replay Controller | Permite reprocesar eventos de forma auditada y controlada por rol. |
-| Backpressure Controller | Reduce velocidad o prioriza trafico cuando WMS Principal (On Premises) (APP-06), ERP Financiero (On Premises) (APP-25), TMS (Transportation Management) (APP-11) o consumidores se degradan. |
-| Audit / Event Store | Conserva trazabilidad, eventos relevantes y evidencias de intercambio. |
+| Azure SQL (outbox) | OMS e Inventario escriben estado + fila outbox en la misma transaccion. |
+| **`bus-workers`** | Deployment AKS: lee outbox pendiente y publica el evento canonico. |
+| Event Hubs | Stream canonico del hub PLT-03. |
+| Service Bus | Colas por consumidor, DLQ, replay y backpressure. |
+| Schema Validator / Dispatcher | Contratos, enrutado y evolucion del bus. |
+| Adaptador AWS→Azure | Puente controlado: eventos de ultima milla entran al hub Azure. |
 
 ### Flujo interno del Bus de Eventos Central (PLT-03)
 
-1. OMS centralizado / Orquestador de Pedidos (APP-02), Inventario, backend movil y adaptadores publican eventos.
-2. Event Ingestion API recibe eventos y adjunta correlation ID cuando corresponde.
-3. Schema Validator valida contrato, version y estructura.
-4. Event Router distribuye eventos hacia topicos, particiones o colas.
-5. Ordering Guard controla secuencia por agregado.
-6. Retry Scheduler reintenta consumidores degradados.
-7. DLQ Manager captura errores no recuperables.
-8. Replay Controller permite reproceso aprobado.
-9. Audit/Event Store deja evidencia del intercambio.
-10. Plataforma de Observabilidad Unificada (PLT-01) consume metricas, logs y trazas para dashboards y alertas.
+1. OMS / Inventario confirman la operacion y escriben outbox en Azure SQL.
+2. `bus-workers` hace poll del outbox y publica a Event Hubs.
+3. Event Hubs alimenta Service Bus (y consumidores analiticos).
+4. Service Bus entrega a TMS, portal, GCP y demas suscriptores; DLQ captura fallos.
+5. Ultima milla: `mobile-api` → SQS → `retry-worker` → EventBridge → Adaptador → Event Hubs.
+6. Plataforma de Observabilidad Unificada (PLT-01) correlaciona con correlation ID.
 
 ## Lineamientos y patrones aplicados
 

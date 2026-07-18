@@ -1,7 +1,6 @@
 const sql = require("mssql");
 const { EventHubProducerClient } = require("@azure/event-hubs");
 
-const ROLE = process.env.ROLE || "outbox-publisher";
 const POLL_MS = Number(process.env.POLL_MS || 5000);
 
 const sqlConfig = {
@@ -41,16 +40,7 @@ async function runOutboxPublisher() {
   }, POLL_MS);
 }
 
-async function runDlqReplay() {
-  console.log("dlq-replay-controller stub — configurar Service Bus en fase E5 avanzada");
-  setInterval(() => {}, 60000);
-}
-
-if (ROLE === "outbox-publisher") {
-  runOutboxPublisher().catch((e) => {
-    console.error(e);
-    process.exit(1);
-  });
-} else {
-  runDlqReplay();
-}
+runOutboxPublisher().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

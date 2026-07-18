@@ -22,7 +22,7 @@ Este documento compara el Modelo A y el Modelo B despues de haberlos presentado 
 
 ### Modelo A - Contenedores C4
 
-![Modelo A - C4 Nivel 2 Contenedores](../diagramas_c4/imagenes_python_graphviz/alternativa_A_n2_contenedores.png)
+![Modelo A - C4 Nivel 2 Contenedores](../diagramas_c4/alternativa_A_n2_contenedores.png)
 
 Lectura ejecutiva:
 

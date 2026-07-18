@@ -23,6 +23,7 @@ Despliegue paso a paso en **3 fases**: **Azure** (hub) → **AWS** (última mill
 7. [FASE 2 — AWS (E6–E7)](#7-fase-2--aws-e6e7)
 8. [FASE 3 — GCP (E8)](#8-fase-3--gcp-e8)
 9. [Probar todos los escenarios E1–E8](#9-probar-todos-los-escenarios-e1e8)
+   - [Mapa rápido por nube (9.1)](#91-mapa-rápido-qué-nube-interviene-en-cada-prueba)
 10. [Problemas frecuentes](#10-problemas-frecuentes)
 11. [Costos y destruir recursos](#11-costos-y-destruir-recursos)
 12. [Scripts](#scripts)
@@ -93,7 +94,7 @@ Catálogo completo de lo que crea **Terraform** y lo que despliegan **Helm/apps*
 | **AKS** | infra | — | Runtime donde corren APP-02, MS y workers | E1–E5 |
 | **order-service** (pod Helm) | APP | **APP-02** Orquestador de Pedidos | Saga, idempotencia, outbox, orquestación de órdenes | E1–E5 |
 | **inventory-service** (pod Helm) | MS | **MS-INI01-02** Inventario | Reserva/libera stock; valida disponibilidad | E3, E4 |
-| **bus-workers** (pod Helm) | PLT | **PLT-03** Bus (lado publicador) | Lee outbox SQL → publica a Event Hubs y Service Bus | E5 |
+| **bus-workers** (pod Helm) | PLT | **PLT-03** Bus (lado publicador) | Lee outbox SQL → publica a **Event Hubs** (`eh-canonical`) | E5 (parcial) |
 | **otel** (pod Helm, opcional) | PLT | **PLT-01** Observabilidad | Trazas OpenTelemetry desde pods AKS | — |
 | **Azure SQL** `db-orders` | infra | APP-02 | Estado transaccional órdenes, Saga, tabla outbox | E1–E5 |
 | **Azure SQL** `db-inventory` | infra | MS-INI01-02 | Stock, reservas, outbox inventario | E3, E4 |
@@ -146,9 +147,11 @@ Catálogo completo de lo que crea **Terraform** y lo que despliegan **Helm/apps*
 | **BigQuery** dataset + tabla | infra | APP-18 (lectura) | Vista materializada de tracking; no escribe órdenes | E8 |
 | **Secret Manager** | PLT | **PLT-02** + puente Azure | Credencial para leer Event Hubs desde GCP | E8 |
 | **Service Account + IAM** | PLT | **PLT-02** IAM | Identidad del proyector con permiso en BigQuery | — |
-| **mock-portal** (APIM Azure) | mock | **APP-18** Portal tracking | Expone `GET /tracking/{id}` leyendo BigQuery (o stub en fase 1) | E8 |
+| **mock-portal** (APIM Azure) | mock | **APP-18** Portal tracking | Expone `GET /tracking/{id}` — mock MVP (`scenario: E8`); proyeccion BQ en GCP (fase 3) | E8 |
 
 > **CQRS:** APP-02 escribe en Azure (comando); el proyector GCP solo **lee** y proyecta. No hay escritura transaccional en GCP.
+
+> **Prueba E8 en Postman:** la respuesta HTTP sale de **APIM (Azure)**. GCP se demuestra con la infra desplegada (Cloud Run + BigQuery en consola), no en el clic del GET. Ver **§8.3** y **§9.1**.
 
 ---
 
@@ -203,7 +206,7 @@ Vista inversa: **desde el componente de negocio** hacia el recurso cloud que lo 
 | **PLT-02** | IAM y secretos | PLT | Azure | **Entra ID** + **Key Vault** | OAuth en APIM; secretos del bus | — |
 | **PLT-02** | IAM | PLT | AWS | **IAM roles** + **KMS** | Permisos ECS; cifrado S3 | E6–E7 |
 | **PLT-02** | Secretos | PLT | GCP | **Secret Manager** + Service Account | Credencial puente Event Hubs | E8 |
-| **PLT-03** | Bus de eventos central | PLT | Azure | **Event Hubs** + **Service Bus** + pod **bus-workers** | Stream fan-out, colas, DLQ, publicación desde outbox | E5, E8 |
+| **PLT-03** | Bus de eventos central | PLT | Azure | **Event Hubs** + **Service Bus** (infra) + **bus-workers** (outbox → EH) | Stream, colas, DLQ; publicación outbox en MVP solo a Event Hubs | E5, E8 |
 | **PLT-03** | Puente móvil → hub | PLT | AWS | **SQS** + **EventBridge** | Envía eventos de entrega desde AWS hacia Azure | E6 |
 | **PLT-04** | IaC | PLT | Las 3 | **Terraform** + **Helm** + **ACR** | Provisiona infra y despliega artefactos | — |
 
@@ -593,7 +596,7 @@ $body = '{"customerId":"B2B-001","items":[{"sku":"SKU-001","quantity":1}]}'
 
 #### E3 — Sin stock suficiente
 
-**De qué trata:** El cliente pide más unidades de las disponibles (stock inicial ≈ 100 en `SKU-001`).
+**De qué trata:** El cliente pide más unidades de las disponibles (stock inicial ≈ 100 en `SKU-001`). También puedes probar **E3** con `SKU-002`…`SKU-005` (catálogo sin stock en el CD demo).
 
 **Flujo:** order-service pide reserva → **inventory-service** rechaza → la orden **no** se confirma.
 
@@ -656,52 +659,178 @@ Luego prueba de nuevo con `customerId` nuevo (ej. `B2B-E4-4`).
 
 #### E5 — DLQ / replay
 
-**De qué trata:** Mensajes del bus que no se pueden procesar van a la cola de fallidos (dead-letter queue) para revisión y replay manual.
+**De qué trata:** Cuando un **consumidor del bus** no puede procesar un mensaje (schema inválido, error de negocio no recuperable, agotar reintentos), Azure lo mueve a una **dead-letter queue (DLQ)**. Operaciones revisa el payload y puede hacer **replay** (reproceso auditado).
 
-**Flujo:** **bus-workers** (PLT-03) → **Service Bus** → cola **q-dlq** cuando el mensaje es inválido o el consumidor falla.
+**No confundir con E4:** E4 es fallo **HTTP síncrono** del mock WMS (`503`) — la orden compensa y responde al cliente. E5 es fallo **asíncrono en el bus** — el mensaje queda en cola para revisión.
 
-**Cómo probar:** Portal Azure → **Service Bus** → `sb-rutaexpress-mvp` → colas → **q-dlq**. Revisar mensajes y opción de reenvío.
+**¿Si E1–E4 “fallan”, van a DLQ en un flujo normal? → No**
 
-**No usa** `Invoke-RestMethod` contra APIM. En Postman: carpeta **E5 — DLQ replay** (solo instrucciones, sin request HTTP).
+| Escenario | Qué falla | ¿Hay mensaje en el bus? | ¿Va a DLQ? |
+|---|---|:---:|:---:|
+| **E1** OK | — | Sí (outbox → Event Hubs; en TO-BE también `q-inventory`) | No (si el consumidor procesa bien) |
+| **E2** duplicado | HTTP 409 antes de crear orden nueva | No | **No** |
+| **E3** sin stock | HTTP 409 en reserva inventario (saga corta) | **No** — nunca llega al outbox | **No** |
+| **E4** WMS 503 | HTTP 503; compensa y libera stock | **No** — la orden no se confirma ni escribe outbox | **No** |
+| **E5** | Mensaje **ya publicado** y el **consumidor** no puede procesarlo | Sí | **Sí** → `$deadletterqueue` |
+
+En resumen: **DLQ no es para errores HTTP de la Saga (E2–E4)**. Es para mensajes **asíncronos** que ya están en cola y el worker falla o agota reintentos.
+
+**Flujo normal (TO-BE) donde sí aparece E5:**
+
+```text
+E1 exitoso → outbox → bus publica en q-inventory
+       → worker consumidor lee el mensaje
+       → error (schema inválido, dependencia caída, etc.)
+       → reintentos → agota max_delivery_count → $deadletterqueue
+```
+
+**En el MVP hoy:** E1 escribe outbox y **bus-workers** manda a **Event Hubs**, pero **no** a `q-inventory` y **no hay consumidor**. Por eso la demo E5 en Postman **simula** el tramo que falta: encolar en `q-inventory` + abandon ×10 = mismo efecto que un consumidor que siempre falla.
 
 ---
 
-#### E8 stub — Tracking portal (sin GCP)
+**Cómo funciona en el diseño (TO-BE / dossier)**
 
-**De qué trata:** El portal B2B consulta el estado de un envío. En fase 1 es un mock en APIM; con GCP leería BigQuery.
+```text
+APP-02 crea orden → outbox SQL → bus-workers publica evento
+       → Service Bus q-inventory (o Event Hubs)
+       → worker consumidor valida el mensaje
+              ├─ OK → procesa
+              └─ FALLO / N reintentos → DLQ ($deadletterqueue o q-dlq central)
+       → operador: peek → replay auditado
+```
 
-**Flujo:** `GET` → **mock-portal** en APIM → JSON estático de tracking.
+| Cola | Rol |
+|---|---|
+| `q-inventory` | Cola de trabajo del consumidor de inventario |
+| `q-inventory` / **`$deadletterqueue`** | DLQ **nativa de Azure** (mensaje fallido o reintentos agotados) |
+| `q-dlq` | DLQ **central** del diseño (operaciones / Replay Controller) — post-MVP mueve aquí mensajes de varias fuentes |
+
+---
+
+**Qué pasa hoy en el MVP (honesto)**
+
+| Paso | ¿Implementado? |
+|---|---|
+| E1 crea orden y escribe **outbox** en SQL | Sí |
+| **bus-workers** publica outbox → **Event Hubs** | Sí |
+| Publicar a **Service Bus** `q-inventory` desde la app | **No** (infra creada, cableado pendiente) |
+| Consumidor que lee `q-inventory` y valida/falla | **No** (`inventory-service` solo HTTP, no escucha colas) |
+| **Replay Controller** en AKS | **Post-MVP** (replay manual en portal en el MVP) |
+
+Por eso **Postman E1–E4 no generan mensajes en DLQ**: esos escenarios usan HTTP (APIM → order-service → inventory HTTP). El bus asíncrono con consumidor que falle **aún no está cableado**.
+
+Tras un **E1 exitoso** puedes ver el evento en **Event Hubs** (`eh-canonical`), no en Service Bus DLQ.
+
+---
+
+**Cómo probar E5 (sin cambiar el MVP)**
+
+El MVP no cablea Service Bus desde las apps, pero la **infra** (`q-inventory`, `max_delivery_count = 10`) sí existe. La demo **simula** publicador + consumidor que falla hasta agotar reintentos.
+
+**Verificar siempre al final:** Portal → `sb-rutaexpress-mvp` → **Queues** → `q-inventory` → pestaña **`$deadletterqueue`** (no la cola principal) → Service Bus Explorer → **Peek**.
+
+> **No confundir:** el body HTTP del **paso 3** en Postman **no** indica el estado del DLQ. Antes apuntaba al mock **E8** de APIM (`IN_TRANSIT`); ahora es un eco auxiliar. El DLQ **solo** se ve en el portal Azure bajo **`$deadletterqueue`**.
+
+**Si Dead-letter = 0 mensajes:** suele haber **mensajes viejos** en Active de pruebas anteriores; el paso 3 abandonaba mensajes distintos y ninguno llegó a 10 reintentos. **Purga** mensajes Active en `q-inventory` (portal → Service Bus Explorer → Receive and delete o eliminar), luego **paso 2 → paso 3** seguidos.
+
+**Cola `q-dlq`:** DLQ central del diseño (post-MVP); en la demo usa **`$deadletterqueue`** de `q-inventory`.
+
+---
+
+**Opción A — PowerShell + Node (recomendada)**
+
+No pegues la Primary Key a mano: el script lee la **connection string** con `az login`.
+
+> `az servicebus queue message send` **no existe** en Azure CLI (solo gestión de colas).
+
+```powershell
+cd Implementacion\scripts
+.\e5-servicebus-dlq-demo.ps1
+```
+
+Requisitos: **Node.js** + `az login` con acceso a `rg_Diego_Gonzales`. La primera vez instala `@azure/service-bus` en `scripts\`.
+
+Opcional con otro `order_id`:
+
+```powershell
+.\e5-servicebus-dlq-demo.ps1 -OrderId "ORD-E5-DEMO"
+```
+
+Salida esperada:
+
+```text
+[OK] Mensaje encolado en q-inventory
+  Abandon 1/10 deliveryCount=0
+  ...
+  Abandon 10/10 deliveryCount=9
+Listo. Portal: q-inventory -> $deadletterqueue -> Peek
+```
+
+---
+
+**Opción B — Postman (pasos 1→2→3)**
+
+Carpeta: **Azure APIM (fase 1)** → **E5 — DLQ agotar reintentos**.
+
+| Paso | Request | ¿Funciona sin key? | Qué hace |
+|---|---|:---:|---|
+| **1** | `E5 paso 1 — Crear orden` | Sí | Orden OK vía APIM; guarda `e5_order_id` (contexto; en TO-BE dispararía el evento al bus) |
+| **2** | `E5 paso 2 — Encolar evento en q-inventory` | No | REST Service Bus: **simula** el publicador al bus |
+| **3** | `E5 paso 3 — Agotar reintentos` | No | REST: recibe + abandona 10 veces → DLQ real de Azure |
+
+**Antes de pasos 2 y 3:** variable `servicebus_sas_key` en **colección o environment** (no en ambos con valores distintos).
+
+1. Portal → `sb-rutaexpress-mvp` → **Shared access policies** → `RootManageSharedAccessKey` → **Primary Key** (copiar sin espacios).
+2. Postman → colección o environment → `servicebus_sas_key` = ese valor.
+3. Ejecutar en orden: paso 1 → paso 2 → paso 3.
+
+Si paso 2 responde **401**: reimporta la colección Postman (fix SAS en pre-request), verifica `servicebus_sas_key` sin espacios, o usa la **opción A** (script). **No commitees la key.**
+
+Los pasos 2 y 3 generan el token SAS en el pre-request (la Primary Key se usa como texto UTF-8 para el HMAC; no decodificar Base64 en Postman).
+
+---
+
+#### E8 — Tracking portal (CQRS lectura)
+
+**De qué trata:** El portal B2B consulta el estado de un envío (escenario **E8**). En el dossier, la **lectura** es CQRS: escritura en Azure/AWS, **proyección de lectura** en GCP (BigQuery).
+
+**Flujo MVP al hacer clic en Postman:** `GET` → **mock-portal** en APIM (Azure) → JSON con `scenario: "E8"`. **GCP no interviene en esa llamada HTTP.**
+
+**Qué hace GCP entonces (fase 3):** cumple el requisito **multinube + IaC** y deja lista la capa de lectura: **Cloud Run** (proyector) + **BigQuery** `rutaexpress_mvp_tracking` + metadata en **Secret Manager**. En el MVP la imagen de Cloud Run es placeholder y BQ puede estar vacío; el cableado APIM → BigQuery es evolución post-MVP.
+
+**Cómo demostrar E8 multinube al comité:** (1) Postman/ PowerShell → respuesta E8 en APIM; (2) consola GCP → Cloud Run + dataset BigQuery. Narrativa: *entrada Azure (APP-18 mock), proyección GCP (CQRS)*.
 
 ```powershell
 Invoke-RestMethod -Method GET -Uri "$apim/mock/portal/v1/tracking/ORD-123" -Headers @{ "Ocp-Apim-Subscription-Key" = $subKey }
 ```
 
-**Respuesta esperada:** HTTP **200** — JSON con datos de tracking.
+**Respuesta esperada:** HTTP **200** — `orderId`, `status`, `scenario: "E8"`, `source: "mock-portal-mvp"`.
 
-**Postman:** request **E8**.
+**Postman:** request **E8 — Tracking portal (MVP)**.
 
 ---
 
 #### Postman / Insomnia
 
 1. Instala [Postman](https://www.postman.com/downloads/) o [Insomnia](https://insomnia.rest/download).
-2. **Import** → `Implementacion/postman/RutaExpress-MVP-Azure.postman_collection.json`.
+2. **Import** → `Implementacion/postman/RutaExpress-MVP-Azure.postman_collection.json` (si ya la tenías importada, **reimporta** para aplicar el fix SAS de E5).
 3. Variables de colección (en `mvp\` con `terraform output`):
 
 | Variable | Valor |
 |---|---|
 | `apim_base_url` | `terraform output -raw apim_gateway_url` |
 | `apim_subscription_key` | Primary key APIM (§6.7) |
+| `servicebus_sas_key` | Solo **E5 pasos 2–3**: Primary Key de `RootManageSharedAccessKey` (§6.7). Alternativa: script `e5-servicebus-dlq-demo.ps1` |
 | `aws_alb_base_url` | `http://` + `terraform output -raw aws_mobile_alb_dns` (fase 2) |
 
-4. Orden sugerido: **E1 → E2 → E3 → E4 → E8** (Azure) · **Health → E6 → E7** (AWS, tras `build-push-mobile-aws.ps1`).
+4. Orden sugerido: **E1 → E2 → E3 → E4 → E5 (carpeta 3 pasos)** → **E8** (Azure) · **Health → E6 → E7** (AWS).
 
 Carpetas en la colección:
 
 | Carpeta | Escenarios |
 |---|---|
-| **Azure APIM (fase 1)** | E1, E2, E3, E4, E8 |
-| **E5 — DLQ replay** | Solo portal Azure (sin HTTP) |
+| **Azure APIM (fase 1)** | E1, E2, E3, E4, **E5** (subcarpeta 3 pasos), E8 |
+| **E5 — DLQ agotar reintentos** | Dentro de **Azure APIM** → pasos 1→2→3 + portal `$deadletterqueue` (§6.7) |
 | **AWS ALB (fase 2)** | Health, E6, E7 |
 
 En Postman las respuestas 409/503/400 se ven en el panel de respuesta; revisa el body JSON, no solo el código de color.
@@ -979,7 +1108,7 @@ Invoke-RestMethod -Method GET -Uri "$apim/mock/portal/v1/tracking/ORD-123" `
   -Headers @{ "Ocp-Apim-Subscription-Key" = $subKey }
 ```
 
-**Respuesta E8 esperada:** HTTP **200** con JSON de tracking (stub APIM si el proyector aun no tiene datos en BQ).
+**Respuesta E8 esperada:** HTTP **200** — `scenario: "E8"`, `source: "mock-portal-mvp"` (ver JSON abajo).
 
 ---
 
@@ -1054,7 +1183,19 @@ terraform apply phase3.tfplan
 
 ---
 
-**De qué trata:** El portal B2B consulta tracking. APIM expone `GET /mock/portal/v1/tracking/{id}`; con GCP el proyector en **Cloud Run** escribe en **BigQuery**.
+### 8.3 Probar E8 (tracking CQRS)
+
+**De qué trata:** El portal B2B consulta tracking. APIM expone `GET /mock/portal/v1/tracking/{id}`. Infra GCP (Cloud Run + BigQuery) se despliega en fase 3.
+
+**Rol de GCP — lectura simple**
+
+| Pregunta | Respuesta |
+|---|---|
+| ¿GCP responde el GET de Postman E8? | **No.** Responde **APIM en Azure** (política mock). |
+| ¿Para qué sirve GCP en el MVP? | Infra multinube: proyector + BQ + Secret Manager (PLT-02). Diseño CQRS: eventos → proyección en BQ. |
+| ¿BigQuery tiene datos al probar E8? | Puede estar vacío; el mock APIM no consulta BQ. |
+| ¿Qué ver en consola GCP? | Cloud Run `cr-rutaexpress-mvp-projector`, dataset `rutaexpress_mvp_tracking`. |
+| ¿Cómo contar E8 como multinube? | Demo en dos pantallas: Postman (Azure) + consola GCP (lectura materializada). |
 
 **Dónde probar:** `Implementacion\terraform\environments\mvp`
 
@@ -1066,11 +1207,22 @@ Invoke-RestMethod -Method GET -Uri "$apim/mock/portal/v1/tracking/ORD-123" `
   -Headers @{ "Ocp-Apim-Subscription-Key" = $subKey }
 ```
 
-**Postman:** carpeta **Azure APIM** → **E8 — Tracking portal (stub)**.
+**Respuesta esperada:**
 
-Con GCP activo y proyector consumiendo Event Hubs, los datos vendrían de BigQuery. En el MVP el mock APIM puede seguir devolviendo JSON estático hasta que el proyector tenga filas en BQ.
+```json
+{
+  "orderId": "ORD-123",
+  "status": "IN_TRANSIT",
+  "scenario": "E8",
+  "source": "mock-portal-mvp"
+}
+```
 
-**Ver recursos GCP:** consola [https://console.cloud.google.com](https://console.cloud.google.com) → proyecto `gcp_project_id` → **Cloud Run**, **BigQuery**, **Secret Manager**.
+**Postman:** carpeta **Azure APIM** → **E8 — Tracking portal (MVP)**.
+
+> Tras cambiar la politica APIM en codigo, aplica en Azure: `cd mvp\` → `terraform plan -out phase1.tfplan` → `terraform apply phase1.tfplan` (solo actualiza APIM si cambio la politica E8).
+
+**Ver recursos GCP:** consola GCP → **Cloud Run** `cr-rutaexpress-mvp-projector`, **BigQuery** `rutaexpress_mvp_tracking`.
 
 ---
 
@@ -1079,6 +1231,19 @@ Con GCP activo y proyector consumiendo Event Hubs, los datos vendrían de BigQue
 Comandos y explicación detallada por escenario: **§6.7** (E1–E5, E8) · **§7.3** (E6–E7) · **§8.3** (E8 con GCP).
 
 Colección Postman: `Implementacion/postman/RutaExpress-MVP-Azure.postman_collection.json` (**E1–E8**; E5 solo portal Azure).
+
+### 9.1 Mapa rápido: qué nube interviene en cada prueba
+
+| Escenario | Dónde probar | Nube(s) en la demo |
+|---|---|---|
+| **E1–E4** | Postman → APIM | **Azure** |
+| **E5** | Postman E5 (pasos 1–3) + portal `$deadletterqueue` | **Azure** |
+| **E6–E7** | Postman → ALB AWS | **AWS** |
+| **E8** | Postman → APIM (`mock-portal`) | **Azure** (respuesta HTTP) + **GCP** (infra CQRS en consola) |
+
+**Orden sugerido:** E1 → E2 → E3 → E4 → **E5 (portal)** → E8 → (fase 2) Health → E6 → E7 → (fase 3) ver GCP en consola.
+
+**E5 y E8 — no confundir:** E5 es operación en Service Bus (DLQ). E8 es HTTP en Azure; GCP está desplegado para la proyección de lectura, no para el clic de Postman.
 
 ---
 
@@ -1167,6 +1332,7 @@ Confirma con `yes`.
 | `build-push-mobile-aws.ps1` | `docker build/push` mobile-api a **ECR** + redeploy ECS (obligatorio para E6) |
 | `phase3-gcp.ps1` | `enable_gcp=true` + terraform apply |
 | `test-order-api.ps1` | `POST` a APIM mostrando JSON en 409/503 — `& script -ApimBaseUrl $apim ...` (§6.7) |
+| `e5-servicebus-dlq-demo.ps1` | E5 (recomendado): SDK Node + connection string vía `az`; encola + 10 abandons → `$deadletterqueue` (§6.7) |
 
 ---
 

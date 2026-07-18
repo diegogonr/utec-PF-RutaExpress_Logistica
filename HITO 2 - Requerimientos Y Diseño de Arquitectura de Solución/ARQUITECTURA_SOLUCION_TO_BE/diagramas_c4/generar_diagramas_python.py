@@ -8,11 +8,12 @@ para los 3 primeros niveles del C4 Model:
 - Nivel 3: Componentes, un unico contenedor en foco.
 
 Salida:
-  imagenes_python_graphviz/*.png
+  imagenes_python_graphviz/*.png   → solo Alternativa B
+  alternativa_A_*.png           → Alternativa A (en diagramas_c4/)
 
 Uso:
   python generar_diagramas_python.py
-  python generar_diagramas_python.py --only alternativa-a-n1
+  python generar_diagramas_python.py --only alternativa-b-n2
 """
 
 from __future__ import annotations
@@ -28,7 +29,8 @@ from diagrams.azure.analytics import EventHubs, LogAnalyticsWorkspaces
 from diagrams.azure.compute import AKS, FunctionApps
 from diagrams.azure.database import CacheForRedis, SQLManagedInstances
 from diagrams.azure.identity import ActiveDirectory
-from diagrams.azure.integration import APIManagement
+from diagrams.azure.integration import APIManagement, ServiceBus
+from diagrams.onprem.container import Docker
 from diagrams.azure.storage import StorageAccounts
 from diagrams.azure.web import AppServices
 from diagrams.gcp.analytics import Pubsub
@@ -42,7 +44,10 @@ from diagrams.saas import Saas
 
 
 BASE_DIR = Path(__file__).resolve().parent
-OUT_DIR = BASE_DIR / "imagenes_python_graphviz"
+# Preferir cwd al generar (evita corrupción de Unicode en __file__ bajo Windows/PowerShell)
+OUT_DIR = (Path.cwd() / "imagenes_python_graphviz").resolve()
+if not (Path.cwd() / "generar_diagramas_python.py").exists():
+    OUT_DIR = BASE_DIR / "imagenes_python_graphviz"
 
 SOURCE_MARKDOWNS = {
     "alternativa-a-n1": BASE_DIR / "alternativa_A_n1_contexto.md",
@@ -94,11 +99,46 @@ def _validate_sources(targets: list[str]) -> None:
         raise FileNotFoundError("No se encontraron fuentes Markdown: " + ", ".join(missing))
 
 
+def _repo_root() -> Path:
+    here = Path(__file__).resolve().parent
+    for cand in [here, *here.parents]:
+        if (cand / "sync_diagramas_alternativa_A.py").is_file() and (cand / "Implementacion").is_dir():
+            return cand
+    return Path(__file__).resolve().parents[3]
+
+
+def _sync_alternativa_a_images() -> None:
+    """Alternativa A usa las PNG canónicas en diagramas_c4/alternativa_A_*.png."""
+    import runpy
+
+    script = _repo_root() / "sync_diagramas_alternativa_A.py"
+    runpy.run_path(str(script), run_name="__main__")
+
+
 def _diagram(name: str, direction: str = "TB") -> Diagram:
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    return Diagram(
+    """Render en imagenes_python_graphviz (Modelo B y utilidades)."""
+    import shutil
+
+    here = Path(__file__).resolve().parent
+    ascii_out = _repo_root() / "_c4_gen_tmp"
+    ascii_out.mkdir(parents=True, exist_ok=True)
+    final_out = here / "imagenes_python_graphviz"
+    final_out.mkdir(parents=True, exist_ok=True)
+    tmp_file = ascii_out / name
+
+    class _CopyOnExit(Diagram):
+        def __exit__(self, *args):
+            result = super().__exit__(*args)
+            for src in ascii_out.glob(f"{name}.*"):
+                try:
+                    shutil.copy2(src, final_out / src.name)
+                except OSError:
+                    shutil.copy2(src, ascii_out / f"OK_{src.name}")
+            return result
+
+    return _CopyOnExit(
         name,
-        filename=str(OUT_DIR / name),
+        filename=str(tmp_file),
         show=False,
         direction=direction,
         outformat="png",
@@ -124,38 +164,8 @@ def _edge(
 
 
 def alternativa_a_n1_contexto() -> None:
-    """C4 Contexto: un unico sistema central, personas y sistemas externos."""
-    with _diagram("alternativa_A_n1_contexto", "TB"):
-        with Cluster("Personas"):
-            cliente = Users("Cliente B2B / Retail\nordenes y trazabilidad")
-            conductor = User("Conductor\nentregas y evidencias")
-            operador = User("Operacion RutaExpress\nSLA y excepciones")
-            finanzas = User("Finanzas\nconciliacion")
-
-        sistema = Server(
-            "Plataforma Logistica\nRutaExpress TO BE\n"
-            "Alt A: gobierno e integracion centralizados"
-        )
-
-        with Cluster("Sistemas externos"):
-            wms = Server("WMS Principal (On Premises) (APP-06) APP-06 / APP-07")
-            tms = Server("TMS (Transportation Management) (APP-11) APP-11")
-            erp = Server("ERP Financiero (On Premises) (APP-25) APP-25")
-            portal = Saas("Portal B2B / CRM")
-            legados = StorageAccounts("Clientes SaaS\ncanales legados")
-            mapas = Saas("Trafico / mapas")
-
-        cliente >> _edge("crea ordenes / consulta", EDGE_BLUE) >> sistema
-        conductor >> _edge("entregas / tracking", EDGE_BLUE) >> sistema
-        operador >> _edge("gestion operativa", EDGE_PURPLE) >> sistema
-        finanzas >> _edge("soportes liquidacion", EDGE_GRAY) >> sistema
-
-        sistema >> _edge("inventario") >> wms
-        sistema >> _edge("despacho / rutas") >> tms
-        sistema >> _edge("valorizacion") >> erp
-        sistema >> _edge("trazabilidad") >> portal
-        legados >> _edge("ordenes / archivos") >> sistema
-        sistema >> _edge("ETA / trafico") >> mapas
+    """PNG oficial en diagramas_c4/alternativa_A_*.png."""
+    _sync_alternativa_a_images()
 
 
 def alternativa_b_n1_contexto() -> None:
@@ -194,71 +204,9 @@ def alternativa_b_n1_contexto() -> None:
 
 
 def alternativa_a_n2_contenedores() -> None:
-    """C4 Contenedores: aplicaciones y data stores dentro del sistema en alcance."""
-    with _diagram("alternativa_A_n2_contenedores", "LR"):
-        cliente = Users("Cliente B2B")
-        app = Mobile("App Conductores\nAPP-15")
-        ops = User("Operacion / Soporte")
+    """PNG oficial en diagramas_c4/alternativa_A_*.png."""
+    _sync_alternativa_a_images()
 
-        with Cluster("Sistema en alcance: Plataforma Logistica RutaExpress TO BE"):
-            with Cluster("Azure"):
-                apim = APIManagement("Gateway y Gobierno API\nAzure API Management (APP-01)")
-                oms = AKS("OMS centralizado\nAPP-02 sobre AKS")
-                inv = AKS("Inventario y Reservas\nAKS")
-                sql = SQLManagedInstances("Repositorio transaccional\nAzure SQL")
-                bus = EventHubs("Bus de Eventos Central\nBus de Eventos Central (PLT-03) Event Hubs")
-                colas = EventHubs("Colas, DLQ y Replay\nAzure Service Bus")
-                tms_adapter = AKS("Adaptador TMS (Transportation Management) (APP-11)\nAPP-11")
-                obs = LogAnalyticsWorkspaces("Observabilidad unificada\nPlataforma de Observabilidad Unificada (PLT-01)")
-                iam = ActiveDirectory("Identidad y secretos\nPlataforma de Identidad y Accesos (IAM) (PLT-02)")
-
-            with Cluster("AWS"):
-                mobile_backend = Fargate("Backend movil\nECS/Lambda")
-                mobile_db = PostgreSQL("DynamoDB logico\nsync movil")
-                s3 = S3("Repositorio evidencias\nS3 + KMS APP-16")
-                aws_buffer = SQS("Buffer movil\nSQS/EventBridge")
-
-            with Cluster("GCP"):
-                pubsub = Pubsub("Canal analitico\nPub/Sub")
-                optimizer = Run("Optimizador dinamico\nCloud Run/GKE")
-                streaming = Run("Procesamiento analitico\nDataflow")
-                bigquery = StorageAccounts("Repositorio analitico\nBigQuery")
-                ml = Run("Prediccion riesgo\nVertex AI")
-
-        with Cluster("Sistemas externos"):
-            wms = Server("WMS Principal (On Premises) (APP-06) APP-06 / APP-07")
-            erp = Server("ERP Financiero (On Premises) (APP-25) APP-25")
-            portal = Saas("Portal B2B / CRM")
-            legacy = StorageAccounts("Canales legados")
-
-        cliente >> apim >> oms
-        app >> mobile_backend
-        ops >> obs
-        oms >> sql
-        oms >> inv
-        inv >> sql
-        oms >> bus
-        inv >> bus
-        bus >> colas
-        colas >> tms_adapter
-        colas >> mobile_backend
-        mobile_backend >> mobile_db
-        mobile_backend >> s3
-        mobile_backend >> aws_buffer
-        aws_buffer >> _edge("bridge", EDGE_ORANGE, minlen=3) >> bus
-        bus >> pubsub
-        pubsub >> optimizer
-        pubsub >> streaming >> bigquery >> ml
-        optimizer >> tms_adapter
-        inv >> wms
-        inv >> erp
-        colas >> portal
-        legacy >> colas
-        iam >> _edge(style="dashed", minlen=1, constraint=False) >> apim
-        iam >> _edge(style="dashed", minlen=1, constraint=False) >> oms
-        obs >> _edge(style="dashed", minlen=1, constraint=False) >> bus
-        obs >> _edge(style="dashed", minlen=1, constraint=False) >> mobile_backend
-        obs >> _edge(style="dashed", minlen=1, constraint=False) >> optimizer
 
 
 def alternativa_b_n2_contenedores() -> None:
@@ -328,48 +276,9 @@ def alternativa_b_n2_contenedores() -> None:
 
 
 def alternativa_a_n3_componentes() -> None:
-    """C4 Componentes: zoom a un solo contenedor, Bus de Eventos Central (PLT-03) en Azure."""
-    with _diagram("alternativa_A_n3_componentes", "TB"):
-        with Cluster("Contenedores productores"):
-            oms = AKS("OMS centralizado\nAPP-02")
-            inv = AKS("Inventario y Reservas")
-            mobile = Fargate("Backend movil\nAWS")
-            legacy = StorageAccounts("Adaptadores legados")
+    """PNG oficial en diagramas_c4/alternativa_A_*.png."""
+    _sync_alternativa_a_images()
 
-        with Cluster("Contenedor en foco: Bus de Eventos Central (PLT-03)"):
-            ingestion = AppServices("Event Ingestion API")
-            schema = FunctionApps("Schema Validator")
-            router = EventHubs("Event Router")
-            ordering = CacheForRedis("Ordering Guard")
-            retry = FunctionApps("Retry Scheduler")
-            dlq = StorageAccounts("DLQ Manager")
-            replay = FunctionApps("Replay Controller")
-            backpressure = AppServices("Backpressure Controller")
-            audit = StorageAccounts("Audit / Event Store")
-
-        with Cluster("Contenedores consumidores"):
-            tms = AKS("Adaptador TMS (Transportation Management) (APP-11)\nAPP-11")
-            portal = Saas("Portal B2B / CRM")
-            optimizer = Run("Optimizador dinamico\nGCP")
-            obs = LogAnalyticsWorkspaces("Observabilidad\nPlataforma de Observabilidad Unificada (PLT-01)")
-            iam = ActiveDirectory("Identidad / secretos\nPlataforma de Identidad y Accesos (IAM) (PLT-02)")
-
-        oms >> _edge("OrderEvents") >> ingestion
-        inv >> _edge("InventoryEvents") >> ingestion
-        mobile >> _edge("Tracking/Evidence") >> ingestion
-        legacy >> _edge("LegacyNormalized") >> ingestion
-        ingestion >> schema >> router >> ordering >> retry
-        retry >> tms
-        retry >> portal
-        retry >> optimizer
-        router >> dlq >> replay >> router
-        backpressure >> _edge(style="dashed", minlen=1, constraint=False) >> router
-        schema >> audit
-        router >> audit
-        dlq >> audit
-        audit >> obs
-        iam >> _edge(style="dashed", minlen=1, constraint=False) >> ingestion
-        iam >> _edge(style="dashed", minlen=1, constraint=False) >> replay
 
 
 def alternativa_b_n3_componentes() -> None:
@@ -445,10 +354,16 @@ def main() -> None:
     targets = [args.only] if args.only else list(DIAGRAMS.keys())
     _validate_sources(targets)
 
-    print(f"Salida: {OUT_DIR}")
-    for key in targets:
-        print(f"  -> {key}.png")
-        DIAGRAMS[key]()
+    alt_a = [k for k in targets if k.startswith("alternativa-a-")]
+    alt_rest = [k for k in targets if not k.startswith("alternativa-a-")]
+    if alt_a:
+        print("Alternativa A -> diagramas_c4/alternativa_A_*.png")
+        _sync_alternativa_a_images()
+    if alt_rest:
+        print(f"Salida: {OUT_DIR}")
+        for key in alt_rest:
+            print(f"  -> {key}.png")
+            DIAGRAMS[key]()
 
     print("Listo.")
 

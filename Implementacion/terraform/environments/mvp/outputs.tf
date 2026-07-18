@@ -12,6 +12,10 @@ output "eventhub_connection_string" {
   value     = module.azure.eventhub_connection_string
   sensitive = true
 }
+output "servicebus_connection_string" {
+  value     = module.azure.servicebus_connection_string
+  sensitive = true
+}
 
 output "aws_mobile_alb_dns" {
   value = var.enable_aws ? module.aws[0].mobile_alb_dns : null

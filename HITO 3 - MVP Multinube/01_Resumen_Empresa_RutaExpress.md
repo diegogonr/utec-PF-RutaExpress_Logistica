@@ -1,7 +1,7 @@
 # Resumen de la empresa — RutaExpress
 ## Fulfillment & Transporte
 
-> **Para el comité** — Contexto de negocio en **5 minutos** antes del dossier MVP. Términos técnicos: glosario en [`00_INDICE_COMITE.md`](00_INDICE_COMITE.md) §Glosario breve. Detalle completo del Hito 1 → `HITO 1 - Arquitectura Empresarial/`.
+> **Para el comité** — Contexto de negocio en **5 minutos** antes del dossier MVP. Empieza por [`00_INDICE_COMITE.md`](00_INDICE_COMITE.md). Glosario: índice §8. Detalle Hito 1 → `HITO 1 - Arquitectura Empresarial/`.
 
 ---
 

@@ -170,11 +170,11 @@ El cuadro comparativo del Hito 2 (puntaje 5/5 en INI-01/02/03) evalúa si el **p
 
 | RF / capacidad | Alternativa A (diseño Hito 2) | MVP (Hito 3) | Post-MVP / producción |
 |---|---|---|---|
-| **INI-01 — no duplicar órdenes** (idempotencia) | OMS (APP-02) + idempotency-key + dedup en Azure SQL | Implementado; escenarios **E1**, **E2** | Escala campaña 180k/día, todos los canales de ingreso |
-| **INI-01 — reserva y Saga con WMS** | Saga orden → inventario → mock/real WMS; compensación | Implementado con **mock WMS**; **E3**, **E4** | WMS on premises real, conciliación ERP plena |
-| **INI-02 — DLQ y replay** | PLT-03: Service Bus DLQ + Replay Controller en AKS | Implementado; escenario **E5** | Priorización por SLA de cliente (RF-08) |
-| **INI-03 — entrega offline** | Backend AWS, store-and-forward, DynamoDB outbox | Implementado; escenario **E6** | App móvil producto, GPS cada 2 min (RF-12) |
-| **INI-03 — evidencias inmutables** | S3 + KMS, hash, APP-16 | Implementado; escenario **E7** | Integración conciliación INI-06 |
+| **INI-01 — no duplicar órdenes** (idempotencia) | OMS (APP-02) + idempotency-key + dedup en Azure SQL | **Implementado**; escenarios **E1**, **E2** | Escala campaña 180k/día, todos los canales de ingreso |
+| **INI-01 — reserva y Saga con WMS** | Saga orden → inventario → mock/real WMS; compensación | **Implementado** con **mock WMS vía APIM**; **E3**, **E4** (reserva HTTP; Service Bus = objetivo) | WMS on premises real, conciliación ERP plena |
+| **INI-02 — DLQ y replay** | PLT-03: Service Bus DLQ + Replay Controller en AKS | **Parcial**: demo **E5** (DLQ nativa); Replay Controller = **objetivo** | Priorización por SLA de cliente (RF-08) |
+| **INI-03 — entrega offline** | Backend AWS, store-and-forward, DynamoDB outbox | **Parcial**; escenario **E6** (SQLite + API; ACK durable incompleto) | App móvil producto, GPS cada 2 min (RF-12) |
+| **INI-03 — evidencias inmutables** | S3 + KMS, hash, APP-16 | **Parcial**; escenario **E7** (infra lista; lógica completa pendiente) | Integración conciliación INI-06 |
 
 Un RF puede estar **cubierto en el plano (Alternativa A)** y aun así **no estar en la maqueta (MVP)**. Eso no invalida el diseño: el plano indica cómo se haría; la maqueta muestra una parte verificable en el plazo académico. El cierre total queda en **producción (casa entera)**.
 
@@ -294,7 +294,7 @@ Detalle completo: [`02_Dossier_MVP_Alternativa_A.md`](02_Dossier_MVP_Alternativa
 |---|---|---|
 | `02_Dossier_MVP_Alternativa_A.md` | Alcance, patrones, mocks, decisiones post-MVP | Dolores + AS IS + enunciado Hito 3 |
 | `03_C4_Model_MVP.md` | C4 del implementable (no copia literal del Hito 2) | Dossier §1.3, recortado a E1–E8 |
-| `04_IaC_Costos_Despliegue.md` | Terraform multinube y FinOps (~USD 449/mes) | Stack del dossier §1.3 |
+| `04_IaC_Costos_Despliegue.md` | Terraform, FinOps nube/personal/ops y ROI | Stack del dossier §1.3 |
 | `01b_TOBE_vs_MVP_Alternativa_A.md` (este doc) | Marco plano / maqueta / casa entera | Síntesis Hitos 1–3 |
 | `06_Preguntas_Argumentos_Comite.md` | Defensa oral — argumentos no circulares | Dolores, AS IS, comparativas técnicas |
 | `00_INDICE_COMITE.md` | Índice y cumplimiento enunciado | Punto de entrada del paquete |

@@ -28,8 +28,15 @@ async function initDb() {
       status NVARCHAR(20) NOT NULL
     );
     MERGE stock AS t
-    USING (SELECT 'SKU-001' AS sku, 100 AS quantity) AS s
+    USING (VALUES
+      ('SKU-001', 100),
+      ('SKU-002', 0),
+      ('SKU-003', 0),
+      ('SKU-004', 0),
+      ('SKU-005', 0)
+    ) AS s(sku, quantity)
     ON t.sku = s.sku
+    WHEN MATCHED THEN UPDATE SET quantity = s.quantity
     WHEN NOT MATCHED THEN INSERT (sku, quantity) VALUES (s.sku, s.quantity);
   `);
 }
