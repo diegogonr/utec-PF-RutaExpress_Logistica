@@ -125,7 +125,7 @@ Estos archivos no deben duplicarse dentro de cada carpeta `INI-XX_*` ni dentro d
    - No uses `requerimientos.md` ni `criterios_aceptacion_gherkin.md` como respaldo; la fuente vigente es el consolidado `01_Requerimientos_y_Criterios_Aceptacion.md` más los archivos independientes de `historias_gherkin/`.
    - Elabora exactamente dos alternativas de solución TO BE para el alcance completo de Hito 2:
      - Alternativa A: Azure como hub central de integración y gobierno, AWS para última milla/evidencias, GCP para analítica/rutas.
-     - Alternativa B: AWS como hub principal de eventos y backend móvil, Azure para APIs/TMS/OMS, GCP para optimización y analítica.
+     - Alternativa B: orquestación síncrona + monolito modular (OMS + Inventario) con Saga orquestada; eventos solo como notificación; Azure para core/APIs, AWS para última milla/evidencias, GCP para optimización/analítica.
    - Cada alternativa debe cubrir integradamente las capacidades de órdenes/OMS, inventario, integración API-first/event-driven, última milla, evidencias, tracking, excepciones, observabilidad, seguridad y gobierno multinube.
    - Para cada alternativa presenta un Diagrama de Arquitectura de Solución en C4 Model hasta nivel 3:
      - Nivel 1: Contexto.

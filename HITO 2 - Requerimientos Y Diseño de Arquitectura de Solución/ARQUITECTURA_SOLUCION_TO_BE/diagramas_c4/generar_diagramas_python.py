@@ -23,8 +23,7 @@ from pathlib import Path
 
 from diagrams import Cluster, Diagram, Edge
 from diagrams.aws.compute import Fargate
-from diagrams.aws.integration import Eventbridge, SQS
-from diagrams.aws.management import Cloudwatch
+from diagrams.aws.integration import SQS
 from diagrams.aws.storage import S3
 from diagrams.azure.analytics import EventHubs, LogAnalyticsWorkspaces
 from diagrams.azure.compute import AKS, FunctionApps
@@ -180,7 +179,7 @@ def alternativa_b_n1_contexto() -> None:
 
         sistema = Server(
             "Plataforma Logistica\nRutaExpress TO BE\n"
-            "Alt B: eventos y ultima milla priorizados"
+            "Alt B: orquestacion +\nmonolito modular"
         )
 
         with Cluster("Sistemas externos"):
@@ -211,7 +210,7 @@ def alternativa_a_n2_contenedores() -> None:
 
 
 def alternativa_b_n2_contenedores() -> None:
-    """C4 Contenedores: aplicaciones y data stores dentro del sistema en alcance."""
+    """C4 Contenedores: monolito modular + orquestador; eventos solo como notificacion."""
     with _diagram("alternativa_B_n2_contenedores", "LR"):
         cliente = Users("Cliente B2B")
         app = Mobile("App Conductores\nAPP-15")
@@ -220,21 +219,18 @@ def alternativa_b_n2_contenedores() -> None:
         with Cluster("Sistema en alcance: Plataforma Logistica RutaExpress TO BE"):
             with Cluster("Azure"):
                 apim = APIManagement("Gateway y Gobierno API\nAzure API Management (APP-01)")
-                oms = AKS("OMS centralizado / Orquestador de Pedidos (APP-02) e Inventario\nAPP-02 sobre AKS")
+                core = AKS("Nucleo Logistico Modular\nAPP-02 OMS + Inventario")
+                orch = FunctionApps("Orquestador de Procesos\nDurable Functions")
                 sql = SQLManagedInstances("Repositorio transaccional\nAzure SQL")
-                tms_adapter = AKS("Adaptador TMS (Transportation Management) (APP-11)\nAPP-11")
-                az_obs = LogAnalyticsWorkspaces("Telemetria Azure")
+                notif = EventHubs("Canal notificaciones\nService Bus topics")
+                acl = AKS("Adaptadores ACL\nWMS / TMS / ERP")
+                az_obs = LogAnalyticsWorkspaces("Observabilidad\nPlataforma de Observabilidad Unificada (PLT-01)")
                 az_iam = ActiveDirectory("Identidad y secretos\nEntra ID + Key Vault")
 
             with Cluster("AWS"):
-                event_hub = Eventbridge("Hub principal eventos\nEventBridge Bus de Eventos Central (PLT-03)")
-                queues = SQS("Colas, DLQ y Replay\nSQS + workers")
-                adapters = Fargate("Adaptadores y validadores\nLambda/ECS")
                 mobile_backend = Fargate("Backend movil\nECS/Lambda")
                 mobile_db = PostgreSQL("DynamoDB logico\nsync movil")
                 s3 = S3("Repositorio evidencias\nS3 + KMS APP-16")
-                aws_obs = Cloudwatch("Telemetria AWS\nCloudWatch/X-Ray")
-                aws_iam = StorageAccounts("Secretos y roles\nSecrets Manager/IAM")
 
             with Cluster("GCP"):
                 pubsub = Pubsub("Canal analitico\nPub/Sub")
@@ -246,32 +242,37 @@ def alternativa_b_n2_contenedores() -> None:
         with Cluster("Sistemas externos"):
             wms = Server("WMS Principal (On Premises) (APP-06) APP-06 / APP-07")
             erp = Server("ERP Financiero (On Premises) (APP-25) APP-25")
+            tms = Server("TMS (Transportation Management) (APP-11) APP-11")
             portal = Saas("Portal B2B / CRM")
             legacy = StorageAccounts("Canales legados")
 
-        cliente >> apim >> oms
+        cliente >> apim >> core
         app >> mobile_backend
         ops >> az_obs
-        ops >> aws_obs
-        oms >> sql
-        oms >> _edge("bridge Azure-AWS", EDGE_ORANGE, minlen=3) >> event_hub
-        oms >> wms
-        oms >> erp
-        event_hub >> queues >> adapters
-        adapters >> tms_adapter
-        adapters >> portal
-        adapters >> legacy
+        core >> sql
+        core >> orch
+        orch >> core
+        orch >> acl
+        acl >> wms
+        acl >> erp
+        acl >> tms
+        core >> notif
+        orch >> notif
+        notif >> portal
+        notif >> mobile_backend
+        notif >> pubsub
         mobile_backend >> mobile_db
         mobile_backend >> s3
-        mobile_backend >> event_hub
-        event_hub >> pubsub
+        mobile_backend >> _edge("confirmacion API", EDGE_ORANGE, minlen=2) >> apim
         pubsub >> optimizer
         pubsub >> streaming >> bigquery >> ml
-        optimizer >> tms_adapter
+        optimizer >> acl
+        legacy >> apim
         az_iam >> _edge(style="dashed", minlen=1, constraint=False) >> apim
-        az_iam >> _edge(style="dashed", minlen=1, constraint=False) >> oms
-        aws_iam >> _edge(style="dashed", minlen=1, constraint=False) >> mobile_backend
-        aws_iam >> _edge(style="dashed", minlen=1, constraint=False) >> event_hub
+        az_iam >> _edge(style="dashed", minlen=1, constraint=False) >> core
+        az_obs >> _edge(style="dashed", minlen=1, constraint=False) >> core
+        az_obs >> _edge(style="dashed", minlen=1, constraint=False) >> orch
+        az_obs >> _edge(style="dashed", minlen=1, constraint=False) >> mobile_backend
 
 
 def alternativa_a_n3_componentes() -> None:
@@ -281,49 +282,58 @@ def alternativa_a_n3_componentes() -> None:
 
 
 def alternativa_b_n3_componentes() -> None:
-    """C4 Componentes: zoom a un solo contenedor, Bus de Eventos Central (PLT-03) en AWS."""
+    """C4 Componentes: zoom al Nucleo Logistico Modular (APP-02)."""
     with _diagram("alternativa_B_n3_componentes", "TB"):
-        with Cluster("Contenedores productores"):
-            apim = APIManagement("Gateway API\nAzure")
-            oms = AKS("OMS centralizado / Orquestador de Pedidos (APP-02) e Inventario\nAzure AKS")
+        with Cluster("Contenedores colaboradores"):
+            apim = APIManagement("Gateway API\nAzure API Management (APP-01)")
+            orch_rt = FunctionApps("Runtime Orquestador\nDurable Functions")
             mobile = Fargate("Backend movil\nAWS")
             legacy = StorageAccounts("Adaptadores legados")
 
-        with Cluster("Contenedor en foco: Hub principal de eventos Bus de Eventos Central (PLT-03)"):
-            ingestion = Eventbridge("Event Ingestion")
-            schema = FunctionApps("Schema Lambda")
-            rules = Eventbridge("EventBridge Rules")
-            queues = SQS("SQS Queues")
-            ordering = CacheForRedis("Ordering Guard")
-            retry = Fargate("Retry Worker")
-            dlq = SQS("DLQ Processor")
-            replay = Fargate("Replay Worker")
-            throttle = AppServices("Backpressure Controller")
-            audit = StorageAccounts("Audit / Event Store")
+        with Cluster("Contenedor en foco: Nucleo Logistico Modular APP-02"):
+            facade = AppServices("Command API Facade")
+            valid = FunctionApps("Validation and Dedup")
+            order = AKS("Order Lifecycle Module")
+            inv = AKS("Inventory and Reservation")
+            comp = FunctionApps("Compensation Manager")
+            acl = AppServices("External ACL Gateway")
+            notif = EventHubs("Notification Publisher")
+            audit = StorageAccounts("Audit Store")
 
-        with Cluster("Contenedores consumidores"):
-            tms = AKS("Adaptador TMS (Transportation Management) (APP-11)\nAPP-11")
+        with Cluster("Sistemas / contenedores de salida"):
+            wms = Server("WMS APP-06 / APP-07")
+            erp = Server("ERP APP-25")
+            tms = AKS("Adaptador TMS APP-11")
             portal = Saas("Portal B2B / CRM")
-            optimizer = Run("Optimizador dinamico\nGCP")
-            obs = Cloudwatch("Observabilidad federada")
-            iam = StorageAccounts("IAM / Secrets Manager")
+            obs = LogAnalyticsWorkspaces("Observabilidad\nPlataforma de Observabilidad Unificada (PLT-01)")
+            iam = ActiveDirectory("Identidad / secretos\nPlataforma de Identidad y Accesos (IAM) (PLT-02)")
 
-        apim >> _edge("contratos") >> oms
-        oms >> _edge("Order/Inventory") >> ingestion
-        mobile >> _edge("Tracking/Evidence") >> ingestion
-        legacy >> _edge("LegacyNormalized") >> ingestion
-        ingestion >> schema >> rules >> queues >> ordering >> retry
-        retry >> tms
-        retry >> portal
-        retry >> optimizer
-        queues >> dlq >> replay >> rules
-        throttle >> _edge(style="dashed", minlen=1, constraint=False) >> rules
-        schema >> audit
-        rules >> audit
-        dlq >> audit
+        apim >> _edge("CreateOrder") >> facade
+        mobile >> _edge("DeliveryConfirmed") >> facade
+        legacy >> _edge("BulkOrder") >> facade
+        facade >> valid >> order >> inv
+        facade >> orch_rt
+        orch_rt >> order
+        orch_rt >> inv
+        orch_rt >> comp
+        comp >> inv
+        comp >> order
+        inv >> acl
+        order >> acl
+        acl >> wms
+        acl >> erp
+        acl >> tms
+        order >> notif
+        inv >> notif
+        comp >> notif
+        notif >> portal
+        notif >> mobile
+        valid >> audit
+        order >> audit
+        inv >> audit
         audit >> obs
-        iam >> _edge(style="dashed", minlen=1, constraint=False) >> ingestion
-        iam >> _edge(style="dashed", minlen=1, constraint=False) >> replay
+        iam >> _edge(style="dashed", minlen=1, constraint=False) >> facade
+        iam >> _edge(style="dashed", minlen=1, constraint=False) >> acl
 
 
 DIAGRAMS = {
