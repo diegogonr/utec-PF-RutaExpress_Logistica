@@ -663,7 +663,7 @@ app.post("/api/ops/dlq", async (_req, res) => {
       ui: userMessage("dlq_ok", 200, null, {
         cloud: "Azure Service Bus",
         narrative: result.success
-          ? `El aviso de inventario del pedido ${formatOrderIdForUi(orderId)} agotó reintentos y quedó en dead-letter para reproceso auditado.`
+          ? `El aviso del pedido ${formatOrderIdForUi(orderId)} agotó ${result.deadLetterPreview?.deliveryCount || 10} reintentos y quedó en dead-letter para reproceso.`
           : "La simulación ejecutó los reintentos pero no se confirmó el mensaje en dead-letter. Revisa la cola en Azure Portal o vuelve a intentar.",
         steps: result.steps,
         deadLetterPreview: result.deadLetterPreview,
