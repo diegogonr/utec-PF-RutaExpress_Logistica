@@ -3,329 +3,408 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>RutaExpress — Demo operativa</title>
+  <title>RutaExpress</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
-  <header class="app-header">
-    <div class="brand">
-      <div class="brand-logo">RE</div>
-      <div>
-        <h1>RutaExpress</h1>
-        <small>Simulación de operación logística para comité</small>
-      </div>
-    </div>
-    <nav class="role-nav" id="roleNav">
-      <button type="button" data-view="portal" class="active">Portal B2B</button>
-      <button type="button" data-view="ops">TMS</button>
-      <button type="button" data-view="mobile">Conductores</button>
-      <button type="button" data-view="gcp">Dashboards</button>
-    </nav>
-  </header>
-
-  <div class="layout">
-    <nav class="journey-strip" id="journeyStrip" aria-label="Recorrido de la operación">
-      <div class="journey-step" data-journey="portal">
-        <span class="journey-num">1</span>
-        <span class="journey-label">Pedido del cliente</span>
-        <span class="journey-app">Portal B2B <span class="tech-ref">(APP-18)</span></span>
-      </div>
-      <div class="journey-step" data-journey="ops">
-        <span class="journey-num">2</span>
-        <span class="journey-label">Despacho y ruta</span>
-        <span class="journey-app">TMS <span class="tech-ref">(APP-11)</span></span>
-      </div>
-      <div class="journey-step" data-journey="mobile">
-        <span class="journey-num">3</span>
-        <span class="journey-label">Última milla</span>
-        <span class="journey-app">App Conductores <span class="tech-ref">(APP-15)</span></span>
-      </div>
-      <div class="journey-step" data-journey="portal">
-        <span class="journey-num">4</span>
-        <span class="journey-label">Seguimiento</span>
-        <span class="journey-app">Portal B2B <span class="tech-ref">(APP-18)</span></span>
-      </div>
-      <div class="journey-step" data-journey="gcp">
-        <span class="journey-num">5</span>
-        <span class="journey-label">Indicadores gerencia</span>
-        <span class="journey-app">Dashboards <span class="tech-ref">(APP-23)</span></span>
-      </div>
-    </nav>
-
-    <!-- PORTAL B2B -->
-    <section id="view-portal" class="view active">
-      <header class="page-head azure">
-        <span class="role-badge">Cliente B2B</span>
-        <h2>Portal B2B (Trazabilidad) <span class="tech-ref">(APP-18)</span></h2>
-        <p class="lead">
-          El cliente pide que RutaExpress <strong>despache mercadería suya</strong> que ya está en el centro de distribución.
-          RutaExpress opera <strong>fulfillment y transporte</strong>; no vende esos productos.
-          Al confirmar, se valida stock en almacén <span class="tech-ref">(WMS)</span> y se prepara el envío.
-        </p>
-      </header>
-
-      <div class="grid-portal">
-        <div class="card">
-          <h2>Solicitar despacho</h2>
-          <p class="card-desc">Completa el pedido como lo haría un distribuidor o marca en producción.</p>
-          <form id="orderForm">
-            <div class="field">
-              <label>Cliente B2B</label>
-              <input type="text" id="customerId" value="Distribuidora Lima Norte" />
-            </div>
-            <div class="field">
-              <label>Mercadería a despachar</label>
-              <select id="sku">
-                <option value="SKU-001">SKU-001 — Caja retail estándar</option>
-                <option value="SKU-002">SKU-002 — Kit promocional temporada</option>
-                <option value="SKU-003">SKU-003 — Insumo farmacia (cadena frío)</option>
-                <option value="SKU-004">SKU-004 — Electro mediano (marketplace)</option>
-                <option value="SKU-005">SKU-005 — Bebida pack ×24</option>
-              </select>
-              <p class="sku-hint" id="skuHint"></p>
-            </div>
-            <div class="field">
-              <label>Cantidad a enviar</label>
-              <input type="number" id="quantity" value="1" min="1" />
-            </div>
-            <div class="demo-panel">
-              <p class="demo-panel-title">Opciones solo para esta demo</p>
-              <label class="checkbox-row">
-                <input type="checkbox" id="wmsFailure" />
-                Simular almacén no disponible <span class="tech-ref">(libera reserva automática)</span>
-              </label>
-            </div>
-            <button type="submit" class="btn btn-primary" id="btnOrder">Confirmar pedido</button>
-            <button type="button" class="btn btn-secondary" id="btnRetry">Reenviar mismo pedido <span class="tech-ref">(timeout red)</span></button>
-          </form>
-          <div id="portalToast" class="toast"></div>
+<body data-app="portal">
+  <div class="shell">
+    <aside class="rail" aria-label="Aplicaciones">
+      <div class="rail-brand">
+        <div class="rail-mark">RE</div>
+        <div class="rail-brand-text">
+          <strong>RutaExpress</strong>
+          <span>Logística</span>
         </div>
+      </div>
 
-        <div class="card">
-          <h2>Estado de tu pedido</h2>
-          <p class="card-desc">Resumen y línea de tiempo del envío en esta sesión.</p>
-          <div class="order-card" id="orderSummary">
-            <p class="empty-state">Aún no hay pedidos en esta sesión</p>
+      <nav class="rail-nav" id="roleNav">
+        <button type="button" data-view="portal" class="active">
+          <span class="rail-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z"/></svg>
+          </span>
+          <span class="rail-copy">
+            <strong>Portal B2B</strong>
+            <em>Pedidos y seguimiento</em>
+          </span>
+        </button>
+        <button type="button" data-view="inventory">
+          <span class="rail-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7.5 12 3l8 4.5V18l-8 4-8-4V7.5Z"/><path d="M12 12v9M4.5 8.5 12 12l7.5-3.5"/></svg>
+          </span>
+          <span class="rail-copy">
+            <strong>Inventario</strong>
+            <em>Stock y reservas</em>
+          </span>
+        </button>
+        <button type="button" data-view="ops">
+          <span class="rail-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 17h16M6 17V8l4-3 4 3v9M10 17v-4h4v4"/><circle cx="18.5" cy="7.5" r="2.5"/></svg>
+          </span>
+          <span class="rail-copy">
+            <strong>TMS</strong>
+            <em>Despacho y rutas</em>
+          </span>
+        </button>
+        <button type="button" data-view="mobile">
+          <span class="rail-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/></svg>
+          </span>
+          <span class="rail-copy">
+            <strong>Conductores</strong>
+            <em>Última milla</em>
+          </span>
+        </button>
+        <button type="button" data-view="gcp">
+          <span class="rail-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9l4 3 4-6 4 4 4-2v11H4Z"/><path d="M4 19h16"/></svg>
+          </span>
+          <span class="rail-copy">
+            <strong>Analytics</strong>
+            <em>Indicadores</em>
+          </span>
+        </button>
+      </nav>
+
+      <div class="rail-foot">
+        <div class="rail-user">
+          <span class="avatar">DG</span>
+          <div>
+            <strong>Operación</strong>
+            <span>Sesión activa</span>
           </div>
-          <ul class="timeline" id="portalTimeline">
-            <li>Esperando confirmación…</li>
-          </ul>
-          <button type="button" class="btn btn-secondary" id="btnTrack" style="margin-top:1rem">Rastrear envío</button>
         </div>
       </div>
-    </section>
+    </aside>
 
-    <!-- TMS -->
-    <section id="view-ops" class="view">
-      <header class="page-head ops">
-        <span class="role-badge">Equipo de transporte</span>
-        <h2>TMS — Gestión de transporte <span class="tech-ref">(APP-11)</span></h2>
-        <p class="lead">
-          Cuando el almacén reservó el pedido, el TMS recibe el aviso y, en operación normal,
-          arma el manifiesto y asigna la parada al conductor <strong>sin intervención del cliente</strong>.
-          Esta pantalla sirve para supervisar; en el flujo feliz <strong>no hace falta hacer clic aquí</strong>.
-        </p>
-      </header>
-
-      <div class="auto-banner" role="status">
-        <span class="auto-banner-icon" aria-hidden="true">✓</span>
-        <div>
-          <strong>Despacho automático en flujo normal</strong>
-          <p>Al confirmar el pedido en el portal, el TMS incorpora el envío a la ruta y el conductor lo ve en su app.
-            Los detalles técnicos van entre paréntesis en esta demo.</p>
-        </div>
-      </div>
-
-      <div class="grid-ops">
-        <div class="card session-card">
-          <h2>Esta sesión de demo</h2>
-          <p class="card-desc">Datos reales de la simulación en curso — no son indicadores de planta completa.</p>
-          <dl class="session-dl" id="opsSession">
-            <div class="session-row">
-              <dt>Último pedido confirmado</dt>
-              <dd id="opsLastOrder">—</dd>
-            </div>
-            <div class="session-row">
-              <dt>Paradas en ruta</dt>
-              <dd id="opsDeliveries">—</dd>
-            </div>
-            <div class="session-row">
-              <dt>Avisos almacén → transporte</dt>
-              <dd id="opsSbStatus" class="status-pill neutral">—</dd>
-            </div>
-          </dl>
-        </div>
-
-        <div class="card">
-          <h2>Qué ocurre al confirmar un pedido</h2>
-          <ol class="flow-steps">
-            <li class="done">Llega aviso: pedido listo para despacho <span class="tech-ref">(evento vía bus PLT-03)</span></li>
-            <li class="done">TMS agrupa el envío en manifiesto por ruta</li>
-            <li class="done">Asigna conductor y vehículo — visible en App de Conductores <span class="tech-ref">(APP-15)</span></li>
-            <li class="done">El repartidor atiende la parada en última milla</li>
-          </ol>
-          <p class="card-note">
-            Cadena de negocio: Portal B2B <span class="tech-ref">(APP-18)</span> → reserva en almacén
-            <span class="tech-ref">(Orquestador APP-02)</span> → <strong>TMS (APP-11)</strong> → Conductores
-            <span class="tech-ref">(APP-15)</span> → cliente rastrea en Portal.
-          </p>
-        </div>
-      </div>
-
-      <div class="tms-extra">
-        <p class="tms-extra-label">Caso excepcional — solo para la demo</p>
-        <div class="card">
-          <h2>Pedido detenido antes del despacho</h2>
-          <p class="card-desc">
-            Ocasionalmente el pedido está confirmado pero <strong>no llega al TMS</strong> porque falló un aviso interno
-            entre inventario y transporte. El operador revisa el mensaje pendiente
-            <span class="tech-ref">(cola dead-letter en Azure Service Bus)</span> y lo reprocesa.
-            El TMS no causa el fallo: es donde el equipo lo detecta y destraba.
-          </p>
-          <div class="ops-alert">
-            <span class="icon" aria-hidden="true">⚠</span>
-            <div>
-              <strong>Demostrar resiliencia operativa</strong>
-              <p>Simula un aviso de inventario no procesado tras reintentos
-                <span class="tech-ref">(Bus de Eventos Central — PLT-03)</span>.</p>
-            </div>
+    <main class="workspace">
+      <!-- PORTAL B2B -->
+      <section id="view-portal" class="view active app-portal">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Cliente · Portal B2B</p>
+            <h1>Mis despachos</h1>
           </div>
-          <button type="button" class="btn btn-secondary" id="btnDlq">Revisar pedido detenido</button>
-          <div id="opsToast" class="toast"></div>
-          <ul class="ops-steps" id="opsSteps"></ul>
+          <div class="topbar-actions">
+            <span class="live-dot">En línea</span>
+          </div>
+        </header>
+
+        <div class="portal-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <h2>Nuevo pedido</h2>
+              <p>Solicita el despacho de mercadería en el centro de distribución.</p>
+            </div>
+
+            <form id="orderForm" class="form-stack">
+              <div class="field">
+                <label for="customerId">Cliente</label>
+                <input type="text" id="customerId" value="Distribuidora Lima Norte" autocomplete="organization" />
+              </div>
+              <div class="field">
+                <label for="sku">Mercadería</label>
+                <select id="sku">
+                  <option value="SKU-001">SKU-001 — Caja retail estándar</option>
+                  <option value="SKU-002">SKU-002 — Kit promocional temporada</option>
+                  <option value="SKU-003">SKU-003 — Insumo farmacia (cadena frío)</option>
+                  <option value="SKU-004">SKU-004 — Electro mediano (marketplace)</option>
+                  <option value="SKU-005">SKU-005 — Bebida pack ×24</option>
+                </select>
+                <p class="field-hint" id="skuHint"></p>
+              </div>
+              <div class="field">
+                <label for="quantity">Cantidad</label>
+                <input type="number" id="quantity" value="1" min="1" />
+              </div>
+
+              <details class="adv">
+                <summary>Opciones avanzadas</summary>
+                <label class="check">
+                  <input type="checkbox" id="wmsFailure" />
+                  <span>Simular almacén no disponible</span>
+                </label>
+              </details>
+
+              <div class="btn-row">
+                <button type="submit" class="btn btn-primary" id="btnOrder">Confirmar pedido</button>
+                <button type="button" class="btn btn-ghost" id="btnRetry">Reenviar pedido</button>
+              </div>
+            </form>
+            <div id="portalToast" class="toast"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head row">
+              <div>
+                <h2>Seguimiento</h2>
+                <p>Estado del último pedido de esta sesión.</p>
+              </div>
+              <button type="button" class="btn btn-soft" id="btnTrack">Actualizar</button>
+            </div>
+
+            <div class="order-hero" id="orderSummary">
+              <p class="empty">Todavía no hay pedidos en esta sesión.</p>
+            </div>
+            <ol class="timeline" id="portalTimeline">
+              <li class="pending">Esperando confirmación</li>
+            </ol>
+          </article>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- APP CONDUCTOR -->
-    <section id="view-mobile" class="view">
-      <header class="page-head aws">
-        <span class="role-badge">Repartidor</span>
-        <h2>App de Conductores <span class="tech-ref">(APP-15)</span></h2>
-        <p class="lead">
-          El conductor ve las paradas de su ruta, toma la foto de entrega y confirma la entrega.
-          Sin señal, la app guarda y envía cuando vuelve la conexión.
-          Las fotos se archivan en <span class="tech-ref">Almacenamiento Evidencias S3 (APP-16)</span>.
-        </p>
-      </header>
+      <!-- INVENTARIO -->
+      <section id="view-inventory" class="view app-inventory">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Almacén · Inventario</p>
+            <h1>Stock por SKU</h1>
+          </div>
+          <div class="topbar-actions">
+            <button type="button" class="btn btn-soft" id="btnInvRefresh">Actualizar</button>
+            <button type="button" class="btn btn-ghost" id="btnInvReset">Reiniciar sesión</button>
+          </div>
+        </header>
 
-      <div class="mobile-layout">
-        <div class="card mobile-side">
-          <h2>Cómo usar esta pantalla</h2>
-          <ol class="flow-steps compact">
-            <li>Tras confirmar un pedido en el portal, la parada aparece en <strong>Mi ruta</strong>.</li>
-            <li>Toca una parada: se activa automáticamente <span class="tech-ref">(sin botón “aceptar”)</span>.</li>
-            <li>Toma la foto de entrega y confirma — el cliente podrá rastrear el resultado.</li>
-          </ol>
-          <p class="card-note">
-            En la demo, el botón <em>Foto corrupta</em> simula un error de evidencia
-            <span class="tech-ref">(escenario E7)</span>.
-          </p>
+        <div class="inv-stats" id="invStats">
+          <article class="inv-stat"><span>SKUs con stock</span><strong id="invWithStock">—</strong></article>
+          <article class="inv-stat"><span>Unidades disponibles</span><strong id="invUnits">—</strong></article>
+          <article class="inv-stat"><span>Reservas en sesión</span><strong id="invReserved">—</strong></article>
         </div>
 
-        <div class="mobile-wrap">
+        <div class="inv-board">
+          <article class="panel">
+            <div class="panel-head">
+              <h2>Disponibilidad</h2>
+              <p id="invSource">Seed MVP alineado a inventory-service.</p>
+            </div>
+            <div class="inv-table-wrap">
+              <table class="inv-table" id="invTable">
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>Producto</th>
+                    <th>CD</th>
+                    <th>Disponible</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="invTableBody">
+                  <tr><td colspan="5">Cargando…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <h2>Movimientos</h2>
+              <p>Reservas, rechazos y compensaciones de esta sesión.</p>
+            </div>
+            <ul class="inv-movements" id="invMovements">
+              <li class="empty">Aún no hay movimientos. Confirma un pedido en Portal B2B.</li>
+            </ul>
+            <div id="invToast" class="toast"></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- TMS -->
+      <section id="view-ops" class="view app-ops">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Operaciones · TMS</p>
+            <h1>Centro de despacho</h1>
+          </div>
+          <div class="topbar-actions">
+            <span class="chip chip-ok" id="opsLiveChip">Bus conectado</span>
+          </div>
+        </header>
+
+        <div class="ops-grid">
+          <article class="stat-card">
+            <span class="stat-label">Último pedido</span>
+            <strong class="stat-value mono" id="opsLastOrder">—</strong>
+          </article>
+          <article class="stat-card">
+            <span class="stat-label">Paradas en ruta</span>
+            <strong class="stat-value" id="opsDeliveries">—</strong>
+          </article>
+          <article class="stat-card">
+            <span class="stat-label">Inventario → TMS</span>
+            <strong class="stat-value"><span id="opsSbStatus" class="status-pill neutral">—</span></strong>
+          </article>
+        </div>
+
+        <div class="ops-board">
+          <article class="panel grow">
+            <div class="panel-head">
+              <h2>Cola de despacho</h2>
+              <p>Los pedidos confirmados entran solos a ruta. Supervisa el flujo en tiempo real.</p>
+            </div>
+            <div class="pipeline">
+              <div class="pipe done"><span>1</span><div><strong>Pedido listo</strong><em>Reserva en almacén</em></div></div>
+              <div class="pipe done"><span>2</span><div><strong>Manifiesto</strong><em>Agrupado por ruta</em></div></div>
+              <div class="pipe done"><span>3</span><div><strong>Asignación</strong><em>Conductor y vehículo</em></div></div>
+              <div class="pipe"><span>4</span><div><strong>Última milla</strong><em>Visible en Conductores</em></div></div>
+            </div>
+          </article>
+
+          <article class="panel side-panel">
+            <div class="panel-head">
+              <h2>Excepciones</h2>
+              <p>Pedidos detenidos antes del despacho.</p>
+            </div>
+            <div class="exception-box">
+              <strong>Aviso no procesado</strong>
+              <p>Revisa y reprocesa mensajes pendientes entre inventario y transporte.</p>
+              <button type="button" class="btn btn-warn" id="btnDlq">Reprocesar detenido</button>
+            </div>
+            <div id="opsToast" class="toast"></div>
+            <ul class="ops-steps" id="opsSteps"></ul>
+          </article>
+        </div>
+      </section>
+
+      <!-- CONDUCTORES -->
+      <section id="view-mobile" class="view app-mobile">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Campo · App Conductores</p>
+            <h1>Mi ruta de hoy</h1>
+          </div>
+        </header>
+
+        <div class="mobile-stage">
           <div class="phone">
-            <div class="phone-notch"></div>
+            <div class="phone-chrome">
+              <span class="phone-time">09:41</span>
+              <span class="phone-notch"></span>
+              <span class="phone-status">LTE</span>
+            </div>
             <div class="phone-screen">
               <div id="mobileList">
-                <h2>Mi ruta</h2>
-                <p class="sub" id="mobileListSub">Paradas asignadas por el TMS</p>
+                <div class="phone-title">
+                  <h2>Paradas</h2>
+                  <p class="sub" id="mobileListSub">Asignadas por TMS</p>
+                </div>
                 <div id="deliveryList" class="delivery-list"></div>
               </div>
 
               <div id="mobileDetail" class="hidden">
-                <button type="button" class="btn-back" id="btnBackList">← Volver a la ruta</button>
-                <h2>Parada <span id="mobileDeliveryId">#—</span></h2>
-                <p class="sub" id="mobileCustomer">—</p>
+                <button type="button" class="btn-back" id="btnBackList">← Ruta</button>
+                <div class="phone-title">
+                  <h2>Parada <span id="mobileDeliveryId">#—</span></h2>
+                  <p class="sub" id="mobileCustomer">—</p>
+                </div>
 
                 <div class="delivery-card">
                   <div class="label">Dirección</div>
                   <div class="addr" id="mobileAddress">—</div>
-                <div class="label" style="margin-top:0.5rem">Nº de pedido</div>
-                <div class="addr order-id-full" id="mobileOrderRef">—</div>
+                  <div class="label spaced">Pedido</div>
+                  <div class="addr mono order-id-full" id="mobileOrderRef">—</div>
                 </div>
 
                 <div class="step-list">
-                  <div class="step done" id="step1">
-                    <span class="step-num">1</span>
-                    <span>En tránsito</span>
-                  </div>
-                  <div class="step" id="step2">
-                    <span class="step-num">2</span>
-                    <span>Foto de entrega</span>
-                  </div>
-                  <div class="step" id="step3">
-                    <span class="step-num">3</span>
-                    <span>Confirmar entrega</span>
-                  </div>
+                  <div class="step done" id="step1"><span class="step-num">1</span><span>En tránsito</span></div>
+                  <div class="step" id="step2"><span class="step-num">2</span><span>Foto de entrega</span></div>
+                  <div class="step" id="step3"><span class="step-num">3</span><span>Confirmar</span></div>
                 </div>
 
-                <p class="mobile-hint" id="mobileHint">Elige una parada de tu ruta para atenderla.</p>
-                <button type="button" class="btn btn-amber hidden" id="btnPhotoOk">📷 Tomar foto de entrega</button>
-                <button type="button" class="btn btn-outline hidden" id="btnPhotoBad">⚠ Foto corrupta <span class="tech-ref demo-only-inline">(demo E7)</span></button>
+                <p class="mobile-hint" id="mobileHint">Elige una parada para atenderla.</p>
+                <button type="button" class="btn btn-amber hidden" id="btnPhotoOk">Tomar foto</button>
+                <details class="adv phone-adv hidden" id="photoAdv">
+                  <summary>Más opciones</summary>
+                  <button type="button" class="btn btn-outline" id="btnPhotoBad">Simular foto inválida</button>
+                </details>
                 <button type="button" class="btn btn-primary hidden" id="btnComplete" disabled>Confirmar entrega</button>
               </div>
 
-              <div id="mobileToast" class="toast" style="margin-top:0.75rem"></div>
+              <div id="mobileToast" class="toast"></div>
             </div>
           </div>
+
+          <aside class="mobile-aside">
+            <div class="aside-card">
+              <h3>Flujo en campo</h3>
+              <ol>
+                <li>Abre una parada en tránsito</li>
+                <li>Captura la evidencia</li>
+                <li>Confirma la entrega</li>
+              </ol>
+            </div>
+            <div class="aside-card soft">
+              <h3>Sin señal</h3>
+              <p>La app guarda y sincroniza al recuperar conexión.</p>
+            </div>
+          </aside>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- DASHBOARDS -->
-    <section id="view-gcp" class="view">
-      <header class="page-head gcp">
-        <span class="role-badge">Gerencia y planeamiento</span>
-        <h2>Dashboards Operativos <span class="tech-ref">(APP-23)</span></h2>
-        <p class="lead">
-          Vista agregada: pedidos del día, envíos en camino y tendencias por centro de distribución.
-          Los datos provienen de la plataforma analítica
-          <span class="tech-ref">(GCP batch — APP-22)</span>.
-          Aquí ves un <strong>tablero simplificado para el comité</strong>; el cliente rastrea en el Portal B2B, no aquí.
-        </p>
-      </header>
+      <!-- ANALYTICS -->
+      <section id="view-gcp" class="view app-gcp">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Gerencia · Analytics</p>
+            <h1>Tablero operativo</h1>
+          </div>
+          <div class="topbar-actions">
+            <button type="button" class="btn btn-soft" id="btnGcpRefresh">Actualizar</button>
+          </div>
+        </header>
 
-      <div class="grid-portal">
-        <div class="card">
-          <h2>Indicadores del día</h2>
-          <p class="card-desc">
-            Resumen consolidado desde la operación transaccional
-            <span class="tech-ref">(Azure / AWS → BigQuery vía Cloud Run)</span>.
-          </p>
-          <div class="metric-grid" id="gcpMetrics">
-            <div class="metric">
-              <div class="val">—</div>
-              <div class="lbl">Pedidos hoy</div>
-            </div>
-            <div class="metric">
-              <div class="val">—</div>
-              <div class="lbl">En tránsito</div>
-            </div>
-            <div class="metric">
-              <div class="val">—</div>
-              <div class="lbl">Fuente analítica <span class="tech-ref">(APP-22)</span></div>
+        <div class="metric-row" id="gcpMetrics">
+          <article class="metric">
+            <span class="lbl">Pedidos confirmados</span>
+            <strong class="val" data-metric="ordersConfirmed">—</strong>
+          </article>
+          <article class="metric">
+            <span class="lbl">En tránsito</span>
+            <strong class="val" data-metric="inTransit">—</strong>
+          </article>
+          <article class="metric">
+            <span class="lbl">Entregados</span>
+            <strong class="val" data-metric="delivered">—</strong>
+          </article>
+        </div>
+
+        <article class="panel chart-panel">
+          <div class="panel-head row">
+            <div>
+              <h2>Operación en vivo</h2>
+              <p>Distribución real de pedidos, paradas y stock de esta sesión.</p>
             </div>
           </div>
-          <button type="button" class="btn btn-primary" id="btnGcpRefresh">Actualizar indicadores</button>
-          <div id="gcpToast" class="toast"></div>
-        </div>
+          <div class="chart-wrap" id="gcpChart" role="img" aria-label="Gráfico de operación"></div>
+        </article>
 
-        <div class="card">
-          <h2>Qué representa esta pestaña</h2>
-          <ul class="timeline">
-            <li class="done">La operación publica eventos desde pedidos y entregas</li>
-            <li class="done">El MVP proyecta lecturas analíticas en GCP <span class="tech-ref">(patrón CQRS)</span></li>
-            <li class="partial">Este tablero es una vista demo de APP-23 — no el BI completo de producción</li>
-            <li class="done">El cliente final usa Portal B2B para seguimiento, no estos dashboards</li>
-          </ul>
-          <p class="card-note">
-            <strong>Verde:</strong> en flujo real del MVP.
-            <strong>Ámbar:</strong> rol de negocio real, representado de forma simple para la presentación.
-          </p>
+        <div class="gcp-panels">
+          <article class="panel">
+            <div class="panel-head">
+              <h2>Actividad de la sesión</h2>
+              <p>Pedidos y paradas reales de esta operación.</p>
+            </div>
+            <ul class="activity-feed" id="gcpActivity">
+              <li class="empty">Sin actividad aún. Confirma un pedido en Portal B2B.</li>
+            </ul>
+            <div id="gcpToast" class="toast"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head">
+              <h2>Resumen operativo</h2>
+              <p>Totales calculados ahora mismo.</p>
+            </div>
+            <ul class="coverage" id="gcpBreakdown">
+              <li><span>Confirmados</span><em>—</em></li>
+              <li><span>Rechazados</span><em>—</em></li>
+              <li><span>Stock disponible</span><em>—</em></li>
+            </ul>
+          </article>
         </div>
-      </div>
-    </section>
+      </section>
+    </main>
   </div>
 
   <script src="app.js"></script>

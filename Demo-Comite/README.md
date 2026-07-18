@@ -22,9 +22,9 @@ npm run deploy:aks
 ```
 
 Publica la imagen en `acrrutaexpressmvp.azurecr.io/demo-comite` y expone un LoadBalancer.  
-URL actual del despliegue: **http://52.224.204.193**
+URLs: **http://rutaexpress-demo-comite.eastus.cloudapp.azure.com** · **http://52.224.204.193**
 
-> App Service no está disponible en la suscripción (cuota VM = 0 en East US). Se usa el AKS del MVP.
+> Si Docker Desktop no está activo, usa `az acr build` (el script local de Docker falla sin el daemon).
 
 ## Flujo sugerido para presentar (orden de las pestañas)
 

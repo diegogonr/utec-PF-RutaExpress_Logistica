@@ -5,6 +5,12 @@ const https = require("https");
 const crypto = require("crypto");
 const config = require("./lib/config");
 const { runDlqDemo } = require("./lib/dlq-demo");
+const {
+  createInventoryState,
+  snapshot: inventorySnapshot,
+  applyOrderResult,
+  resetInventory,
+} = require("./lib/inventory");
 
 const {
   emptyJourney,
@@ -27,6 +33,8 @@ const session = {
   lastIdempotencyKey: null,
   activeDeliveryId: null,
   deliveries: initDeliveries(),
+  inventory: createInventoryState(),
+  orderLog: [],
 };
 
 bindDeliveriesSession(session);
@@ -153,11 +161,9 @@ function userMessage(type, httpStatus, data, extra = {}) {
       scenario: "E5",
     },
     gcp_info: {
-      title: "Dashboards actualizados",
-      message:
-        "Indicadores desde Plataforma de Analítica (GCP batch) (APP-22) hacia Dashboards Operativos (APP-23). El cliente sigue en Portal B2B (Trazabilidad) (APP-18).",
+      title: "Tablero actualizado",
+      message: "Indicadores calculados con pedidos, inventario y entregas de esta sesión.",
       tone: "info",
-      scenario: "Lectura CQRS",
     },
     upstream_down: {
       title: "Servicio no disponible",
@@ -187,15 +193,25 @@ function userMessage(type, httpStatus, data, extra = {}) {
 }
 
 const TRACKING_LABELS = {
-  CONFIRMED: "Confirmado — preparando despacho",
-  IN_TRANSIT: "En tránsito hacia el cliente",
-  AT_DESTINATION_POD: "En destino — evidencia capturada",
+  CONFIRMED: "Confirmado",
+  IN_TRANSIT: "En tránsito",
+  AT_DESTINATION_POD: "En destino",
   POD_REJECTED: "Evidencia rechazada",
   DELIVERED: "Entregado",
-  CANCELLED_NO_STOCK: "Cancelado — sin unidades en almacén",
-  CANCELLED_WMS: "Cancelado — almacén no disponible",
-  NOT_FOUND: "Orden no encontrada",
-  DEMO_SAMPLE: "En tránsito (orden de ejemplo)",
+  CANCELLED_NO_STOCK: "Sin stock",
+  CANCELLED_WMS: "Almacén no disponible",
+  NOT_FOUND: "No encontrado",
+  DEMO_SAMPLE: "Ejemplo",
+};
+
+/** Misma secuencia en confirmación y en “Actualizar”. */
+const PIPELINE = {
+  happyPrefix: ["Pedido recibido", "Stock reservado", "Listo para despacho", "Asignado a ruta"],
+  inTransit: "En tránsito",
+  atDestination: "En destino",
+  evidenceOk: "Evidencia capturada",
+  evidenceBad: "Evidencia rechazada",
+  delivered: "Entregado",
 };
 
 function resolveTracking(orderId) {
@@ -207,7 +223,7 @@ function resolveTracking(orderId) {
     if (orderId === "ORD-123") {
       return {
         status: "DEMO_SAMPLE",
-        message: "Orden de ejemplo del mock APIM. Crea un pedido en el portal para ver tu flujo real.",
+        message: "Orden de ejemplo. Confirma un pedido en el portal para ver tu seguimiento real.",
         steps: ["Pedido de demo", "En tránsito"],
       };
     }
@@ -221,56 +237,59 @@ function resolveTracking(orderId) {
   if (last.scenario === "E3") {
     return {
       status: "CANCELLED_NO_STOCK",
-      message: "El pedido no se confirmó: no hay unidades disponibles en almacén para despachar.",
-      steps: ["Pedido recibido", "Reserva rechazada", "Cancelado"],
+      message: "El pedido no se confirmó: no hay unidades disponibles en almacén.",
+      steps: ["Pedido recibido", "Sin stock — detenido"],
     };
   }
   if (last.scenario === "E4") {
     return {
       status: "CANCELLED_WMS",
-      message: "El almacén no confirmó. La Saga liberó la reserva; el envío no siguió.",
-      steps: ["Reserva en almacén", "WMS falló", "Compensado — cancelado"],
+      message: "El almacén no confirmó. Se liberó la reserva y el envío no siguió.",
+      steps: ["Reserva iniciada", "Almacén no disponible", "Reserva liberada"],
     };
   }
+
+  const base = [...PIPELINE.happyPrefix];
+
   if (j.deliveryCompleted && j.evidenceValid === true) {
     return {
       status: "DELIVERED",
-      message: "Entrega cerrada con foto POD validada (hash SHA-256 correcto).",
-      steps: ["Despachado", "En tránsito", "Foto POD OK", "Entregado"],
+      message: "Entrega cerrada con evidencia validada.",
+      steps: [...base, PIPELINE.inTransit, PIPELINE.atDestination, PIPELINE.evidenceOk, PIPELINE.delivered],
     };
   }
   if (j.evidenceValid === true && !j.deliveryCompleted) {
     return {
       status: "AT_DESTINATION_POD",
-      message: "El conductor capturó evidencia válida. Falta confirmar cierre de entrega en app.",
-      steps: ["Despachado", "En tránsito", "En destino", "Evidencia capturada"],
+      message: "Evidencia capturada. Falta confirmar el cierre en la app del conductor.",
+      steps: [...base, PIPELINE.inTransit, PIPELINE.atDestination, PIPELINE.evidenceOk],
     };
   }
   if (j.accepted && j.evidenceValid === null && !j.deliveryCompleted) {
     return {
       status: "AT_DESTINATION_POD",
-      message: "Conductor en destino atendiendo la parada. Pendiente foto POD.",
-      steps: ["Despachado", "En tránsito", "En destino"],
+      message: "Conductor en destino. Pendiente foto de entrega.",
+      steps: [...base, PIPELINE.inTransit, PIPELINE.atDestination],
     };
   }
   if (j.evidenceValid === false) {
     return {
       status: "POD_REJECTED",
-      message: "La foto no pasó validación de integridad. El conductor debe capturar de nuevo.",
-      steps: ["Despachado", "En tránsito", "Evidencia rechazada"],
+      message: "La foto no pasó validación. El conductor debe capturarla de nuevo.",
+      steps: [...base, PIPELINE.inTransit, PIPELINE.evidenceBad],
     };
   }
   if (last.scenario === "E1" || last.httpStatus === 201) {
     return {
       status: "IN_TRANSIT",
-      message: "Tu pedido salió del almacén y va en camino. El conductor puede confirmar en la app móvil.",
-      steps: ["Confirmado", "Reserva en almacén", "Despachado", "En tránsito"],
+      message: "Tu pedido está en camino. El conductor lo atiende en la app móvil.",
+      steps: [...base, PIPELINE.inTransit],
     };
   }
   return {
     status: "CONFIRMED",
-    message: "Pedido registrado. Pronto iniciará preparación en almacén.",
-    steps: ["Confirmado"],
+    message: "Pedido registrado. Pronto inicia la preparación en almacén.",
+    steps: ["Pedido recibido"],
   };
 }
 
@@ -281,6 +300,34 @@ app.get("/api/health", (_req, res) => {
     lastOrder: session.lastOrder
       ? { orderId: session.lastOrder.orderId, status: session.lastOrder.status }
       : null,
+  });
+});
+
+app.get("/api/inventory/overview", (_req, res) => {
+  res.json({
+    ok: true,
+    inventory: inventorySnapshot(session.inventory),
+    lastOrder: session.lastOrder
+      ? {
+          orderId: session.lastOrder.orderId,
+          scenario: session.lastOrder.scenario,
+          sku: session.lastOrder.body?.items?.[0]?.sku,
+          quantity: session.lastOrder.body?.items?.[0]?.quantity,
+        }
+      : null,
+  });
+});
+
+app.post("/api/inventory/reset", (_req, res) => {
+  resetInventory(session.inventory);
+  res.json({
+    ok: true,
+    ui: {
+      title: "Inventario reiniciado",
+      message: "La vista de sesión volvió al seed MVP (SKU-001 = 100).",
+      tone: "info",
+    },
+    inventory: inventorySnapshot(session.inventory),
   });
 });
 
@@ -331,6 +378,25 @@ app.post("/api/portal/orders", async (req, res) => {
     httpStatus: status,
     scenario,
   };
+
+  session.orderLog.unshift({
+    at: new Date().toISOString(),
+    orderId: data?.orderId || null,
+    customerId,
+    sku,
+    quantity,
+    scenario,
+    httpStatus: status,
+    ok: status === 201,
+  });
+  if (session.orderLog.length > 30) session.orderLog.length = 30;
+
+  applyOrderResult(session.inventory, {
+    scenario,
+    sku,
+    quantity,
+    orderId: data?.orderId,
+  });
 
   let type = "order_created";
   if (status === 409 && data?.error?.includes("E2")) type = "order_duplicate";
@@ -625,21 +691,80 @@ app.get("/api/ops/overview", (_req, res) => {
 });
 
 app.get("/api/analytics/summary", (_req, res) => {
-  const delivered = session.deliveries.filter((d) => formatDelivery(d).status === "DELIVERED").length;
-  const inTransit = session.deliveries.filter((d) => {
-    const s = formatDelivery(d).status;
-    return s === "IN_TRANSIT" || s === "AT_DESTINATION" || s === "POD_OK";
-  }).length;
-  const ordersToday = session.lastOrder?.httpStatus === 201 ? 1 : 0;
+  const formatted = session.deliveries.map(formatDelivery);
+  const withOrder = formatted.filter((d) => Boolean(d.orderId));
+  const delivered = withOrder.filter((d) => d.status === "DELIVERED").length;
+  const inTransit = withOrder.filter((d) => d.status === "IN_TRANSIT").length;
+  const atDestination = withOrder.filter(
+    (d) => d.status === "AT_DESTINATION" || d.status === "POD_OK"
+  ).length;
+  const confirmed = session.orderLog.filter((o) => o.ok).length;
+  const rejected = session.orderLog.filter((o) => !o.ok).length;
+  const inv = inventorySnapshot(session.inventory);
+
+  const statusLabel = {
+    IN_TRANSIT: "En tránsito",
+    AT_DESTINATION: "En destino",
+    POD_OK: "Evidencia OK",
+    DELIVERED: "Entregado",
+  };
+
+  const activity = [];
+  for (const o of session.orderLog.slice(0, 8)) {
+    activity.push({
+      at: o.at,
+      kind: o.ok ? "order_ok" : "order_fail",
+      title: o.ok ? "Pedido confirmado" : `Pedido rechazado (${o.scenario})`,
+      detail: `${o.sku} · ${o.quantity} uds.${o.orderId ? ` · ${formatOrderIdForUi(o.orderId)}` : ""}`,
+    });
+  }
+  for (const d of withOrder) {
+    activity.push({
+      at: new Date().toISOString(),
+      kind: "delivery",
+      title: `Parada #${d.id} · ${statusLabel[d.status] || d.status}`,
+      detail: `${d.customer} · ${formatOrderIdForUi(d.orderId)}`,
+    });
+  }
+  activity.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+
   res.json({
-    ui: userMessage("gcp_info", 200, null, { cloud: "GCP" }),
+    ui: userMessage("gcp_info", 200, null),
     metrics: {
-      ordersToday: ordersToday + delivered,
+      ordersConfirmed: confirmed,
+      ordersRejected: rejected,
       inTransit,
-      dataset: "rutaexpress_mvp_tracking",
-      projector: "Cloud Run (fase 3)",
-      table: "tracking_projection",
+      atDestination,
+      delivered,
+      stockUnits: inv.totals.units,
+      stockSkus: inv.totals.withStock,
+      reservedUnits: inv.totals.reservedOpen,
+      stopsAssigned: withOrder.length,
     },
+    chart: [
+      { key: "confirmed", label: "Confirmados", value: confirmed, color: "#059669" },
+      { key: "rejected", label: "Rechazados", value: rejected, color: "#d97706" },
+      { key: "transit", label: "En tránsito", value: inTransit, color: "#0d9488" },
+      { key: "destination", label: "En destino", value: atDestination, color: "#0284c7" },
+      { key: "delivered", label: "Entregados", value: delivered, color: "#166534" },
+      { key: "stock", label: "Stock uds.", value: inv.totals.units, color: "#475569" },
+    ],
+    breakdown: [
+      { label: "Confirmados", value: confirmed },
+      { label: "Rechazados", value: rejected },
+      { label: "En tránsito", value: inTransit },
+      { label: "En destino / POD", value: atDestination },
+      { label: "Entregados", value: delivered },
+      { label: "Stock disponible", value: inv.totals.units },
+    ],
+    activity: activity.slice(0, 12),
+    lastOrder: session.lastOrder
+      ? {
+          orderId: session.lastOrder.orderId,
+          scenario: session.lastOrder.scenario,
+          httpStatus: session.lastOrder.httpStatus,
+        }
+      : null,
   });
 });
 

@@ -50,27 +50,19 @@ function updateSkuHint() {
   const el = document.getElementById("skuHint");
   if (!item || !el) return;
   const tone = item.stock > 0 ? "ok" : "warn";
-  el.className = `sku-hint ${tone}`;
-  el.textContent = `${item.cd} · ${item.stock > 0 ? `${item.stock} uds. en almacén para despacho` : "Sin unidades disponibles en almacén"}. ${item.note}`;
+  el.className = `field-hint ${tone}`;
+  el.textContent = `${item.cd} · ${item.stock > 0 ? `${item.stock} uds. disponibles` : "Sin stock disponible"}. ${item.note}`;
 }
 
 const views = document.querySelectorAll(".view");
 const roleNav = document.getElementById("roleNav");
 
-function updateJourneyHighlight(viewName) {
-  const strip = document.getElementById("journeyStrip");
-  if (!strip) return;
-  strip.querySelectorAll(".journey-step").forEach((step) => {
-    step.classList.toggle("current", step.dataset.journey === viewName);
-  });
-}
-
 function showView(name) {
+  document.body.dataset.app = name;
   views.forEach((v) => v.classList.toggle("active", v.id === `view-${name}`));
   roleNav.querySelectorAll("button").forEach((b) => {
     b.classList.toggle("active", b.dataset.view === name);
   });
-  updateJourneyHighlight(name);
 }
 
 roleNav.addEventListener("click", (e) => {
@@ -80,16 +72,93 @@ roleNav.addEventListener("click", (e) => {
     if (btn.dataset.view === "mobile") refreshMobileStatus();
     if (btn.dataset.view === "ops") refreshOpsOverview();
     if (btn.dataset.view === "gcp") refreshGcpMetrics();
+    if (btn.dataset.view === "inventory") refreshInventory();
   }
 });
+
+function formatInvTime(iso) {
+  try {
+    return new Date(iso).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  } catch {
+    return "";
+  }
+}
+
+function renderInventory(data) {
+  const inv = data.inventory;
+  if (!inv) return;
+  document.getElementById("invWithStock").textContent = inv.totals.withStock;
+  document.getElementById("invUnits").textContent = inv.totals.units;
+  document.getElementById("invReserved").textContent = inv.totals.reservedOpen;
+  const src = document.getElementById("invSource");
+  if (src) src.textContent = inv.source;
+
+  const body = document.getElementById("invTableBody");
+  const maxSeed = Math.max(...inv.items.map((i) => i.seed || 1), 1);
+  body.innerHTML = inv.items
+    .map((item) => {
+      const pct = Math.min(100, Math.round((item.available / maxSeed) * 100));
+      const stateLabel = item.available > 0 ? "Disponible" : "Sin stock";
+      const rowClass = item.available > 0 ? "" : "empty-row";
+      return `<tr class="${rowClass}">
+        <td class="sku">${item.sku}</td>
+        <td>${item.label}</td>
+        <td>${item.cd}</td>
+        <td>
+          <div class="qty">${item.available}</div>
+          <div class="stock-bar" aria-hidden="true"><i style="width:${pct}%"></i></div>
+        </td>
+        <td><span class="status-pill ${item.available > 0 ? "ok" : "warn"}">${stateLabel}</span></td>
+      </tr>`;
+    })
+    .join("");
+
+  const mov = document.getElementById("invMovements");
+  if (!inv.movements.length) {
+    mov.innerHTML = '<li class="empty">Aún no hay movimientos. Confirma un pedido en Portal B2B.</li>';
+  } else {
+    mov.innerHTML = inv.movements
+      .map((m) => {
+        const oid = m.orderId ? formatOrderId(m.orderId) : "—";
+        return `<li class="${m.tone || "info"}">
+          <div class="mv-top">
+            <span class="mv-label">${m.label}</span>
+            <span class="mv-time">${formatInvTime(m.at)}</span>
+          </div>
+          <div class="mv-meta">${oid}</div>
+        </li>`;
+      })
+      .join("");
+  }
+
+  // Sync portal SKU hints with live session stock
+  inv.items.forEach((item) => {
+    if (SKU_CATALOG[item.sku]) SKU_CATALOG[item.sku].stock = item.available;
+  });
+  updateSkuHint();
+}
+
+async function refreshInventory() {
+  try {
+    const data = await api("GET", "/api/inventory/overview");
+    renderInventory(data);
+  } catch {
+    /* ignore */
+  }
+}
 
 async function refreshOpsOverview() {
   try {
     const data = await api("GET", "/api/ops/overview");
     const sb = document.getElementById("opsSbStatus");
     if (sb) {
-      sb.textContent = data.serviceBusOk ? "Conectado" : "Revisar conexión";
+      sb.textContent = data.serviceBusOk ? "Conectado" : "Revisar";
       sb.className = `status-pill ${data.serviceBusOk ? "ok" : "warn"}`;
+    }
+    const chip = document.getElementById("opsLiveChip");
+    if (chip) {
+      chip.textContent = data.serviceBusOk ? "Bus conectado" : "Bus con alerta";
+      chip.className = `chip ${data.serviceBusOk ? "chip-ok" : ""}`;
     }
     const last = document.getElementById("opsLastOrder");
     if (last) {
@@ -110,26 +179,108 @@ async function refreshOpsOverview() {
 async function refreshGcpMetrics() {
   try {
     const data = await api("GET", "/api/analytics/summary");
-    const m = data.metrics;
-    const grid = document.getElementById("gcpMetrics");
-    grid.children[0].querySelector(".val").textContent = m.ordersToday;
-    grid.children[1].querySelector(".val").textContent = m.inTransit;
-    grid.children[2].querySelector(".val").textContent = "OK";
+    renderAnalytics(data);
   } catch {
     /* ignore */
   }
 }
 
+function renderAnalytics(data) {
+  const m = data.metrics || {};
+  const grid = document.getElementById("gcpMetrics");
+  if (grid) {
+    grid.querySelector('[data-metric="ordersConfirmed"]').textContent = m.ordersConfirmed ?? 0;
+    grid.querySelector('[data-metric="inTransit"]').textContent = m.inTransit ?? 0;
+    grid.querySelector('[data-metric="delivered"]').textContent = m.delivered ?? 0;
+  }
+
+  renderAnalyticsChart(data.chart || []);
+
+  const feed = document.getElementById("gcpActivity");
+  if (feed) {
+    const rows = data.activity || [];
+    if (!rows.length) {
+      feed.innerHTML = '<li class="empty">Sin actividad aún. Confirma un pedido en Portal B2B.</li>';
+    } else {
+      feed.innerHTML = rows
+        .map((a) => {
+          const time = formatInvTime(a.at);
+          return `<li class="${a.kind || ""}">
+            <div class="mv-top">
+              <span class="mv-label">${a.title}</span>
+              <span class="mv-time">${time}</span>
+            </div>
+            <div class="mv-meta">${a.detail || ""}</div>
+          </li>`;
+        })
+        .join("");
+    }
+  }
+
+  const br = document.getElementById("gcpBreakdown");
+  if (br && data.breakdown) {
+    br.innerHTML = data.breakdown
+      .map((row) => `<li><span>${row.label}</span><em class="ok">${row.value}</em></li>`)
+      .join("");
+  }
+}
+
+function renderAnalyticsChart(series) {
+  const host = document.getElementById("gcpChart");
+  if (!host) return;
+  if (!series.length) {
+    host.innerHTML = '<p class="chart-empty">Sin datos para graficar.</p>';
+    return;
+  }
+
+  const max = Math.max(...series.map((s) => Number(s.value) || 0), 1);
+  const w = 640;
+  const h = 220;
+  const padL = 36;
+  const padR = 16;
+  const padT = 18;
+  const padB = 48;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+  const gap = 12;
+  const barW = (plotW - gap * (series.length - 1)) / series.length;
+
+  const bars = series
+    .map((s, i) => {
+      const val = Number(s.value) || 0;
+      const bh = Math.max(val > 0 ? 8 : 0, (val / max) * plotH);
+      const x = padL + i * (barW + gap);
+      const y = padT + plotH - bh;
+      const label = s.label.length > 11 ? `${s.label.slice(0, 10)}…` : s.label;
+      return `
+        <g class="chart-bar">
+          <rect x="${x}" y="${y}" width="${barW}" height="${bh}" rx="8" fill="${s.color || "#059669"}">
+            <title>${s.label}: ${val}</title>
+          </rect>
+          <text x="${x + barW / 2}" y="${y - 6}" text-anchor="middle" class="chart-val">${val}</text>
+          <text x="${x + barW / 2}" y="${h - 16}" text-anchor="middle" class="chart-lbl">${label}</text>
+        </g>`;
+    })
+    .join("");
+
+  host.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" class="ops-chart" role="presentation">
+      <line x1="${padL}" y1="${padT + plotH}" x2="${w - padR}" y2="${padT + plotH}" class="chart-axis" />
+      ${bars}
+    </svg>`;
+}
+
 function toast(el, ui) {
   if (!ui) return;
   el.className = `toast show ${ui.tone || "info"}`;
-  const meta = [ui.scenario && `Escenario ${ui.scenario}`, ui.cloud].filter(Boolean).join(" · ");
-  el.innerHTML = `<strong>${ui.title}</strong>${ui.message}${meta ? `<div class="meta">${meta}</div>` : ""}`;
+  el.innerHTML = `<strong>${ui.title}</strong>${ui.message || ""}`;
 }
 
 function setBusy(on) {
   state.busy = on;
-  document.querySelectorAll(".btn").forEach((b) => (b.disabled = on));
+  document.querySelectorAll(".btn").forEach((b) => {
+    b.disabled = on;
+  });
 }
 
 async function api(method, path, body) {
@@ -146,7 +297,7 @@ function updateOrderSummary(order, ui) {
   const box = document.getElementById("orderSummary");
   const tl = document.getElementById("portalTimeline");
   if (!order?.orderId) {
-    box.innerHTML = '<p class="empty-state">Aún no hay pedidos en esta sesión</p>';
+    box.innerHTML = '<p class="empty">Todavía no hay pedidos en esta sesión.</p>';
     return;
   }
   state.lastOrderId = order.orderId;
@@ -155,22 +306,24 @@ function updateOrderSummary(order, ui) {
   const skuText = line ? skuLabel(line.sku) : "";
   const qtyText = line ? ` · ${line.quantity} uds.` : "";
   box.innerHTML = `
-    <div class="label" style="font-size:0.75rem;color:var(--muted)">Número de orden</div>
-    <div class="oid">${order.orderId}</div>
-    ${skuText ? `<div class="order-line">${skuText}${qtyText}</div>` : ""}
-    <span class="status-pill ${ok ? "ok" : ""}">${ok ? "CONFIRMADO" : ui?.title || "PROCESADO"}</span>
+    <div>
+      <div class="label">Número de orden</div>
+      <div class="oid">${order.orderId}</div>
+      ${skuText ? `<div class="order-line">${skuText}${qtyText}</div>` : ""}
+      <span class="status-pill ${ok ? "ok" : "warn"}">${ok ? "Confirmado" : ui?.title || "Procesado"}</span>
+    </div>
   `;
   const steps = [];
   if (ok) {
-    steps.push("Pedido recibido", "Unidades reservadas en almacén", "Listo para despacho", "Asignado a ruta");
+    steps.push("Pedido recibido", "Stock reservado", "Listo para despacho", "Asignado a ruta", "En tránsito");
   } else if (ui?.scenario === "E3") {
-    steps.push("Pedido recibido", "Sin unidades en almacén — detenido");
+    steps.push("Pedido recibido", "Sin stock — detenido");
   } else if (ui?.scenario === "E4") {
-    steps.push("Reserva en almacén", "WMS falló", "Saga compensó — reserva liberada");
+    steps.push("Reserva iniciada", "Almacén no disponible", "Reserva liberada");
   } else if (ui?.scenario === "E2") {
     steps.push("Reenvío detectado", "Misma orden devuelta");
   }
-  tl.innerHTML = steps.map((s, i) => `<li class="${i < steps.length ? "done" : ""}">${s}</li>`).join("");
+  tl.innerHTML = steps.map((s) => `<li class="done">${s}</li>`).join("");
 }
 
 document.getElementById("sku").addEventListener("change", updateSkuHint);
@@ -199,6 +352,8 @@ document.getElementById("orderForm").addEventListener("submit", async (e) => {
     toast(document.getElementById("portalToast"), data.ui);
     updateOrderSummary(data.order, data.ui);
     refreshOpsOverview();
+    refreshInventory();
+    refreshGcpMetrics();
     if (data.order?.httpStatus === 201) refreshMobileStatus();
   } catch {
     toast(document.getElementById("portalToast"), {
@@ -232,12 +387,12 @@ document.getElementById("btnTrack").addEventListener("click", async () => {
     if (data.tracking?.steps?.length) {
       const tl = document.getElementById("portalTimeline");
       tl.innerHTML = data.tracking.steps
-        .map((s, i) => `<li class="done">${s}</li>`)
+        .map((s) => `<li class="done">${s}</li>`)
         .join("");
       const box = document.getElementById("orderSummary");
       if (data.tracking.label) {
         const pill = box.querySelector(".status-pill");
-        if (pill) pill.textContent = data.tracking.label.toUpperCase().slice(0, 24);
+        if (pill) pill.textContent = data.tracking.label.slice(0, 28);
       }
     }
   } finally {
@@ -285,7 +440,7 @@ function renderDeliveryList(deliveries) {
       ? `${inTransit.length} parada(s) en tránsito — toca para atender`
       : visible.length > 0
         ? "Sin paradas pendientes en tránsito"
-        : "Confirma un pedido en Portal B2B para ver paradas aquí";
+      : "Confirma un pedido en Portal B2B para ver paradas";
 
   if (!visible.length) {
     list.innerHTML = '<p class="mobile-empty">Aún no hay entregas asignadas a tu ruta.</p>';
@@ -338,39 +493,40 @@ function syncMobileDetail(d) {
   const btnPhotoOk = document.getElementById("btnPhotoOk");
   const btnPhotoBad = document.getElementById("btnPhotoBad");
   const btnComplete = document.getElementById("btnComplete");
+  const photoAdv = document.getElementById("photoAdv");
   const hint = document.getElementById("mobileHint");
 
-  [btnPhotoOk, btnPhotoBad, btnComplete].forEach((b) => b.classList.add("hidden"));
+  [btnPhotoOk, btnComplete, photoAdv].forEach((b) => b && b.classList.add("hidden"));
 
   const j = d.journey;
   if (d.status === "DELIVERED") {
     mobileStep(4);
-    hint.textContent = "Entrega cerrada. El cliente puede rastrear en Portal B2B (Trazabilidad) (APP-18).";
+    hint.textContent = "Entrega cerrada. El cliente ya puede ver el seguimiento.";
     return;
   }
   if (!d.orderId) {
     mobileStep(1);
-    hint.textContent = "Esta parada aún no tiene pedido del portal.";
+    hint.textContent = "Esta parada aún no tiene pedido asociado.";
     return;
   }
   if (j.evidenceValid === true) {
     mobileStep(3);
     btnComplete.classList.remove("hidden");
     btnComplete.disabled = false;
-    hint.textContent = "Foto registrada. Confirma el cierre de la entrega.";
+    hint.textContent = "Evidencia lista. Confirma la entrega.";
     return;
   }
   if (j.evidenceValid === false) {
     mobileStep(2);
     btnPhotoOk.classList.remove("hidden");
-    btnPhotoBad.classList.remove("hidden");
+    photoAdv.classList.remove("hidden");
     hint.textContent = "La foto no fue aceptada. Vuelve a capturarla.";
     return;
   }
   mobileStep(2);
   btnPhotoOk.classList.remove("hidden");
-  btnPhotoBad.classList.remove("hidden");
-  hint.textContent = "En destino: captura la foto de entrega y luego confirma.";
+  photoAdv.classList.remove("hidden");
+  hint.textContent = "Captura la foto de entrega y confirma.";
 }
 
 function mobileStep(n) {
@@ -535,11 +691,7 @@ document.getElementById("btnGcpRefresh").addEventListener("click", async () => {
   try {
     const data = await api("GET", "/api/analytics/summary");
     toast(document.getElementById("gcpToast"), data.ui);
-    const m = data.metrics;
-    const grid = document.getElementById("gcpMetrics");
-    grid.children[0].querySelector(".val").textContent = m.ordersToday;
-    grid.children[1].querySelector(".val").textContent = m.inTransit;
-    grid.children[2].querySelector(".val").textContent = "OK";
+    renderAnalytics(data);
   } finally {
     setBusy(false);
   }
@@ -558,4 +710,27 @@ fetch("/api/health")
   .catch(() => {});
 
 refreshMobileStatus();
-updateJourneyHighlight("portal");
+refreshInventory();
+document.body.dataset.app = "portal";
+
+document.getElementById("btnInvRefresh")?.addEventListener("click", async () => {
+  if (state.busy) return;
+  setBusy(true);
+  try {
+    await refreshInventory();
+  } finally {
+    setBusy(false);
+  }
+});
+
+document.getElementById("btnInvReset")?.addEventListener("click", async () => {
+  if (state.busy) return;
+  setBusy(true);
+  try {
+    const data = await api("POST", "/api/inventory/reset");
+    toast(document.getElementById("invToast"), data.ui);
+    renderInventory(data);
+  } finally {
+    setBusy(false);
+  }
+});
